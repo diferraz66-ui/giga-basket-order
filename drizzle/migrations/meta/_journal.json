@@ -29,6 +29,13 @@
       "when": 1795029331923,
       "tag": "0003_protecao_pedidos_e_fotos",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795030233745,
+      "tag": "0004_restrict_product_photo_downloads",
+      "breakpoints": true
     }
   ]
 }

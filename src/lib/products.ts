@@ -17,6 +17,7 @@ import {
   type ProductTag,
 } from "@/data/catalog";
 import { useAuth } from "@/lib/auth";
+import { getProductImageUrl } from "@/lib/products.functions";
 
 export const productImages: Record<string, string> = {
   potes,
@@ -34,8 +35,12 @@ const validTags: ProductTag[] = ["oferta", "mais-vendido", "novidade", "destaque
 export async function resolveProductImage(row: Pick<Tables<"products">, "id" | "image_key" | "image_url">) {
   if (row.image_url) {
     if (/^https?:\/\//.test(row.image_url)) return row.image_url;
-    const { data } = await supabase.storage.from("product-images").createSignedUrl(row.image_url, 3600);
-    if (data?.signedUrl) return data.signedUrl;
+    try {
+      const { imageUrl } = await getProductImageUrl({ data: { productId: row.id } });
+      if (imageUrl) return imageUrl;
+    } catch {
+      // Keep the bundled fallback when a private photo is unavailable.
+    }
   }
   return (row.image_key && productImages[row.image_key]) ||
     fallbackProducts.find((product) => product.id === row.id)?.image ||

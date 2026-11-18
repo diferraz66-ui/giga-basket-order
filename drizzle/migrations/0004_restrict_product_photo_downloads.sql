@@ -1,0 +1,1 @@
+DROP POLICY "Clientes e equipe veem fotos dos produtos" ON storage.objects;
