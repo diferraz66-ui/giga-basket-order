@@ -9,11 +9,9 @@ import fone from "@/assets/produto-fone.jpg";
 
 export const store = {
   name: "GIGA SHOPPING",
-  // WhatsApp da loja que recebe os pedidos: só dígitos, com 55 + DDD.
   whatsapp: "5575981785898",
 };
 
-/** Preço único da loja, igual à logo. */
 export const UNIQUE_PRICE = 7.5;
 
 export const categories = [
@@ -30,16 +28,20 @@ export const categories = [
 ] as const;
 
 export type CategoryId = (typeof categories)[number]["id"];
+export type ProductTag = "oferta" | "mais-vendido" | "novidade" | "destaque";
 
 export type Product = {
   id: string;
   name: string;
   description: string;
   price: number;
-  oldPrice?: number;
   image: string;
+  imageKey?: string | null;
+  imagePath?: string | null;
+  dimensions: string;
+  status: "available" | "out_of_stock";
   category: CategoryId;
-  tags: Array<"oferta" | "mais-vendido" | "novidade" | "destaque">;
+  tags: ProductTag[];
 };
 
 export const products: Product[] = [
@@ -49,6 +51,9 @@ export const products: Product[] = [
     description: "Tampas com vedação, vão ao micro-ondas e à geladeira.",
     price: UNIQUE_PRICE,
     image: potes,
+    imageKey: "potes",
+    dimensions: "5 peças: 250 ml, 400 ml, 650 ml, 1 L e 1,5 L",
+    status: "available",
     category: "cozinha",
     tags: ["oferta", "mais-vendido"],
   },
@@ -58,6 +63,9 @@ export const products: Product[] = [
     description: "Luz quente com toque, cabeça giratória e cabo USB.",
     price: UNIQUE_PRICE,
     image: luminaria,
+    imageKey: "luminaria",
+    dimensions: "Altura aproximada de 35 cm; cabo USB de 1 m",
+    status: "available",
     category: "casa-decoracao",
     tags: ["destaque"],
   },
@@ -67,6 +75,9 @@ export const products: Product[] = [
     description: "Ideal para maquiagem, bijuterias e escritório.",
     price: UNIQUE_PRICE,
     image: organizador,
+    imageKey: "organizador",
+    dimensions: "Aproximadamente 24 × 15 × 18 cm",
+    status: "available",
     category: "organizacao",
     tags: ["oferta", "destaque"],
   },
@@ -76,6 +87,9 @@ export const products: Product[] = [
     description: "Cerdas macias com porta-pincéis incluso.",
     price: UNIQUE_PRICE,
     image: pinceis,
+    imageKey: "pinceis",
+    dimensions: "9 pincéis com cabos de aproximadamente 12 a 15 cm",
+    status: "available",
     category: "beleza",
     tags: ["mais-vendido"],
   },
@@ -85,6 +99,9 @@ export const products: Product[] = [
     description: "Cores vibrantes, ponta 0.7 mm e caderno espiral.",
     price: UNIQUE_PRICE,
     image: canetas,
+    imageKey: "canetas",
+    dimensions: "Canetas ponta 0,7 mm; caderno tamanho A5",
+    status: "available",
     category: "papelaria",
     tags: ["mais-vendido", "destaque"],
   },
@@ -94,6 +111,9 @@ export const products: Product[] = [
     description: "Giro suave e cores firmes. Diversão para todas as idades.",
     price: UNIQUE_PRICE,
     image: cubo,
+    imageKey: "cubo",
+    dimensions: "Aproximadamente 5,6 × 5,6 × 5,6 cm",
+    status: "available",
     category: "brinquedos",
     tags: ["oferta"],
   },
@@ -103,6 +123,9 @@ export const products: Product[] = [
     description: "Para celulares, óculos, eletrônicos e pequenos reparos.",
     price: UNIQUE_PRICE,
     image: chaves,
+    imageKey: "chaves",
+    dimensions: "Estojo de aproximadamente 20 × 11 × 5 cm; 45 peças",
+    status: "available",
     category: "ferramentas",
     tags: ["novidade"],
   },
@@ -112,6 +135,9 @@ export const products: Product[] = [
     description: "Sem fio, estojo carregador e microfone embutido.",
     price: UNIQUE_PRICE,
     image: fone,
+    imageKey: "fone",
+    dimensions: "Estojo de aproximadamente 6 × 5 × 2,5 cm",
+    status: "available",
     category: "acessorios",
     tags: ["novidade", "oferta", "destaque"],
   },
@@ -134,7 +160,7 @@ export function searchProducts(list: Product[], query: string, category: Categor
       return false;
     }
     if (!q) return true;
-    const hay = `${p.name} ${p.description} ${categoryLabel(p.category)}`
+    const hay = `${p.name} ${p.description} ${p.dimensions} ${categoryLabel(p.category)}`
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");

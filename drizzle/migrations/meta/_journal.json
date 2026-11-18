@@ -15,6 +15,20 @@
       "when": 1795025988725,
       "tag": "0001_reiniciar_numeracao_pedidos",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795029273559,
+      "tag": "0002_sistema_interno_giga",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795029331923,
+      "tag": "0003_protecao_pedidos_e_fotos",
+      "breakpoints": true
     }
   ]
 }

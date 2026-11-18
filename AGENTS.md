@@ -31,7 +31,7 @@ use the editor.
 
 ## Project rules
 
-- Catalog products and categories live in `src/data/catalog.ts` (static, bundled images); move to a database table only when an admin panel is added — keeps the catalog instant on mobile.
+- Catalog products live in `public.products` and are managed in the internal admin; `src/data/catalog.ts` keeps categories and a bundled fallback for an instant first render. Uploaded photos use the private `product-images` bucket with signed URLs.
 - Customers log in with WhatsApp + password: the WhatsApp is normalized (`src/lib/phone.ts`) and mapped to an internal login email; auto-confirm is on because that address cannot receive mail, so email password reset does not work.
 - Customer profile (name, WhatsApp, marketing opt-in with timestamp) is created by the `handle_new_user` trigger from signup metadata; the opt-in must default to false (LGPD).
 - Orders are stored in `public.orders` with an identity `order_number` displayed as `#000001`; the WhatsApp message is built by `buildOrderMessage` in `src/lib/order.ts` — keep its tests in sync.

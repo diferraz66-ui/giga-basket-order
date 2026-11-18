@@ -8,4 +8,13 @@
 - [x] Carrinho lateral: +/- quantidade, remover, total
 - [x] Finalizar pedido: número sequencial (#000001), salvar pedido, abrir WhatsApp com mensagem formatada
 - [x] WhatsApp da loja (75) 98178-5898
-- [x] Preço único R$ 7,50 em todos os produtos
+- [x] Preço padrão R$ 7,50 por unidade, editável pelo Admin/Financeiro
+- [x] Modal de detalhes do produto com zoom, dimensões e compra
+- [x] Confirmação do pedido com WhatsApp em nova aba e resumo copiável
+- [x] Acesso interno seguro para Admin/Financeiro e Vendedor
+- [x] Fluxo manual de Pix, atendimento e finalização apenas pelo Admin/Financeiro
+- [x] Comprovante não fiscal em PDF para visualizar, baixar/imprimir e compartilhar
+- [x] Gestão de produtos, fotos, dimensões, preços, categorias e estoque
+- [x] Clientes com filtros, totais, consentimento e exportação CSV
+- [x] Relatórios de vendas e gestão da equipe
+- [x] Testar fluxos de cliente, vendedor e admin; verificar acesso e regras
