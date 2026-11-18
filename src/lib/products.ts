@@ -31,7 +31,9 @@ export const productImages: Record<string, string> = {
 
 const validTags: ProductTag[] = ["oferta", "mais-vendido", "novidade", "destaque"];
 
-export async function resolveProductImage(row: Pick<Tables<"products">, "id" | "image_key" | "image_url">) {
+export async function resolveProductImage(
+  row: Pick<Tables<"products">, "id" | "image_key" | "image_url">,
+) {
   if (row.image_url) {
     if (/^https?:\/\//.test(row.image_url)) return row.image_url;
     try {
@@ -41,9 +43,11 @@ export async function resolveProductImage(row: Pick<Tables<"products">, "id" | "
       // Keep the bundled fallback when a private photo is unavailable.
     }
   }
-  return (row.image_key && productImages[row.image_key]) ||
+  return (
+    (row.image_key && productImages[row.image_key]) ||
     fallbackProducts.find((product) => product.id === row.id)?.image ||
-    logo;
+    logo
+  );
 }
 
 export function mapProduct(row: Tables<"products">, image: string): Product {
@@ -65,7 +69,9 @@ export function mapProduct(row: Tables<"products">, image: string): Product {
 export async function fetchCatalogProducts() {
   const { data, error } = await supabase.from("products").select("*").order("created_at");
   if (error) throw error;
-  return Promise.all((data ?? []).map(async (row) => mapProduct(row, await resolveProductImage(row))));
+  return Promise.all(
+    (data ?? []).map(async (row) => mapProduct(row, await resolveProductImage(row))),
+  );
 }
 
 export function useCatalogProducts() {

@@ -26,7 +26,10 @@ const whatsappField = z
   .string()
   .trim()
   .min(1, "Informe seu WhatsApp")
-  .refine((value) => normalizeWhatsapp(value) !== null, "Informe o WhatsApp com DDD, ex: (11) 98888-7777");
+  .refine(
+    (value) => normalizeWhatsapp(value) !== null,
+    "Informe o WhatsApp com DDD, ex: (11) 98888-7777",
+  );
 
 const signUpSchema = z.object({
   fullName: z.string().trim().min(3, "Informe seu nome completo").max(100, "Nome muito longo"),
@@ -43,7 +46,8 @@ function maskWhatsapp(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
   if (digits.length <= 2) return digits.length ? `(${digits}` : "";
   if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  if (digits.length <= 10)
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
@@ -70,7 +74,8 @@ export function CheckoutAuthDialog({
 
     if (mode === "signup") {
       const parsed = signUpSchema.safeParse({ fullName, whatsapp, password });
-      if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? "Confira os dados informados.");
+      if (!parsed.success)
+        return setError(parsed.error.issues[0]?.message ?? "Confira os dados informados.");
       const phone = normalizeWhatsapp(parsed.data.whatsapp)!;
       setBusy(true);
       const { data, error: signUpError } = await supabase.auth.signUp({
@@ -100,7 +105,8 @@ export function CheckoutAuthDialog({
     }
 
     const parsed = signInSchema.safeParse({ whatsapp, password });
-    if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? "Confira os dados informados.");
+    if (!parsed.success)
+      return setError(parsed.error.issues[0]?.message ?? "Confira os dados informados.");
     const phone = normalizeWhatsapp(parsed.data.whatsapp)!;
     setBusy(true);
     const { data, error: signInError } = await supabase.auth.signInWithPassword({
@@ -117,16 +123,28 @@ export function CheckoutAuthDialog({
       .eq("id", data.user.id)
       .maybeSingle();
     setBusy(false);
-    if (profileError || !profile) return setError("Não foi possível carregar seu cadastro. Tente novamente.");
-    onAuthenticated({ userId: data.user.id, fullName: profile.full_name, whatsapp: profile.whatsapp });
+    if (profileError || !profile)
+      return setError("Não foi possível carregar seu cadastro. Tente novamente.");
+    onAuthenticated({
+      userId: data.user.id,
+      fullName: profile.full_name,
+      whatsapp: profile.whatsapp,
+    });
   }
 
   return (
-    <Dialog open={open} onOpenChange={(value) => { if (!busy) onOpenChange(value); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(value) => {
+        if (!busy) onOpenChange(value);
+      }}
+    >
       <DialogContent className="max-h-[92vh] overflow-y-auto p-5 sm:max-w-md sm:p-6">
         <DialogHeader>
           <Logo className="mb-2 w-40" />
-          <DialogTitle className="font-display text-xl uppercase">Cadastro para finalizar</DialogTitle>
+          <DialogTitle className="font-display text-xl uppercase">
+            Cadastro para finalizar
+          </DialogTitle>
           <DialogDescription>
             Identifique-se para gerar o pedido e abrir o WhatsApp da loja.
           </DialogDescription>
@@ -139,9 +157,14 @@ export function CheckoutAuthDialog({
               type="button"
               role="tab"
               aria-selected={mode === option}
-              onClick={() => { setMode(option); setError(null); }}
+              onClick={() => {
+                setMode(option);
+                setError(null);
+              }}
               className={`rounded-full px-2 py-2.5 text-sm font-bold transition-colors ${
-                mode === option ? "bg-primary text-primary-foreground shadow-soft" : "text-muted-foreground"
+                mode === option
+                  ? "bg-primary text-primary-foreground shadow-soft"
+                  : "text-muted-foreground"
               }`}
             >
               {option === "signup" ? "Criar cadastro" : "Já tenho cadastro"}
@@ -198,14 +221,18 @@ export function CheckoutAuthDialog({
                 className="mt-0.5"
               />
               <span>
-                Autorizo receber mensagens, novidades, promoções e ofertas da GIGA Shopping pelo WhatsApp.
+                Autorizo receber mensagens, novidades, promoções e ofertas da GIGA Shopping pelo
+                WhatsApp.
                 <span className="mt-1 block text-xs text-muted-foreground">Opcional.</span>
               </span>
             </label>
           )}
 
           {error && (
-            <p role="alert" className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground">
+            <p
+              role="alert"
+              className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground"
+            >
               {error}
             </p>
           )}

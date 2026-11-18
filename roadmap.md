@@ -1,7 +1,7 @@
 # Roadmap — GIGA SHOPPING Catálogo Digital
 
 - [x] Identidade visual vermelho/preto/branco + logo oficial (cabeçalho e entrada)
-- [x] Tela de entrada: login/cadastro (nome, WhatsApp como usuário, senha, opt-in LGPD desmarcado), sessão salva
+- [x] Cadastro/login no checkout (nome, WhatsApp como usuário, senha, opt-in LGPD desmarcado), sessão salva
 - [x] Home: cabeçalho fixo (logo, busca, carrinho com contador), banner, 10 categorias roláveis
 - [x] Seções: Ofertas Especiais, Mais Vendidos, Novidades, Produtos em Destaque
 - [x] 8 produtos de exemplo com fotos
@@ -24,6 +24,6 @@
 - [x] Finalizar somente com comprovante válido para o total atual
 - [x] Visualizar comprovante Pix e reemitir cupom não fiscal no histórico
 - [x] Testar permissões, edição, validação, cancelamento e finalização
-- [ ] Vitrine pública e cadastro/login somente no checkout
-- [ ] Dados oficiais da loja no cabeçalho do cupom não fiscal
-- [ ] Envio do texto completo do cupom ao WhatsApp do cliente
+- [x] Vitrine pública e cadastro/login somente no checkout
+- [x] Dados oficiais da loja no cabeçalho do cupom não fiscal
+- [x] Envio do texto completo do cupom ao WhatsApp do cliente

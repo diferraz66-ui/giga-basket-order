@@ -40,26 +40,30 @@ export function CatalogHeader({
         </label>
 
         <div className="flex shrink-0 items-center gap-1">
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              aria-label="Minha conta"
-              className="hidden size-11 items-center justify-center rounded-full hover:bg-muted sm:flex"
-            >
-              <User className="size-5" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="font-normal">
-                <p className="truncate font-bold">{profile?.full_name ?? "Cliente"}</p>
-                {profile && (
-                  <p className="text-xs text-muted-foreground">{formatWhatsapp(profile.whatsapp)}</p>
-                )}
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => void signOut()}>
-                <LogOut className="size-4" /> Sair
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {session && (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label="Minha conta"
+                className="hidden size-11 items-center justify-center rounded-full hover:bg-muted sm:flex"
+              >
+                <User className="size-5" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="font-normal">
+                  <p className="truncate font-bold">{profile?.full_name ?? "Cliente"}</p>
+                  {profile && (
+                    <p className="text-xs text-muted-foreground">
+                      {formatWhatsapp(profile.whatsapp)}
+                    </p>
+                  )}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => void signOut()}>
+                  <LogOut className="size-4" /> Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           <button
             onClick={() => setOpen(true)}

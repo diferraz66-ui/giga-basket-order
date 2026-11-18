@@ -50,11 +50,7 @@ export function ReceiptDialog({
 
   function share() {
     const message = buildReceiptMessage(order);
-    window.open(
-      whatsappLink(order.customer_whatsapp, message),
-      "_blank",
-      "noopener,noreferrer",
-    );
+    window.open(whatsappLink(order.customer_whatsapp, message), "_blank", "noopener,noreferrer");
   }
 
   return (

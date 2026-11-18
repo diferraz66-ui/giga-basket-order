@@ -45,9 +45,10 @@ export const getProductImageUrl = createServerFn({ method: "POST" })
 
     const publicSupabaseUrl = process.env["VITE_SUPABASE_URL"]?.replace(/\/+$/, "");
     const serverSupabaseUrl = process.env["SUPABASE_URL"]?.replace(/\/+$/, "");
-    const imageUrl = publicSupabaseUrl && serverSupabaseUrl && signed.signedUrl.startsWith(`${serverSupabaseUrl}/`)
-      ? `${publicSupabaseUrl}${signed.signedUrl.slice(serverSupabaseUrl.length)}`
-      : signed.signedUrl;
+    const imageUrl =
+      publicSupabaseUrl && serverSupabaseUrl && signed.signedUrl.startsWith(`${serverSupabaseUrl}/`)
+        ? `${publicSupabaseUrl}${signed.signedUrl.slice(serverSupabaseUrl.length)}`
+        : signed.signedUrl;
 
     return { imageUrl };
   });

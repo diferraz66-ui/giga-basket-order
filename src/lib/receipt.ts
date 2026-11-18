@@ -71,7 +71,7 @@ export async function createReceiptBlob(order: Order) {
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
-    doc.text(receiptStoreLines[0], margin, 32);
+    doc.text(receiptStoreLines[0]!, margin, 32);
     doc.setFontSize(10);
     receiptStoreLines.slice(1).forEach((line, index) => {
       doc.text(line, margin, 54 + index * 16);
