@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ALTER COLUMN order_number RESTART WITH 1;
