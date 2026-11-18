@@ -31,14 +31,27 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { cartTotal, formatBRL, formatOrderNumber, whatsappLink } from "@/lib/order";
+import {
+  cartTotal,
+  formatBRL,
+  formatOrderNumber,
+  isProductLimitReached,
+  productLimitMessage,
+  whatsappLink,
+} from "@/lib/order";
 import { formatWhatsapp } from "@/lib/phone";
-import { buildPixMessage, formatDateTime, type Order, type OrderItem } from "@/lib/operations";
+import {
+  buildPixMessage,
+  formatDateTime,
+  orderDeliveryLines,
+  type Order,
+  type OrderItem,
+} from "@/lib/operations";
 import { hasValidProofForCurrentTotal } from "@/lib/payment-proof";
 import { uploadPaymentProof } from "@/lib/orders.functions";
 import { orderStatusLabels, type OrderStatus } from "@/lib/staff";
 
-type CatalogProduct = Pick<Tables<"products">, "id" | "name" | "price" | "status">;
+type CatalogProduct = Pick<Tables<"products">, "id" | "name" | "price" | "status" | "max_per_customer">;
 type BusyAction = "status" | "items" | "proof" | "finalize" | "cancel" | null;
 
 export function OrderCard({
@@ -57,6 +70,7 @@ export function OrderCard({
   const active = ["received", "in_progress", "awaiting_pix"].includes(order.status);
   const [items, setItems] = useState<OrderItem[]>(order.items);
   const [query, setQuery] = useState("");
+  const [purchasedQuantities, setPurchasedQuantities] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState<BusyAction>(null);
   const [proofError, setProofError] = useState<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -68,6 +82,34 @@ export function OrderCard({
     setItems(order.items);
     setProofError(null);
   }, [order.id, order.updated_at, order.items]);
+
+  useEffect(() => {
+    let current = true;
+    setPurchasedQuantities({});
+    void supabase
+      .from("orders")
+      .select("items")
+      .eq("user_id", order.user_id)
+      .neq("id", order.id)
+      .neq("status", "cancelled")
+      .then(({ data }) => {
+        if (!current) return;
+        const totals: Record<string, number> = {};
+        for (const row of data ?? []) {
+          if (!Array.isArray(row.items)) continue;
+          for (const raw of row.items) {
+            if (!raw || typeof raw !== "object") continue;
+            const item = raw as { id?: unknown; quantity?: unknown };
+            if (typeof item.id !== "string" || typeof item.quantity !== "number") continue;
+            totals[item.id] = (totals[item.id] ?? 0) + item.quantity;
+          }
+        }
+        setPurchasedQuantities(totals);
+      });
+    return () => {
+      current = false;
+    };
+  }, [order.id, order.user_id]);
 
   const itemSignature = (list: OrderItem[]) =>
     JSON.stringify(list.map(({ id, quantity }) => ({ id, quantity })));
@@ -87,6 +129,14 @@ export function OrderCard({
   }, [products, query]);
 
   function changeQuantity(id: string, delta: number) {
+    const selected = items.find((item) => item.id === id);
+    if (!selected) return;
+    const limit = products.find((product) => product.id === id)?.max_per_customer ?? 0;
+    const totalWithHistory = selected.quantity + (purchasedQuantities[id] ?? 0);
+    if (delta > 0 && isProductLimitReached(totalWithHistory, limit)) {
+      toast.error(productLimitMessage(limit));
+      return;
+    }
     setItems((current) =>
       current.map((item) =>
         item.id === id
@@ -97,9 +147,15 @@ export function OrderCard({
   }
 
   function addProduct(product: CatalogProduct) {
+    const found = items.find((item) => item.id === product.id);
+    const totalWithHistory = (found?.quantity ?? 0) + (purchasedQuantities[product.id] ?? 0);
+    if (isProductLimitReached(totalWithHistory, product.max_per_customer)) {
+      toast.error(productLimitMessage(product.max_per_customer));
+      return;
+    }
     setItems((current) => {
-      const found = current.find((item) => item.id === product.id);
-      if (found)
+      const currentItem = current.find((item) => item.id === product.id);
+      if (currentItem)
         return current.map((item) =>
           item.id === product.id ? { ...item, quantity: Math.min(99, item.quantity + 1) } : item,
         );
@@ -248,6 +304,11 @@ export function OrderCard({
           <p className="text-xs text-muted-foreground">
             Recebido em {formatDateTime(order.created_at)}
           </p>
+          <div className="mt-2 space-y-0.5 rounded-lg bg-muted px-3 py-2 text-xs">
+            {orderDeliveryLines(order).map((line) => (
+              <p key={line}>{line}</p>
+            ))}
+          </div>
         </div>
         <p className="font-display text-2xl font-extrabold text-primary">
           {formatBRL(active ? localTotal : Number(order.total))}
@@ -267,6 +328,16 @@ export function OrderCard({
                   <p className="text-xs text-muted-foreground">
                     {formatBRL(item.price)} /unidade · {formatBRL(item.price * item.quantity)}
                   </p>
+                  {isProductLimitReached(
+                    item.quantity + (purchasedQuantities[item.id] ?? 0),
+                    products.find((product) => product.id === item.id)?.max_per_customer ?? 0,
+                  ) && (
+                    <p role="alert" className="mt-1 text-xs font-bold text-primary">
+                      {productLimitMessage(
+                        products.find((product) => product.id === item.id)?.max_per_customer ?? 0,
+                      )}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   <Button
@@ -287,7 +358,14 @@ export function OrderCard({
                     variant="outline"
                     className="size-8"
                     aria-label={`Aumentar ${item.name}`}
-                    disabled={item.quantity >= 99 || Boolean(busy)}
+                    disabled={
+                      item.quantity >= 99 ||
+                      isProductLimitReached(
+                        item.quantity + (purchasedQuantities[item.id] ?? 0),
+                        products.find((product) => product.id === item.id)?.max_per_customer ?? 0,
+                      ) ||
+                      Boolean(busy)
+                    }
                     onClick={() => changeQuantity(item.id, 1)}
                   >
                     <Plus />

@@ -4,13 +4,16 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { Product } from "@/data/catalog";
 import { useCart } from "@/lib/cart";
-import { formatBRL } from "@/lib/order";
+import { formatBRL, isProductLimitReached } from "@/lib/order";
 import { ProductDetailsDialog } from "./ProductDetailsDialog";
 
 export function ProductCard({ product }: { product: Product }) {
-  const { add } = useCart();
+  const { add, items, purchasedQuantities } = useCart();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const soldOut = product.status === "out_of_stock";
+  const quantity = (items.find((item) => item.id === product.id)?.quantity ?? 0) +
+    (purchasedQuantities[product.id] ?? 0);
+  const limitReached = isProductLimitReached(quantity, product.maxPerCustomer);
 
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -51,6 +54,11 @@ export function ProductCard({ product }: { product: Product }) {
           </h3>
         </button>
         <p className="line-clamp-2 text-xs text-muted-foreground">{product.description}</p>
+        {product.maxPerCustomer > 0 && (
+          <p className="mt-1 w-fit rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-muted-foreground">
+            Limite: até {product.maxPerCustomer} un. por cliente
+          </p>
+        )}
         <div className="mt-auto pt-2">
           <p className="font-display text-xl font-extrabold text-primary">
             {formatBRL(product.price)}
@@ -63,12 +71,17 @@ export function ProductCard({ product }: { product: Product }) {
           className="mt-2 h-auto min-h-10 w-full whitespace-normal px-2 py-2 text-[11px] leading-tight sm:text-xs"
           disabled={soldOut}
           onClick={() => {
-            add({ id: product.id, name: product.name, price: product.price });
-            toast.success(`${product.name} adicionado ao carrinho`);
+            const added = add({
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              maxPerCustomer: product.maxPerCustomer,
+            });
+            if (added) toast.success(`${product.name} adicionado ao carrinho`);
           }}
         >
           <ShoppingCart className="hidden sm:block" />
-          {soldOut ? "Produto esgotado" : "Adicionar ao carrinho"}
+          {soldOut ? "Produto esgotado" : limitReached ? "Limite atingido" : "Adicionar ao carrinho"}
         </Button>
       </div>
       <ProductDetailsDialog product={product} open={detailsOpen} onOpenChange={setDetailsOpen} />

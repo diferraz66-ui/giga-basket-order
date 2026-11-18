@@ -8,6 +8,11 @@ const order: Order = {
   order_number: 1,
   customer_name: "Maria",
   customer_whatsapp: "5575999999999",
+  delivery_method: null,
+  pickup_name: null,
+  pickup_document: null,
+  delivery_city: null,
+  van_contact: null,
   items: [{ id: "p", name: "Produto", price: 7.5, quantity: 1 }],
   total: 7.5,
   status: "awaiting_pix",
@@ -41,6 +46,9 @@ const paidOrder: Order = {
   payment_proof_amount: 7.5,
   payment_proof_validated_at: "2026-01-01T10:59:00Z",
   payment_proof_validated_total: 7.5,
+  delivery_method: "pickup",
+  pickup_name: "João Souza",
+  pickup_document: "123.456.789-00",
 };
 
 describe("cupom não fiscal", () => {
@@ -74,6 +82,9 @@ describe("cupom não fiscal", () => {
     expect(message).toContain("CUPOM NÃO FISCAL - PEDIDO Nº #000001");
     expect(message).toContain("Cliente: Maria");
     expect(message).toContain("WhatsApp: (75) 99999-9999");
+    expect(message).toContain("Recebimento: RETIRADA NA LOJA (Santo Antônio de Jesus - BA)");
+    expect(message).toContain("Nome de quem vai retirar: João Souza");
+    expect(message).toContain("CPF ou RG de quem vai retirar: 123.456.789-00");
     expect(message).toContain("• 1x Produto");
     expect(message).toContain("Unitário: R$ 7,50 | Subtotal: R$ 7,50");
     expect(message).toContain("VALOR TOTAL PAGO: R$ 7,50");

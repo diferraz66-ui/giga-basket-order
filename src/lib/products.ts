@@ -61,6 +61,7 @@ export function mapProduct(row: Tables<"products">, image: string): Product {
     imagePath: row.image_url,
     dimensions: row.dimensions,
     status: row.status === "out_of_stock" ? "out_of_stock" : "available",
+    maxPerCustomer: row.max_per_customer,
     category: row.category as CategoryId,
     tags: row.tags.filter((tag): tag is ProductTag => validTags.includes(tag as ProductTag)),
   };

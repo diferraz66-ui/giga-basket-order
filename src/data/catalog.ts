@@ -40,6 +40,7 @@ export type Product = {
   imagePath?: string | null;
   dimensions: string;
   status: "available" | "out_of_stock";
+  maxPerCustomer: number;
   category: CategoryId;
   tags: ProductTag[];
 };
@@ -54,6 +55,7 @@ export const products: Product[] = [
     imageKey: "potes",
     dimensions: "5 peças: 250 ml, 400 ml, 650 ml, 1 L e 1,5 L",
     status: "available",
+    maxPerCustomer: 0,
     category: "cozinha",
     tags: ["oferta", "mais-vendido"],
   },
@@ -66,6 +68,7 @@ export const products: Product[] = [
     imageKey: "luminaria",
     dimensions: "Altura aproximada de 35 cm; cabo USB de 1 m",
     status: "available",
+    maxPerCustomer: 0,
     category: "casa-decoracao",
     tags: ["destaque"],
   },
@@ -78,6 +81,7 @@ export const products: Product[] = [
     imageKey: "organizador",
     dimensions: "Aproximadamente 24 × 15 × 18 cm",
     status: "available",
+    maxPerCustomer: 0,
     category: "organizacao",
     tags: ["oferta", "destaque"],
   },
@@ -90,6 +94,7 @@ export const products: Product[] = [
     imageKey: "pinceis",
     dimensions: "9 pincéis com cabos de aproximadamente 12 a 15 cm",
     status: "available",
+    maxPerCustomer: 0,
     category: "beleza",
     tags: ["mais-vendido"],
   },
@@ -102,6 +107,7 @@ export const products: Product[] = [
     imageKey: "canetas",
     dimensions: "Canetas ponta 0,7 mm; caderno tamanho A5",
     status: "available",
+    maxPerCustomer: 0,
     category: "papelaria",
     tags: ["mais-vendido", "destaque"],
   },
@@ -114,6 +120,7 @@ export const products: Product[] = [
     imageKey: "cubo",
     dimensions: "Aproximadamente 5,6 × 5,6 × 5,6 cm",
     status: "available",
+    maxPerCustomer: 0,
     category: "brinquedos",
     tags: ["oferta"],
   },
@@ -126,6 +133,7 @@ export const products: Product[] = [
     imageKey: "chaves",
     dimensions: "Estojo de aproximadamente 20 × 11 × 5 cm; 45 peças",
     status: "available",
+    maxPerCustomer: 0,
     category: "ferramentas",
     tags: ["novidade"],
   },
@@ -138,6 +146,7 @@ export const products: Product[] = [
     imageKey: "fone",
     dimensions: "Estojo de aproximadamente 6 × 5 × 2,5 cm",
     status: "available",
+    maxPerCustomer: 0,
     category: "acessorios",
     tags: ["novidade", "oferta", "destaque"],
   },

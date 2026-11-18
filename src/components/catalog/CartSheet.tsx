@@ -3,37 +3,66 @@ import { CheckCircle2, Copy, Loader2, Minus, Plus, ShoppingCart, Trash2 } from "
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
-import { products, store } from "@/data/catalog";
+import { store, type Product } from "@/data/catalog";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
-import { buildOrderMessage, formatBRL, formatOrderNumber, whatsappLink } from "@/lib/order";
+import {
+  buildOrderMessage,
+  formatBRL,
+  formatOrderNumber,
+  isProductLimitReached,
+  minimumOrderProgress,
+  productLimitMessage,
+  whatsappLink,
+  type CartItem,
+} from "@/lib/order";
 import { formatWhatsapp } from "@/lib/phone";
-import { CheckoutAuthDialog, type CheckoutIdentity } from "./CheckoutAuthDialog";
+import {
+  CheckoutAuthDialog,
+  type CheckoutIdentity,
+  type CheckoutResult,
+} from "./CheckoutAuthDialog";
 
-export function CartSheet() {
-  const { items, total, open, setOpen, setQuantity, remove, clear } = useCart();
+export function CartSheet({ products }: { products: Product[] }) {
+  const {
+    items,
+    purchasedQuantities,
+    total,
+    open,
+    setOpen,
+    setQuantity,
+    remove,
+    clear,
+    refreshPurchased,
+  } = useCart();
   const { session, profile } = useAuth();
   const [busy, setBusy] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [done, setDone] = useState<{ number: number; link: string; message: string } | null>(null);
+  const progress = minimumOrderProgress(total);
 
-  async function finalize(identity?: CheckoutIdentity) {
-    if (items.length === 0) return;
-    if (!identity && !session) {
-      setCheckoutOpen(true);
-      return;
-    }
-    if (!identity && !profile) {
+  const identity: CheckoutIdentity | null =
+    session && profile
+      ? {
+          userId: session.user.id,
+          fullName: profile.full_name,
+          whatsapp: profile.whatsapp,
+        }
+      : null;
+
+  function startCheckout() {
+    if (!progress.reached) return;
+    if (session && !profile) {
       toast.info("Aguarde enquanto carregamos seu cadastro.");
       return;
     }
+    setCheckoutOpen(true);
+  }
 
-    const customer = identity ?? {
-      userId: session!.user.id,
-      fullName: profile!.full_name,
-      whatsapp: profile!.whatsapp,
-    };
+  async function finalize({ identity: customer, delivery }: CheckoutResult) {
+    if (items.length === 0 || !progress.reached) return;
     const customerWhatsapp = formatWhatsapp(customer.whatsapp);
     const popup = window.open("", "_blank");
     setBusy(true);
@@ -43,29 +72,48 @@ export function CartSheet() {
         user_id: customer.userId,
         customer_name: customer.fullName,
         customer_whatsapp: customer.whatsapp,
+        delivery_method: delivery.method,
+        pickup_name: delivery.method === "pickup" ? delivery.pickupName : null,
+        pickup_document: delivery.method === "pickup" ? delivery.pickupDocument : null,
+        delivery_city: delivery.method === "van" ? delivery.deliveryCity : null,
+        van_contact: delivery.method === "van" ? delivery.vanContact : null,
         items: items.map((item) => ({
-          ...item,
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
           subtotal: Math.round(item.price * item.quantity * 100) / 100,
         })),
         total,
       })
-      .select("order_number")
+      .select("order_number, items")
       .single();
     setBusy(false);
     if (error || !data) {
       popup?.close();
-      toast.error("Não foi possível registrar o pedido. Tente novamente.");
+      if (error?.message.includes("Limite maximo")) {
+        toast.error("Um produto atingiu o limite por cliente ao somar seus pedidos anteriores.");
+      } else if (error?.message.includes("pedido minimo")) {
+        toast.error("O pedido mínimo para compras online é R$ 75,00.");
+      } else {
+        toast.error("Não foi possível registrar o pedido. Revise os dados e tente novamente.");
+      }
       return;
     }
+    const messageItems = Array.isArray(data.items)
+      ? (data.items as unknown as CartItem[])
+      : items;
     const message = buildOrderMessage({
       orderNumber: data.order_number,
       customerName: customer.fullName,
       customerWhatsapp,
-      items,
+      items: messageItems,
+      delivery,
     });
     const link = whatsappLink(store.whatsapp, message);
     if (popup) popup.location.href = link;
     else toast.info("O navegador bloqueou a nova aba. Use o botão para abrir o WhatsApp.");
+    await refreshPurchased();
     clear();
     setDone({ number: data.order_number, link, message });
   }
@@ -147,6 +195,9 @@ export function CartSheet() {
               <ul className="flex-1 divide-y divide-border overflow-y-auto px-5">
                 {items.map((item) => {
                   const product = products.find((entry) => entry.id === item.id);
+                  const limit = product?.maxPerCustomer ?? item.maxPerCustomer ?? 0;
+                  const totalWithHistory = item.quantity + (purchasedQuantities[item.id] ?? 0);
+                  const limitReached = isProductLimitReached(totalWithHistory, limit);
                   return (
                     <li key={item.id} className="flex gap-3 py-4">
                       {product && (
@@ -178,7 +229,7 @@ export function CartSheet() {
                             <button
                               aria-label="Diminuir quantidade"
                               className="flex size-9 items-center justify-center hover:text-primary"
-                              onClick={() => setQuantity(item.id, item.quantity - 1)}
+                              onClick={() => setQuantity(item.id, item.quantity - 1, limit)}
                             >
                               <Minus className="size-4" />
                             </button>
@@ -187,8 +238,10 @@ export function CartSheet() {
                             </span>
                             <button
                               aria-label="Aumentar quantidade"
-                              className="flex size-9 items-center justify-center hover:text-primary"
-                              onClick={() => setQuantity(item.id, item.quantity + 1)}
+                              title={limitReached ? productLimitMessage(limit) : undefined}
+                              className="flex size-9 items-center justify-center hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                              disabled={limitReached || item.quantity >= 99}
+                              onClick={() => setQuantity(item.id, item.quantity + 1, limit)}
                             >
                               <Plus className="size-4" />
                             </button>
@@ -197,12 +250,38 @@ export function CartSheet() {
                             {formatBRL(item.price * item.quantity)}
                           </span>
                         </div>
+                        {limitReached && (
+                          <p role="alert" className="mt-2 text-xs font-bold text-primary">
+                            {productLimitMessage(limit)}
+                          </p>
+                        )}
                       </div>
                     </li>
                   );
                 })}
               </ul>
               <div className="space-y-3 border-t border-border bg-muted px-5 py-5">
+                <div
+                  id="minimum-order-progress"
+                  className={`rounded-xl p-3 ${progress.reached ? "bg-whatsapp/10" : "bg-card"}`}
+                >
+                  <div className="mb-2 flex items-center justify-between gap-2 text-xs font-bold">
+                    <span>Pedido mínimo: {formatBRL(75)}</span>
+                    <span>{Math.round(progress.percent)}%</span>
+                  </div>
+                  <Progress
+                    value={progress.percent}
+                    aria-label="Progresso para atingir o pedido mínimo"
+                    className={progress.reached ? "bg-whatsapp/20 [&>div]:!bg-whatsapp" : ""}
+                  />
+                  <p
+                    className={`mt-2 text-xs font-bold leading-relaxed ${progress.reached ? "text-whatsapp" : "text-muted-foreground"}`}
+                  >
+                    {progress.reached
+                      ? "✅ Pedido mínimo atingido! Você já pode finalizar sua compra."
+                      : `Faltam ${formatBRL(progress.remaining)} — escolha mais ${progress.itemsRemaining} ${progress.itemsRemaining === 1 ? "item" : "itens"} para atingir o pedido mínimo!`}
+                  </p>
+                </div>
                 <div className="flex items-baseline justify-between">
                   <span className="text-sm font-bold uppercase text-muted-foreground">Total</span>
                   <span className="font-display text-3xl font-extrabold text-primary">
@@ -212,8 +291,9 @@ export function CartSheet() {
                 <Button
                   variant="cta"
                   className="h-13 w-full py-4 text-base"
-                  onClick={() => void finalize()}
-                  disabled={busy}
+                  onClick={startCheckout}
+                  disabled={busy || !progress.reached}
+                  aria-describedby="minimum-order-progress"
                 >
                   {busy && <Loader2 className="animate-spin" />} Finalizar pedido
                 </Button>
@@ -228,9 +308,10 @@ export function CartSheet() {
       <CheckoutAuthDialog
         open={checkoutOpen}
         onOpenChange={setCheckoutOpen}
-        onAuthenticated={(identity) => {
+        identity={identity}
+        onComplete={(result) => {
           setCheckoutOpen(false);
-          void finalize(identity);
+          void finalize(result);
         }}
       />
     </>

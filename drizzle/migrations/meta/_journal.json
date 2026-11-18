@@ -50,6 +50,20 @@
       "when": 1795033638286,
       "tag": "0006_vitrine_publica_produtos",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795037199269,
+      "tag": "0007_pedido_minimo_entrega_e_limites",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795037307377,
+      "tag": "0008_limite_considera_historico_cliente",
+      "breakpoints": true
     }
   ]
 }

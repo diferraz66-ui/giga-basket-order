@@ -9,7 +9,7 @@ import { OrderCard } from "./OrderCard";
 import { PaymentProofDialog } from "./PaymentProofDialog";
 import { ReceiptDialog } from "./ReceiptDialog";
 
-type CatalogProduct = Pick<Tables<"products">, "id" | "name" | "price" | "status">;
+type CatalogProduct = Pick<Tables<"products">, "id" | "name" | "price" | "status" | "max_per_customer">;
 
 export function OrdersPanel({ role: _role }: { role: StaffRole }) {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -21,7 +21,7 @@ export function OrdersPanel({ role: _role }: { role: StaffRole }) {
   const reload = useCallback(async () => {
     const [{ data, error }, { data: productRows, error: productError }] = await Promise.all([
       supabase.from("orders").select("*").order("created_at", { ascending: false }),
-      supabase.from("products").select("id, name, price, status").order("name"),
+      supabase.from("products").select("id, name, price, status, max_per_customer").order("name"),
     ]);
     if (error) toast.error("Não foi possível carregar os pedidos");
     else setOrders((data ?? []).map((row) => parseOrder(row)));

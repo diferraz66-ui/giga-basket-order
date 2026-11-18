@@ -1,5 +1,11 @@
 import type { Tables } from "@/integrations/supabase/types";
-import { formatBRL, formatOrderNumber, type CartItem } from "@/lib/order";
+import {
+  deliveryLines,
+  formatBRL,
+  formatOrderNumber,
+  type CartItem,
+  type DeliveryDetails,
+} from "@/lib/order";
 import type { OrderStatus } from "@/lib/staff";
 
 export type OrderItem = CartItem & { subtotal?: number };
@@ -14,6 +20,24 @@ export function parseOrder(row: Tables<"orders">): Order {
     status: row.status as OrderStatus,
     items: Array.isArray(row.items) ? (row.items as unknown as OrderItem[]) : [],
   };
+}
+
+export function orderDeliveryLines(order: Order) {
+  let delivery: DeliveryDetails | null = null;
+  if (order.delivery_method === "pickup" && order.pickup_name && order.pickup_document) {
+    delivery = {
+      method: "pickup",
+      pickupName: order.pickup_name,
+      pickupDocument: order.pickup_document,
+    };
+  } else if (order.delivery_method === "van" && order.delivery_city && order.van_contact) {
+    delivery = {
+      method: "van",
+      deliveryCity: order.delivery_city,
+      vanContact: order.van_contact,
+    };
+  }
+  return delivery ? deliveryLines(delivery) : ["Recebimento: não informado"];
 }
 
 export function formatDateTime(value: string | null) {

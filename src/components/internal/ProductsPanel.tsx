@@ -87,6 +87,7 @@ function ProductForm({ product, onClose, onSaved }: { product: Tables<"products"
   const [price, setPrice] = useState(String(product?.price ?? UNIQUE_PRICE).replace(".", ","));
   const [category, setCategory] = useState(product?.category ?? "cozinha");
   const [dimensions, setDimensions] = useState(product?.dimensions ?? "");
+  const [maxPerCustomer, setMaxPerCustomer] = useState(product?.max_per_customer ? String(product.max_per_customer) : "");
   const [status, setStatus] = useState(product?.status ?? "available");
   const [tags, setTags] = useState<ProductTag[]>((product?.tags ?? []) as ProductTag[]);
   const [file, setFile] = useState<File | null>(null);
@@ -95,6 +96,10 @@ function ProductForm({ product, onClose, onSaved }: { product: Tables<"products"
   async function submit(event: FormEvent) {
     event.preventDefault();
     const numericPrice = Number(price.replace(",", "."));
+    const numericLimit = maxPerCustomer.trim() === "" ? 0 : Number(maxPerCustomer);
+    if (!Number.isInteger(numericLimit) || numericLimit < 0) {
+      toast.error("O limite por cliente deve ser um número inteiro igual ou maior que zero"); return;
+    }
     if (!name.trim() || !description.trim() || !dimensions.trim() || !Number.isFinite(numericPrice) || numericPrice < 0) {
       toast.error("Preencha nome, descrição, dimensões e um preço válido"); return;
     }
@@ -116,6 +121,7 @@ function ProductForm({ product, onClose, onSaved }: { product: Tables<"products"
     const { error } = await supabase.from("products").upsert({
       id, name: name.trim(), description: description.trim(), price: numericPrice,
       category, dimensions: dimensions.trim(), status, tags, image_url: imagePath, image_key: imageKey,
+      max_per_customer: numericLimit,
     });
     setBusy(false);
     if (error) toast.error("Não foi possível salvar o produto");
@@ -132,6 +138,7 @@ function ProductForm({ product, onClose, onSaved }: { product: Tables<"products"
           <div className="space-y-1.5"><Label htmlFor="product-price">Preço (R$)</Label><Input id="product-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} required /></div>
           <div className="space-y-1.5"><Label htmlFor="product-category">Categoria</Label><Select value={category} onValueChange={setCategory}><SelectTrigger id="product-category"><SelectValue /></SelectTrigger><SelectContent>{categories.filter((item) => item.id !== "novidades").map((item) => <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>)}</SelectContent></Select></div>
           <div className="space-y-1.5 sm:col-span-2"><Label htmlFor="product-dimensions">Tamanho / Dimensões</Label><Input id="product-dimensions" value={dimensions} onChange={(e) => setDimensions(e.target.value)} placeholder="Ex.: Aproximadamente 20 × 15 cm" required /></div>
+          <div className="space-y-1.5"><Label htmlFor="product-limit">Limite máximo por cliente</Label><Input id="product-limit" type="number" min="0" step="1" inputMode="numeric" value={maxPerCustomer} onChange={(e) => setMaxPerCustomer(e.target.value)} placeholder="0 = sem limite" /><p className="text-xs text-muted-foreground">Vazio ou 0: sem limite. O histórico de pedidos não cancelados conta no limite.</p></div>
           <div className="space-y-1.5"><Label htmlFor="product-status">Status</Label><Select value={status} onValueChange={setStatus}><SelectTrigger id="product-status"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="available">Disponível</SelectItem><SelectItem value="out_of_stock">Esgotado</SelectItem></SelectContent></Select></div>
           <div className="space-y-1.5"><Label htmlFor="product-photo">Nova foto (até 5 MB)</Label><label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input px-3 text-sm text-muted-foreground"><Upload className="size-4" /><span className="truncate">{file?.name ?? "Escolher imagem"}</span><input id="product-photo" type="file" accept="image/*" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} /></label></div>
           <fieldset className="sm:col-span-2"><legend className="mb-2 text-sm font-medium">Seções da vitrine</legend><div className="grid grid-cols-2 gap-3">{tagOptions.map((tag) => <label key={tag.id} className="flex items-center gap-2 text-sm"><Checkbox checked={tags.includes(tag.id)} onCheckedChange={(checked) => setTags((current) => checked ? [...current, tag.id] : current.filter((item) => item !== tag.id))} />{tag.label}</label>)}</div></fieldset>

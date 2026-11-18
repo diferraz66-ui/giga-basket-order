@@ -1,5 +1,5 @@
 import type { Order } from "@/lib/operations";
-import { formatDateTime } from "@/lib/operations";
+import { formatDateTime, orderDeliveryLines } from "@/lib/operations";
 import { formatBRL, formatOrderNumber } from "@/lib/order";
 import { formatWhatsapp } from "@/lib/phone";
 import { hasValidProofForCurrentTotal } from "@/lib/payment-proof";
@@ -42,6 +42,8 @@ export function buildReceiptMessage(order: Order) {
     `Data e Horário do pagamento: ${formatDateTime(order.paid_at)}`,
     `Cliente: ${order.customer_name}`,
     `WhatsApp: ${formatWhatsapp(order.customer_whatsapp)}`,
+    "",
+    ...orderDeliveryLines(order),
     "",
     "Produtos:",
     ...itemLines,
@@ -109,7 +111,13 @@ export async function createReceiptBlob(order: Order) {
   doc.text(`Cliente: ${order.customer_name}`, margin, y);
   y += 18;
   doc.text(`WhatsApp: ${formatWhatsapp(order.customer_whatsapp)}`, margin, y);
-  y += 32;
+  y += 22;
+  for (const line of orderDeliveryLines(order)) {
+    const wrapped = doc.splitTextToSize(line, width - margin * 2) as string[];
+    doc.text(wrapped, margin, y);
+    y += wrapped.length * 15;
+  }
+  y += 14;
 
   const productX = margin;
   const quantityX = width - 278;
@@ -146,7 +154,7 @@ export async function createReceiptBlob(order: Order) {
     doc.line(margin, y - 10, width - margin, y - 10);
   }
 
-  if (y + 190 > height - 55) {
+  if (y + 230 > height - 55) {
     footer();
     doc.addPage();
     header();

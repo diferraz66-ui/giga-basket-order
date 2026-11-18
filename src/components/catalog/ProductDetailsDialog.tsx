@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import type { Product } from "@/data/catalog";
 import { useCart } from "@/lib/cart";
-import { formatBRL } from "@/lib/order";
+import { formatBRL, isProductLimitReached } from "@/lib/order";
 
 export function ProductDetailsDialog({
   product,
@@ -16,13 +16,22 @@ export function ProductDetailsDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { add } = useCart();
+  const { add, items, purchasedQuantities } = useCart();
   const [zoom, setZoom] = useState(1);
   const soldOut = product.status === "out_of_stock";
+  const quantity = (items.find((item) => item.id === product.id)?.quantity ?? 0) +
+    (purchasedQuantities[product.id] ?? 0);
+  const limitReached = isProductLimitReached(quantity, product.maxPerCustomer);
 
   function addProduct() {
     if (soldOut) return;
-    add({ id: product.id, name: product.name, price: product.price });
+    const added = add({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      maxPerCustomer: product.maxPerCustomer,
+    });
+    if (!added) return;
     toast.success(`${product.name} adicionado ao carrinho`);
     onOpenChange(false);
   }
@@ -89,13 +98,18 @@ export function ProductDetailsDialog({
                 <p className="mt-1 text-muted-foreground">{product.dimensions || "Consulte o vendedor."}</p>
               </div>
             </div>
+            {product.maxPerCustomer > 0 && (
+              <p className="mt-3 w-fit rounded-md bg-muted px-2 py-1 text-xs font-bold text-muted-foreground">
+                Limite: até {product.maxPerCustomer} un. por cliente
+              </p>
+            )}
             <p className="mt-5 font-display text-3xl font-extrabold text-primary">
               {formatBRL(product.price)}
               <span className="ml-1 font-sans text-sm font-medium text-muted-foreground">/unidade</span>
             </p>
             {soldOut && <p className="mt-2 text-sm font-bold text-destructive">Produto esgotado no momento.</p>}
             <Button variant="cta" className="mt-5 h-12 w-full" onClick={addProduct} disabled={soldOut}>
-              <ShoppingCart /> {soldOut ? "Produto esgotado" : "Adicionar ao carrinho"}
+              <ShoppingCart /> {soldOut ? "Produto esgotado" : limitReached ? "Limite atingido" : "Adicionar ao carrinho"}
             </Button>
           </div>
         </div>

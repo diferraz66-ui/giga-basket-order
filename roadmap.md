@@ -27,3 +27,8 @@
 - [x] Vitrine pública e cadastro/login somente no checkout
 - [x] Dados oficiais da loja no cabeçalho do cupom não fiscal
 - [x] Envio do texto completo do cupom ao WhatsApp do cliente
+- [ ] Avisos e pop-up de pedido mínimo de R$ 75,00 e regras de entrega
+- [ ] Barra de progresso e bloqueio do checkout abaixo de R$ 75,00
+- [ ] Retirada ou despacho via Van obrigatórios no checkout, WhatsApp, pedido e cupom
+- [ ] Limite máximo por cliente somando todos os pedidos não cancelados, nos produtos, vitrine, carrinho e edição interna
+- [ ] Testar as novas regras no celular, computador e fluxo interno

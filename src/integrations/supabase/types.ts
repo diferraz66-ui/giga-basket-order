@@ -25,6 +25,8 @@ export type Database = {
           created_at: string
           customer_name: string
           customer_whatsapp: string
+          delivery_city: string | null
+          delivery_method: string | null
           id: string
           items: Json
           order_number: number
@@ -36,12 +38,15 @@ export type Database = {
           payment_proof_type: string | null
           payment_proof_validated_at: string | null
           payment_proof_validated_total: number | null
+          pickup_document: string | null
+          pickup_name: string | null
           seller_id: string | null
           seller_name: string | null
           status: string
           total: number
           updated_at: string
           user_id: string
+          van_contact: string | null
         }
         Insert: {
           cancellation_reason?: string | null
@@ -53,6 +58,8 @@ export type Database = {
           created_at?: string
           customer_name: string
           customer_whatsapp: string
+          delivery_city?: string | null
+          delivery_method?: string | null
           id?: string
           items: Json
           order_number?: never
@@ -64,12 +71,15 @@ export type Database = {
           payment_proof_type?: string | null
           payment_proof_validated_at?: string | null
           payment_proof_validated_total?: number | null
+          pickup_document?: string | null
+          pickup_name?: string | null
           seller_id?: string | null
           seller_name?: string | null
           status?: string
           total: number
           updated_at?: string
           user_id?: string
+          van_contact?: string | null
         }
         Update: {
           cancellation_reason?: string | null
@@ -81,6 +91,8 @@ export type Database = {
           created_at?: string
           customer_name?: string
           customer_whatsapp?: string
+          delivery_city?: string | null
+          delivery_method?: string | null
           id?: string
           items?: Json
           order_number?: never
@@ -92,12 +104,15 @@ export type Database = {
           payment_proof_type?: string | null
           payment_proof_validated_at?: string | null
           payment_proof_validated_total?: number | null
+          pickup_document?: string | null
+          pickup_name?: string | null
           seller_id?: string | null
           seller_name?: string | null
           status?: string
           total?: number
           updated_at?: string
           user_id?: string
+          van_contact?: string | null
         }
         Relationships: []
       }
@@ -110,6 +125,7 @@ export type Database = {
           id: string
           image_key: string | null
           image_url: string | null
+          max_per_customer: number
           name: string
           price: number
           status: string
@@ -124,6 +140,7 @@ export type Database = {
           id: string
           image_key?: string | null
           image_url?: string | null
+          max_per_customer?: number
           name: string
           price?: number
           status?: string
@@ -138,6 +155,7 @@ export type Database = {
           id?: string
           image_key?: string | null
           image_url?: string | null
+          max_per_customer?: number
           name?: string
           price?: number
           status?: string
@@ -235,6 +253,8 @@ export type Database = {
           created_at: string
           customer_name: string
           customer_whatsapp: string
+          delivery_city: string | null
+          delivery_method: string | null
           id: string
           items: Json
           order_number: number
@@ -246,12 +266,15 @@ export type Database = {
           payment_proof_type: string | null
           payment_proof_validated_at: string | null
           payment_proof_validated_total: number | null
+          pickup_document: string | null
+          pickup_name: string | null
           seller_id: string | null
           seller_name: string | null
           status: string
           total: number
           updated_at: string
           user_id: string
+          van_contact: string | null
         }
         SetofOptions: {
           from: "*"
@@ -272,6 +295,8 @@ export type Database = {
           created_at: string
           customer_name: string
           customer_whatsapp: string
+          delivery_city: string | null
+          delivery_method: string | null
           id: string
           items: Json
           order_number: number
@@ -283,12 +308,15 @@ export type Database = {
           payment_proof_type: string | null
           payment_proof_validated_at: string | null
           payment_proof_validated_total: number | null
+          pickup_document: string | null
+          pickup_name: string | null
           seller_id: string | null
           seller_name: string | null
           status: string
           total: number
           updated_at: string
           user_id: string
+          van_contact: string | null
         }
         SetofOptions: {
           from: "*"
@@ -316,6 +344,8 @@ export type Database = {
           created_at: string
           customer_name: string
           customer_whatsapp: string
+          delivery_city: string | null
+          delivery_method: string | null
           id: string
           items: Json
           order_number: number
@@ -327,12 +357,15 @@ export type Database = {
           payment_proof_type: string | null
           payment_proof_validated_at: string | null
           payment_proof_validated_total: number | null
+          pickup_document: string | null
+          pickup_name: string | null
           seller_id: string | null
           seller_name: string | null
           status: string
           total: number
           updated_at: string
           user_id: string
+          van_contact: string | null
         }
         SetofOptions: {
           from: "*"

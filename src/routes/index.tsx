@@ -10,6 +10,7 @@ import { CategoryBar } from "@/components/catalog/CategoryBar";
 import { ProductRow } from "@/components/catalog/ProductRow";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { CartSheet } from "@/components/catalog/CartSheet";
+import { StoreWelcomeDialog } from "@/components/catalog/StoreWelcomeDialog";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -51,6 +52,7 @@ function Catalog() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <CatalogHeader query={query} onQueryChange={setQuery} />
+      <MinimumOrderNotice />
       <CategoryBar active={category} onChange={setCategory} />
       <main className="mx-auto w-full max-w-6xl flex-1">
         {filtering ? (
@@ -126,6 +128,9 @@ function Catalog() {
       <footer className="mt-12 bg-ink px-5 py-8 text-center text-xs text-ink-foreground/70">
         <p className="font-display text-sm font-extrabold text-ink-foreground">GIGA SHOPPING</p>
         <p className="mt-1">Catálogo digital · Pedidos pelo WhatsApp</p>
+        <p className="mx-auto mt-4 max-w-xl rounded-lg bg-primary px-3 py-2 font-bold text-primary-foreground">
+          🛍️ PEDIDO MÍNIMO PARA COMPRAS ONLINE: R$ 75,00 (10 itens de R$ 7,50)
+        </p>
         <Link
           to="/area-restrita"
           className="mt-5 inline-block text-ink-foreground/50 underline underline-offset-4 hover:text-ink-foreground"
@@ -133,7 +138,16 @@ function Catalog() {
           Área Restrita
         </Link>
       </footer>
-      <CartSheet />
+      <CartSheet products={products} />
+      <StoreWelcomeDialog />
     </div>
+  );
+}
+
+function MinimumOrderNotice() {
+  return (
+    <p className="bg-highlight px-3 py-2.5 text-center font-display text-xs font-extrabold uppercase leading-snug text-highlight-foreground sm:text-sm">
+      🛍️ PEDIDO MÍNIMO PARA COMPRAS ONLINE: R$ 75,00 (10 itens de R$ 7,50)
+    </p>
   );
 }
