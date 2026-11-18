@@ -23,7 +23,7 @@ export function CatalogHeader({
   const { profile, signOut } = useAuth();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-border bg-card">
       <div className="mx-auto grid max-w-6xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-3 py-2 sm:gap-4 sm:px-5">
         <Logo eager className="w-20 shrink-0 sm:w-28" />
 

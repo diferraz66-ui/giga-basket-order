@@ -91,16 +91,16 @@ export function EntryScreen() {
   }
 
   return (
-    <main className="min-h-screen bg-ink">
-      <div className="mx-auto flex min-h-screen max-w-md flex-col">
-        <div className="bg-background px-6 pb-6 pt-8">
+    <main className="min-h-screen bg-ink sm:px-4 sm:py-10">
+      <div className="mx-auto flex min-h-screen max-w-md flex-col overflow-hidden bg-card sm:min-h-0 sm:rounded-3xl sm:shadow-soft">
+        <div className="px-6 pb-6 pt-8">
           <Logo eager className="mx-auto w-64 max-w-full" />
           <p className="mt-2 text-center text-sm text-muted-foreground">
             Catálogo digital — escolha, monte seu carrinho e peça pelo WhatsApp.
           </p>
         </div>
 
-        <div className="flex-1 rounded-t-3xl bg-background px-6 pb-10 pt-2">
+        <div className="flex-1 px-6 pb-10 pt-2">
           <div className="grid grid-cols-2 rounded-full bg-muted p-1" role="tablist">
             {(["signup", "signin"] as const).map((m) => (
               <button

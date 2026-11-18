@@ -9,7 +9,7 @@ export function CategoryBar({
 }) {
   return (
     <nav aria-label="Categorias" className="bg-ink">
-      <div className="no-scrollbar mx-auto flex max-w-6xl gap-2 overflow-x-auto px-3 py-2.5 sm:px-5">
+      <div className="no-scrollbar mx-auto flex max-w-6xl gap-2 overflow-x-auto px-3 py-2.5 sm:px-5 lg:flex-wrap lg:overflow-visible">
         <button
           onClick={() => onChange(null)}
           className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold uppercase transition-colors ${

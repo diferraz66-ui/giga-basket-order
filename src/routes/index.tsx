@@ -59,11 +59,11 @@ function Catalog() {
   const firstName = profile?.full_name.split(" ")[0];
 
   return (
-    <div className="min-h-screen bg-background pb-16">
+    <div className="flex min-h-screen flex-col bg-background">
       <CatalogHeader query={query} onQueryChange={setQuery} />
       <CategoryBar active={category} onChange={setCategory} />
 
-      <main className="mx-auto max-w-6xl">
+      <main className="mx-auto w-full max-w-6xl flex-1">
         {filtering ? (
           <section className="px-3 pt-6 sm:px-5">
             <h1 className="text-xl uppercase">
