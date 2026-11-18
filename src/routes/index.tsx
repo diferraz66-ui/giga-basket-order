@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Flame, Sparkles, Star, Tag, Loader2 } from "lucide-react";
+import { Flame, Sparkles, Star, Tag } from "lucide-react";
 import banner from "@/assets/banner-ofertas.jpg";
 import { categoryLabel, searchProducts, type CategoryId } from "@/data/catalog";
 import { useAuth } from "@/lib/auth";
@@ -10,8 +10,6 @@ import { CategoryBar } from "@/components/catalog/CategoryBar";
 import { ProductRow } from "@/components/catalog/ProductRow";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { CartSheet } from "@/components/catalog/CartSheet";
-import { EntryScreen } from "@/components/catalog/EntryScreen";
-import { Logo } from "@/components/catalog/Logo";
 
 export const Route = createFileRoute("/")({
   head: () => ({

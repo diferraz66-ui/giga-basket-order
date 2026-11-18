@@ -16,7 +16,6 @@ import {
   type Product,
   type ProductTag,
 } from "@/data/catalog";
-import { useAuth } from "@/lib/auth";
 import { getProductImageUrl } from "@/lib/products.functions";
 
 export const productImages: Record<string, string> = {
@@ -70,13 +69,11 @@ export async function fetchCatalogProducts() {
 }
 
 export function useCatalogProducts() {
-  const { session } = useAuth();
   const [items, setItems] = useState<Product[]>(fallbackProducts);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
 
   const reload = useCallback(async () => {
-    if (!session) return;
     setLoading(true);
     try {
       setItems(await fetchCatalogProducts());
@@ -86,7 +83,7 @@ export function useCatalogProducts() {
     } finally {
       setLoading(false);
     }
-  }, [session]);
+  }, []);
 
   useEffect(() => {
     void reload();

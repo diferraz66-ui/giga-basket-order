@@ -10,9 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import type { Order } from "@/lib/operations";
-import { createReceiptBlob, receiptFileName } from "@/lib/receipt";
+import { buildReceiptMessage, createReceiptBlob, receiptFileName } from "@/lib/receipt";
 import { formatOrderNumber, whatsappLink } from "@/lib/order";
-import { formatWhatsapp } from "@/lib/phone";
 
 export function ReceiptDialog({
   order,
@@ -24,18 +23,15 @@ export function ReceiptDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const [url, setUrl] = useState<string | null>(null);
-  const [blob, setBlob] = useState<Blob | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     if (!open) return;
     let currentUrl: string | null = null;
-    setBlob(null);
     setUrl(null);
     void createReceiptBlob(order)
       .then((created) => {
         currentUrl = URL.createObjectURL(created);
-        setBlob(created);
         setUrl(currentUrl);
       })
       .catch(() => toast.error("Não foi possível gerar o cupom"));
@@ -52,24 +48,13 @@ export function ReceiptDialog({
     anchor.click();
   }
 
-  async function share() {
-    if (!blob) return;
-    const file = new File([blob], receiptFileName(order), { type: "application/pdf" });
-    if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({
-        files: [file],
-        title: `Cupom ${formatOrderNumber(order.order_number)}`,
-      });
-      return;
-    }
-    download();
-    const message = `Olá, ${order.customer_name}! O cupom não fiscal do pedido ${formatOrderNumber(order.order_number)} foi gerado. Anexe aqui o PDF que acabou de ser baixado.`;
+  function share() {
+    const message = buildReceiptMessage(order);
     window.open(
-      whatsappLink(formatWhatsapp(order.customer_whatsapp), message),
+      whatsappLink(order.customer_whatsapp, message),
       "_blank",
       "noopener,noreferrer",
     );
-    toast.info("PDF baixado. Anexe o arquivo na conversa do WhatsApp.");
   }
 
   return (
@@ -106,8 +91,13 @@ export function ReceiptDialog({
           >
             <Printer /> Imprimir
           </Button>
-          <Button variant="whatsapp" onClick={() => void share()} disabled={!url}>
-            <Send /> Enviar no WhatsApp
+          <Button
+            variant="whatsapp"
+            className="h-auto min-h-10 whitespace-normal py-2 text-xs leading-tight"
+            onClick={share}
+            disabled={!url}
+          >
+            <Send /> ENVIAR CUPOM NO WHATSAPP DO CLIENTE
           </Button>
         </div>
       </DialogContent>

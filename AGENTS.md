@@ -36,4 +36,4 @@ use the editor.
 - Customer profile (name, WhatsApp, marketing opt-in with timestamp) is created by the `handle_new_user` trigger from signup metadata; the opt-in must default to false (LGPD).
 - Orders are stored in `public.orders` with an identity `order_number` displayed as `#000001`; the WhatsApp message is built by `buildOrderMessage` in `src/lib/order.ts` — keep its tests in sync.
 - Payment proofs are analyzed server-side in `src/lib/orders.functions.ts` and kept in the private `payment-proofs` bucket; order item edits, cancellation, and finalization use protected database functions so totals and proof requirements cannot be bypassed by the browser.
-- The whole app is gated in `src/routes/index.tsx`: no session shows the entry/signup screen.
+- The catalog and cart are public; customer signup/login appears only during checkout. Product reads and temporary image URLs are public, while orders and all mutations remain protected.

@@ -24,3 +24,6 @@
 - [x] Finalizar somente com comprovante válido para o total atual
 - [x] Visualizar comprovante Pix e reemitir cupom não fiscal no histórico
 - [x] Testar permissões, edição, validação, cancelamento e finalização
+- [ ] Vitrine pública e cadastro/login somente no checkout
+- [ ] Dados oficiais da loja no cabeçalho do cupom não fiscal
+- [ ] Envio do texto completo do cupom ao WhatsApp do cliente

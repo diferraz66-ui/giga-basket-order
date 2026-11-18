@@ -20,7 +20,7 @@ export function CatalogHeader({
   onQueryChange: (q: string) => void;
 }) {
   const { count, setOpen } = useCart();
-  const { profile, signOut } = useAuth();
+  const { session, profile, signOut } = useAuth();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card">

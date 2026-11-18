@@ -43,6 +43,13 @@
       "when": 1795031658916,
       "tag": "0005_comprovantes_pix_e_edicao_pedidos",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795033638286,
+      "tag": "0006_vitrine_publica_produtos",
+      "breakpoints": true
     }
   ]
 }

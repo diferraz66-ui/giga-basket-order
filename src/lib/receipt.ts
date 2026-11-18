@@ -4,17 +4,60 @@ import { formatBRL, formatOrderNumber } from "@/lib/order";
 import { formatWhatsapp } from "@/lib/phone";
 import { hasValidProofForCurrentTotal } from "@/lib/payment-proof";
 
+const receiptStoreLines = [
+  "GIGA SHOPPING",
+  "BAHIA MEGA SHOPPING IMPORTADOS LTDA",
+  "CNPJ: 68.616.873/0001-67",
+  "Rua Sete de Setembro, 141 - Térreo/Subsolo, Centro",
+  "Santo Antônio de Jesus - BA | CEP: 44430-124",
+  "WhatsApp: (75) 98178-5898",
+];
+
+const receiptSeparator = "----------------------------------------";
+
 export function receiptFileName(order: Order) {
   return `GIGA-SHOPPING-cupom-${String(order.order_number).padStart(6, "0")}.pdf`;
 }
 
-export async function createReceiptBlob(order: Order) {
+function assertReceiptAvailable(order: Order) {
   if (order.status !== "completed" || !order.paid_at || !order.confirmed_by_name) {
     throw new Error("O comprovante só pode ser gerado após a confirmação do pagamento");
   }
   if (!hasValidProofForCurrentTotal(order)) {
     throw new Error("O cupom exige comprovante Pix validado com o valor total do pedido");
   }
+}
+
+export function buildReceiptMessage(order: Order) {
+  assertReceiptAvailable(order);
+  const itemLines = order.items.flatMap((item) => [
+    `• ${item.quantity}x ${item.name}`,
+    `  Unitário: ${formatBRL(item.price)} | Subtotal: ${formatBRL(item.price * item.quantity)}`,
+  ]);
+  return [
+    ...receiptStoreLines,
+    receiptSeparator,
+    `CUPOM NÃO FISCAL - PEDIDO Nº ${formatOrderNumber(order.order_number)}`,
+    "",
+    `Data e Horário do pagamento: ${formatDateTime(order.paid_at)}`,
+    `Cliente: ${order.customer_name}`,
+    `WhatsApp: ${formatWhatsapp(order.customer_whatsapp)}`,
+    "",
+    "Produtos:",
+    ...itemLines,
+    "",
+    `VALOR TOTAL PAGO: ${formatBRL(Number(order.total))}`,
+    "Forma de Pagamento: PIX (Comprovante Validado)",
+    "Situação: PAGO",
+    `Vendedor responsável: ${order.seller_name ?? "—"}`,
+    `Confirmado por: ${order.confirmed_by_name}`,
+    "",
+    "Documento sem valor fiscal - Conferência interna GIGA Shopping.",
+  ].join("\n");
+}
+
+export async function createReceiptBlob(order: Order) {
+  assertReceiptAvailable(order);
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const width = doc.internal.pageSize.getWidth();
@@ -24,15 +67,23 @@ export async function createReceiptBlob(order: Order) {
 
   function header() {
     doc.setFillColor(217, 4, 41);
-    doc.rect(0, 0, width, 90, "F");
+    doc.rect(0, 0, width, 180, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
-    doc.text("GIGA SHOPPING", margin, 36);
+    doc.text(receiptStoreLines[0], margin, 32);
+    doc.setFontSize(10);
+    receiptStoreLines.slice(1).forEach((line, index) => {
+      doc.text(line, margin, 54 + index * 16);
+    });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(receiptSeparator, margin, 140);
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.text(`CUPOM NÃO FISCAL - PEDIDO Nº ${formatOrderNumber(order.order_number)}`, margin, 64);
+    doc.text(`CUPOM NÃO FISCAL - PEDIDO Nº ${formatOrderNumber(order.order_number)}`, margin, 162);
     doc.setTextColor(15, 15, 15);
-    y = 118;
+    y = 204;
   }
 
   function footer() {
