@@ -36,6 +36,13 @@
       "when": 1795030233745,
       "tag": "0004_restrict_product_photo_downloads",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795031658916,
+      "tag": "0005_comprovantes_pix_e_edicao_pedidos",
+      "breakpoints": true
     }
   ]
 }

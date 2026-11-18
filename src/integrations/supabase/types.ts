@@ -16,6 +16,10 @@ export type Database = {
     Tables: {
       orders: {
         Row: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          cancelled_by_name: string | null
           confirmed_by: string | null
           confirmed_by_name: string | null
           created_at: string
@@ -26,6 +30,12 @@ export type Database = {
           order_number: number
           paid_at: string | null
           payment_method: string
+          payment_proof_amount: number | null
+          payment_proof_name: string | null
+          payment_proof_path: string | null
+          payment_proof_type: string | null
+          payment_proof_validated_at: string | null
+          payment_proof_validated_total: number | null
           seller_id: string | null
           seller_name: string | null
           status: string
@@ -34,6 +44,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          cancelled_by_name?: string | null
           confirmed_by?: string | null
           confirmed_by_name?: string | null
           created_at?: string
@@ -44,6 +58,12 @@ export type Database = {
           order_number?: never
           paid_at?: string | null
           payment_method?: string
+          payment_proof_amount?: number | null
+          payment_proof_name?: string | null
+          payment_proof_path?: string | null
+          payment_proof_type?: string | null
+          payment_proof_validated_at?: string | null
+          payment_proof_validated_total?: number | null
           seller_id?: string | null
           seller_name?: string | null
           status?: string
@@ -52,6 +72,10 @@ export type Database = {
           user_id?: string
         }
         Update: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          cancelled_by_name?: string | null
           confirmed_by?: string | null
           confirmed_by_name?: string | null
           created_at?: string
@@ -62,6 +86,12 @@ export type Database = {
           order_number?: never
           paid_at?: string | null
           payment_method?: string
+          payment_proof_amount?: number | null
+          payment_proof_name?: string | null
+          payment_proof_path?: string | null
+          payment_proof_type?: string | null
+          payment_proof_validated_at?: string | null
+          payment_proof_validated_total?: number | null
           seller_id?: string | null
           seller_name?: string | null
           status?: string
@@ -193,12 +223,123 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_order: {
+        Args: { p_order_id: string; p_reason: string }
+        Returns: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          cancelled_by_name: string | null
+          confirmed_by: string | null
+          confirmed_by_name: string | null
+          created_at: string
+          customer_name: string
+          customer_whatsapp: string
+          id: string
+          items: Json
+          order_number: number
+          paid_at: string | null
+          payment_method: string
+          payment_proof_amount: number | null
+          payment_proof_name: string | null
+          payment_proof_path: string | null
+          payment_proof_type: string | null
+          payment_proof_validated_at: string | null
+          payment_proof_validated_total: number | null
+          seller_id: string | null
+          seller_name: string | null
+          status: string
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      finalize_order: {
+        Args: { p_order_id: string }
+        Returns: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          cancelled_by_name: string | null
+          confirmed_by: string | null
+          confirmed_by_name: string | null
+          created_at: string
+          customer_name: string
+          customer_whatsapp: string
+          id: string
+          items: Json
+          order_number: number
+          paid_at: string | null
+          payment_method: string
+          payment_proof_amount: number | null
+          payment_proof_name: string | null
+          payment_proof_path: string | null
+          payment_proof_type: string | null
+          payment_proof_validated_at: string | null
+          payment_proof_validated_total: number | null
+          seller_id: string | null
+          seller_name: string | null
+          status: string
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      update_order_items: {
+        Args: { p_items: Json; p_order_id: string }
+        Returns: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          cancelled_by_name: string | null
+          confirmed_by: string | null
+          confirmed_by_name: string | null
+          created_at: string
+          customer_name: string
+          customer_whatsapp: string
+          id: string
+          items: Json
+          order_number: number
+          paid_at: string | null
+          payment_method: string
+          payment_proof_amount: number | null
+          payment_proof_name: string | null
+          payment_proof_path: string | null
+          payment_proof_type: string | null
+          payment_proof_validated_at: string | null
+          payment_proof_validated_total: number | null
+          seller_id: string | null
+          seller_name: string | null
+          status: string
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {

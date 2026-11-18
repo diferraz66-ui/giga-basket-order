@@ -70,7 +70,7 @@ export function CartSheet() {
             <p className="text-sm text-muted-foreground">Envie a mensagem no WhatsApp para a loja confirmar seu pedido.</p>
             <Button variant="whatsapp" className="h-12 w-full" asChild><a href={done.link} target="_blank" rel="noreferrer">Abrir WhatsApp em nova aba</a></Button>
             <Button variant="outline" className="h-12 w-full" onClick={() => void copySummary()}><Copy /> Copiar Resumo do Pedido</Button>
-            <Button variant="link" onClick={() => setOpen(false)}>Continuar comprando</Button>
+            <Button variant="link" onClick={() => { setDone(null); setOpen(false); }}>Continuar comprando</Button>
           </div>
         ) : items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-muted-foreground"><ShoppingCart className="size-12 stroke-1" /><p>Seu carrinho está vazio.</p><Button variant="link" onClick={() => setOpen(false)}>Ver produtos</Button></div>

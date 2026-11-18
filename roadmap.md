@@ -12,9 +12,15 @@
 - [x] Modal de detalhes do produto com zoom, dimensões e compra
 - [x] Confirmação do pedido com WhatsApp em nova aba e resumo copiável
 - [x] Acesso interno seguro para Admin/Financeiro e Vendedor
-- [x] Fluxo manual de Pix, atendimento e finalização apenas pelo Admin/Financeiro
+- [x] Fluxo manual de Pix, atendimento e finalização por vendedor/admin após comprovante validado
 - [x] Comprovante não fiscal em PDF para visualizar, baixar/imprimir e compartilhar
 - [x] Gestão de produtos, fotos, dimensões, preços, categorias e estoque
 - [x] Clientes com filtros, totais, consentimento e exportação CSV
 - [x] Relatórios de vendas e gestão da equipe
 - [x] Testar fluxos de cliente, vendedor e admin; verificar acesso e regras
+- [x] Gestão de pedidos em duas colunas: Em andamento e Finalizados
+- [x] Editar itens, incluir produtos com busca e cancelar com motivo
+- [x] Anexar comprovante Pix privado e validar documento e valor com IA
+- [x] Finalizar somente com comprovante válido para o total atual
+- [x] Visualizar comprovante Pix e reemitir cupom não fiscal no histórico
+- [x] Testar permissões, edição, validação, cancelamento e finalização

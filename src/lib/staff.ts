@@ -26,7 +26,7 @@ export const orderStatusLabels = {
   received: "Recebido",
   in_progress: "Em Atendimento",
   awaiting_pix: "Aguardando Pix",
-  completed: "Venda Concluída",
+  completed: "Venda Concluída (Pago)",
   cancelled: "Cancelado",
 } as const;
 
