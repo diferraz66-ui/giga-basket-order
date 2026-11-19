@@ -40,3 +40,4 @@
 - [x] Importação CSV e cadastro rápido por fotos no Admin
 - [x] Visualização da vitrine em grade ou lista
 - [x] Testar os novos fluxos no celular, computador e Admin
+- [x] Reauditar todos os produtos nos modos grade/lista e nas duas larguras
