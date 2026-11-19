@@ -164,7 +164,7 @@ export function searchProducts(list: Product[], query: string, category: Categor
     .replace(/[\u0300-\u036f]/g, "");
   return list.filter((p) => {
     if (category === "novidades") {
-      if (!p.tags.includes("novidade")) return false;
+      if (p.category !== "novidades" && !p.tags.includes("novidade")) return false;
     } else if (category && p.category !== category) {
       return false;
     }

@@ -30,4 +30,11 @@ describe("catálogo", () => {
       "kit-potes-hermeticos",
     ]);
   });
+
+  it("mostra produtos cadastrados por foto na categoria Novidades sem exigir seção da home", () => {
+    const imported = { ...products[0]!, id: "foto-nova", category: "novidades" as const, tags: [] };
+    expect(searchProducts([...products, imported], "", "novidades").map((p) => p.id)).toContain(
+      "foto-nova",
+    );
+  });
 });

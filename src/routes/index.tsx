@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Flame, Sparkles, Star, Tag } from "lucide-react";
 import banner from "@/assets/banner-ofertas.jpg";
+import storeBackground from "@/assets/fundo-vitrine-giga.png.asset.json";
 import { categoryLabel, searchProducts, type CategoryId } from "@/data/catalog";
 import { useAuth } from "@/lib/auth";
 import { useCatalogProducts } from "@/lib/products";
@@ -11,6 +12,7 @@ import { ProductRow } from "@/components/catalog/ProductRow";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { CartSheet } from "@/components/catalog/CartSheet";
 import { StoreWelcomeDialog } from "@/components/catalog/StoreWelcomeDialog";
+import { CatalogViewToggle, type CatalogView } from "@/components/catalog/CatalogViewToggle";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -42,6 +44,7 @@ function Catalog() {
   const { products } = useCatalogProducts();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<CategoryId | null>(null);
+  const [view, setView] = useState<CatalogView>("grid");
   const filtering = query.trim() !== "" || category !== null;
   const results = useMemo(
     () => searchProducts(products, query, category),
@@ -50,29 +53,41 @@ function Catalog() {
   const firstName = profile?.full_name.split(" ")[0];
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div
+      className="flex min-h-screen flex-col bg-background bg-cover bg-fixed bg-center"
+      style={{ backgroundImage: `url(${storeBackground.url})` }}
+    >
       <CatalogHeader query={query} onQueryChange={setQuery} />
       <MinimumOrderNotice />
       <CategoryBar active={category} onChange={setCategory} />
       <main className="mx-auto w-full max-w-6xl flex-1">
         {filtering ? (
           <section className="px-3 pt-6 sm:px-5">
-            <h1 className="text-xl uppercase">
-              {category ? categoryLabel(category) : "Resultados"}
-              {query.trim() && (
-                <span className="ml-2 font-sans text-sm font-normal normal-case text-muted-foreground">
-                  para "{query.trim()}"
-                </span>
-              )}
-            </h1>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h1 className="text-xl uppercase text-primary-foreground">
+                {category ? categoryLabel(category) : "Resultados"}
+                {query.trim() && (
+                  <span className="ml-2 font-sans text-sm font-normal normal-case text-primary-foreground/80">
+                    para "{query.trim()}"
+                  </span>
+                )}
+              </h1>
+              <CatalogViewToggle value={view} onChange={setView} />
+            </div>
             {results.length === 0 ? (
-              <p className="mt-10 text-center text-muted-foreground">
+              <p className="mt-10 text-center text-primary-foreground/80">
                 Nenhum produto encontrado. Tente outra busca ou categoria.
               </p>
             ) : (
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              <div
+                className={
+                  view === "grid"
+                    ? "mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+                    : "mt-4 grid gap-3"
+                }
+              >
                 {results.map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard key={product.id} product={product} layout={view} />
                 ))}
               </div>
             )}
@@ -103,24 +118,31 @@ function Catalog() {
                 </div>
               </div>
             </section>
+            <div className="mt-4 flex justify-end px-3 sm:px-5">
+              <CatalogViewToggle value={view} onChange={setView} />
+            </div>
             <ProductRow
               title="Ofertas Especiais"
-              icon={<Flame className="size-5 text-primary" />}
+              icon={<Flame className="size-5 text-highlight" />}
               products={products.filter((product) => product.tags.includes("oferta"))}
+              view={view}
             />
             <ProductRow
               title="Mais Vendidos"
-              icon={<Star className="size-5 text-primary" />}
+              icon={<Star className="size-5 text-highlight" />}
               products={products.filter((product) => product.tags.includes("mais-vendido"))}
+              view={view}
             />
             <ProductRow
               title="Novidades"
-              icon={<Sparkles className="size-5 text-primary" />}
+              icon={<Sparkles className="size-5 text-highlight" />}
               products={products.filter((product) => product.tags.includes("novidade"))}
+              view={view}
             />
             <ProductRow
               title="Produtos em Destaque"
               products={products.filter((product) => product.tags.includes("destaque"))}
+              view={view}
             />
           </>
         )}

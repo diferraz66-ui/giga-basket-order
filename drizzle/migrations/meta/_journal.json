@@ -64,6 +64,13 @@
       "when": 1795037307377,
       "tag": "0008_limite_considera_historico_cliente",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795106650870,
+      "tag": "0009_allow_novidades_product_category",
+      "breakpoints": true
     }
   ]
 }

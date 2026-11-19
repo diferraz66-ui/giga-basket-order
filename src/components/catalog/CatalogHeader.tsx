@@ -23,7 +23,7 @@ export function CatalogHeader({
   const { session, profile, signOut } = useAuth();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-card">
+    <header className="sticky top-0 z-40 border-b border-ink bg-ink text-ink-foreground">
       <div className="mx-auto grid max-w-6xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-3 py-2 sm:gap-4 sm:px-5">
         <Logo eager className="w-20 shrink-0 sm:w-28" />
 
@@ -35,7 +35,7 @@ export function CatalogHeader({
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder="Buscar produtos..."
-            className="h-11 w-full rounded-full border border-input bg-muted pl-9 pr-3 text-base outline-none placeholder:text-muted-foreground focus:border-primary focus:bg-background sm:text-sm"
+            className="h-11 w-full rounded-full border border-input bg-card pl-9 pr-3 text-base text-card-foreground outline-none placeholder:text-muted-foreground focus:border-primary sm:text-sm"
           />
         </label>
 
@@ -44,7 +44,7 @@ export function CatalogHeader({
             <DropdownMenu>
               <DropdownMenuTrigger
                 aria-label="Minha conta"
-                className="hidden size-11 items-center justify-center rounded-full hover:bg-muted sm:flex"
+                className="hidden size-11 items-center justify-center rounded-full text-ink-foreground hover:bg-ink-foreground/10 sm:flex"
               >
                 <User className="size-5" />
               </DropdownMenuTrigger>
@@ -68,11 +68,11 @@ export function CatalogHeader({
           <button
             onClick={() => setOpen(true)}
             aria-label={`Abrir carrinho, ${count} ${count === 1 ? "item" : "itens"}`}
-            className="relative flex size-11 items-center justify-center rounded-full bg-ink text-ink-foreground"
+            className="relative flex size-11 items-center justify-center rounded-full bg-primary text-primary-foreground"
           >
             <ShoppingCart className="size-5" />
             {count > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-extrabold text-primary-foreground ring-2 ring-background">
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-highlight px-1 text-[11px] font-extrabold text-highlight-foreground ring-2 ring-ink">
                 {count}
               </span>
             )}

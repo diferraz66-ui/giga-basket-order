@@ -34,3 +34,9 @@
 - [x] Testar as novas regras no celular, computador e fluxo interno
 - [x] Auditar cada requisito em todos os produtos, larguras e etapas do fluxo
 - [x] Banner da vitrine: luminária substituída por blocos de anotações
+- [x] Fundo promocional vermelho fixo na vitrine pública
+- [x] Seletor de quantidade nos detalhes do produto, respeitando o limite histórico
+- [x] Otimização automática de fotos para no máximo 800×800 e qualidade 82%
+- [x] Importação CSV e cadastro rápido por fotos no Admin
+- [x] Visualização da vitrine em grade ou lista
+- [x] Testar os novos fluxos no celular, computador e Admin

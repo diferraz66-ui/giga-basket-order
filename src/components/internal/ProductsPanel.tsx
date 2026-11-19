@@ -1,17 +1,46 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  Download,
+  FileSpreadsheet,
+  Images,
+  Loader2,
+  Pencil,
+  Plus,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { categories, categoryLabel, UNIQUE_PRICE, type CategoryId, type ProductTag } from "@/data/catalog";
+import {
+  categories,
+  categoryLabel,
+  UNIQUE_PRICE,
+  type CategoryId,
+  type ProductTag,
+} from "@/data/catalog";
 import { formatBRL } from "@/lib/order";
 import { resolveProductImage } from "@/lib/products";
+import { optimizeProductImage } from "@/lib/product-image";
+import {
+  bulkPhotoDefaults,
+  parseProductCsv,
+  PRODUCT_CSV_TEMPLATE,
+  productIdFromName,
+  productNameFromFilename,
+} from "@/lib/product-import";
 
 const tagOptions: Array<{ id: ProductTag; label: string }> = [
   { id: "oferta", label: "Oferta" },
@@ -22,52 +51,273 @@ const tagOptions: Array<{ id: ProductTag; label: string }> = [
 
 type RecordWithImage = { product: Tables<"products">; image: string };
 
+function safeFilename(filename: string) {
+  return filename
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]/g, "-");
+}
+
 export function ProductsPanel() {
   const [records, setRecords] = useState<RecordWithImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Tables<"products"> | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<string | null>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
+  const csvInput = useRef<HTMLInputElement>(null);
 
   const reload = useCallback(async () => {
     const { data, error } = await supabase.from("products").select("*").order("created_at");
     if (error) toast.error("Não foi possível carregar os produtos");
-    else setRecords(await Promise.all((data ?? []).map(async (product) => ({ product, image: await resolveProductImage(product) }))));
+    else
+      setRecords(
+        await Promise.all(
+          (data ?? []).map(async (product) => ({
+            product,
+            image: await resolveProductImage(product),
+          })),
+        ),
+      );
     setLoading(false);
   }, []);
 
-  useEffect(() => { void reload(); }, [reload]);
+  useEffect(() => {
+    void reload();
+  }, [reload]);
 
   async function remove(product: Tables<"products">) {
     if (!window.confirm(`Excluir ${product.name}?`)) return;
     const { error } = await supabase.from("products").delete().eq("id", product.id);
     if (error) toast.error("Não foi possível excluir o produto");
-    else { toast.success("Produto excluído"); await reload(); }
+    else {
+      toast.success("Produto excluído");
+      await reload();
+    }
+  }
+
+  function downloadCsvTemplate() {
+    const url = URL.createObjectURL(
+      new Blob(["\uFEFF", PRODUCT_CSV_TEMPLATE], { type: "text/csv;charset=utf-8" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "modelo-produtos-giga.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importCsv(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setBulkProgress("Lendo e validando o CSV...");
+    try {
+      const result = parseProductCsv(await file.text());
+      if (result.errors.length) {
+        toast.error(result.errors.slice(0, 3).join(" · "));
+        return;
+      }
+      const { error } = await supabase.from("products").insert(
+        result.rows.map((row) => ({
+          id: productIdFromName(row.name),
+          name: row.name,
+          description: row.description,
+          price: row.price,
+          category: row.category,
+          dimensions: row.dimensions,
+          max_per_customer: row.maxPerCustomer,
+          tags: row.tags,
+          status: row.status,
+          image_key: null,
+          image_url: null,
+        })),
+      );
+      if (error) throw error;
+      toast.success(`${result.rows.length} produto(s) importado(s) com sucesso`);
+      await reload();
+    } catch {
+      toast.error("Não foi possível importar o CSV. Confira o arquivo e tente novamente.");
+    } finally {
+      setBulkProgress(null);
+    }
+  }
+
+  async function importPhotos(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    if (!files.length) return;
+    let created = 0;
+    let failed = 0;
+
+    for (const [index, file] of files.entries()) {
+      setBulkProgress(`Otimizando e cadastrando foto ${index + 1} de ${files.length}...`);
+      if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) {
+        failed += 1;
+        continue;
+      }
+      try {
+        const optimized = await optimizeProductImage(file);
+        const name = productNameFromFilename(file.name);
+        const id = productIdFromName(name);
+        const path = `${id}/${crypto.randomUUID()}-${safeFilename(optimized.name)}`;
+        const { error: uploadError } = await supabase.storage
+          .from("product-images")
+          .upload(path, optimized, { contentType: optimized.type });
+        if (uploadError) throw uploadError;
+        const defaults = bulkPhotoDefaults();
+        const { error: insertError } = await supabase.from("products").insert({
+          id,
+          name,
+          description: "",
+          price: defaults.price,
+          category: defaults.category,
+          dimensions: "",
+          max_per_customer: defaults.maxPerCustomer,
+          tags: defaults.tags,
+          status: defaults.status,
+          image_key: null,
+          image_url: path,
+        });
+        if (insertError) {
+          await supabase.storage.from("product-images").remove([path]);
+          throw insertError;
+        }
+        created += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+
+    setBulkProgress(null);
+    if (created) {
+      toast.success(`${created} produto(s) cadastrado(s) na categoria Novidades`);
+      await reload();
+    }
+    if (failed)
+      toast.error(`${failed} foto(s) não foram cadastradas. Use imagens válidas de até 5 MB.`);
   }
 
   return (
     <section>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{records.length} produtos cadastrados</p>
-        <Button variant="cta" onClick={() => { setEditing(null); setFormOpen(true); }}><Plus /> Novo produto</Button>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="w-full text-sm text-muted-foreground sm:w-auto">
+          {records.length} produtos cadastrados
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={bulkProgress !== null}
+            onClick={downloadCsvTemplate}
+          >
+            <Download /> Baixar modelo CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={bulkProgress !== null}
+            onClick={() => csvInput.current?.click()}
+          >
+            <FileSpreadsheet /> Importar CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={bulkProgress !== null}
+            onClick={() => photoInput.current?.click()}
+          >
+            <Images /> Cadastro Rápido por Fotos (Lote)
+          </Button>
+          <Button
+            variant="cta"
+            size="sm"
+            disabled={bulkProgress !== null}
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+          >
+            <Plus /> Novo produto
+          </Button>
+        </div>
+        <input
+          ref={csvInput}
+          type="file"
+          accept=".csv,text/csv"
+          className="sr-only"
+          onChange={(event) => void importCsv(event)}
+          aria-label="Selecionar CSV de produtos"
+        />
+        <input
+          ref={photoInput}
+          type="file"
+          accept="image/*"
+          multiple
+          className="sr-only"
+          onChange={(event) => void importPhotos(event)}
+          aria-label="Selecionar fotos para cadastro em lote"
+        />
       </div>
-      {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div> : (
+      {bulkProgress && (
+        <p role="status" className="mb-4 flex items-center gap-2 rounded-lg bg-muted p-3 text-sm">
+          <Loader2 className="size-4 animate-spin text-primary" />
+          {bulkProgress}
+        </p>
+      )}
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-primary" />
+        </div>
+      ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {records.map(({ product, image }) => (
-            <article key={product.id} className="flex gap-3 rounded-2xl border border-border bg-card p-3">
-              <img src={image} alt="" className="size-24 shrink-0 rounded-xl border border-border object-contain p-1" />
+            <article
+              key={product.id}
+              className="flex gap-3 rounded-2xl border border-border bg-card p-3"
+            >
+              <img
+                src={image}
+                alt=""
+                className="size-24 shrink-0 rounded-xl border border-border object-contain p-1"
+              />
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-bold leading-tight">{product.name}</h3>
-                  <span className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-bold ${product.status === "available" ? "bg-secondary text-secondary-foreground" : "bg-destructive text-destructive-foreground"}`}>
+                  <span
+                    className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-bold ${product.status === "available" ? "bg-secondary text-secondary-foreground" : "bg-destructive text-destructive-foreground"}`}
+                  >
                     {product.status === "available" ? "Disponível" : "Esgotado"}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">{categoryLabel(product.category as CategoryId)}</p>
-                <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{product.dimensions}</p>
-                <p className="mt-2 font-display text-lg font-extrabold text-primary">{formatBRL(Number(product.price))}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {categoryLabel(product.category as CategoryId)}
+                </p>
+                <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                  {product.dimensions}
+                </p>
+                <p className="mt-2 font-display text-lg font-extrabold text-primary">
+                  {formatBRL(Number(product.price))}
+                </p>
                 <div className="mt-2 flex gap-1">
-                  <Button size="sm" variant="outline" onClick={() => { setEditing(product); setFormOpen(true); }}><Pencil /> Editar</Button>
-                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => void remove(product)}><Trash2 /> Excluir</Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setEditing(product);
+                      setFormOpen(true);
+                    }}
+                  >
+                    <Pencil /> Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive"
+                    onClick={() => void remove(product)}
+                  >
+                    <Trash2 /> Excluir
+                  </Button>
                 </div>
               </div>
             </article>
@@ -75,19 +325,37 @@ export function ProductsPanel() {
         </div>
       )}
       {formOpen && (
-        <ProductForm key={editing?.id ?? "new"} product={editing} onClose={() => setFormOpen(false)} onSaved={async () => { setFormOpen(false); await reload(); }} />
+        <ProductForm
+          key={editing?.id ?? "new"}
+          product={editing}
+          onClose={() => setFormOpen(false)}
+          onSaved={async () => {
+            setFormOpen(false);
+            await reload();
+          }}
+        />
       )}
     </section>
   );
 }
 
-function ProductForm({ product, onClose, onSaved }: { product: Tables<"products"> | null; onClose: () => void; onSaved: () => Promise<void> }) {
+function ProductForm({
+  product,
+  onClose,
+  onSaved,
+}: {
+  product: Tables<"products"> | null;
+  onClose: () => void;
+  onSaved: () => Promise<void>;
+}) {
   const [name, setName] = useState(product?.name ?? "");
   const [description, setDescription] = useState(product?.description ?? "");
   const [price, setPrice] = useState(String(product?.price ?? UNIQUE_PRICE).replace(".", ","));
   const [category, setCategory] = useState(product?.category ?? "cozinha");
   const [dimensions, setDimensions] = useState(product?.dimensions ?? "");
-  const [maxPerCustomer, setMaxPerCustomer] = useState(product?.max_per_customer ? String(product.max_per_customer) : "");
+  const [maxPerCustomer, setMaxPerCustomer] = useState(
+    product?.max_per_customer ? String(product.max_per_customer) : "",
+  );
   const [status, setStatus] = useState(product?.status ?? "available");
   const [tags, setTags] = useState<ProductTag[]>((product?.tags ?? []) as ProductTag[]);
   const [file, setFile] = useState<File | null>(null);
@@ -98,51 +366,203 @@ function ProductForm({ product, onClose, onSaved }: { product: Tables<"products"
     const numericPrice = Number(price.replace(",", "."));
     const numericLimit = maxPerCustomer.trim() === "" ? 0 : Number(maxPerCustomer);
     if (!Number.isInteger(numericLimit) || numericLimit < 0) {
-      toast.error("O limite por cliente deve ser um número inteiro igual ou maior que zero"); return;
+      toast.error("O limite por cliente deve ser um número inteiro igual ou maior que zero");
+      return;
     }
-    if (!name.trim() || !description.trim() || !dimensions.trim() || !Number.isFinite(numericPrice) || numericPrice < 0) {
-      toast.error("Preencha nome, descrição, dimensões e um preço válido"); return;
+    if (
+      !name.trim() ||
+      !description.trim() ||
+      !dimensions.trim() ||
+      !Number.isFinite(numericPrice) ||
+      numericPrice < 0
+    ) {
+      toast.error("Preencha nome, descrição, dimensões e um preço válido");
+      return;
     }
     if (file && (file.size > 5 * 1024 * 1024 || !file.type.startsWith("image/"))) {
-      toast.error("Escolha uma imagem de até 5 MB"); return;
+      toast.error("Escolha uma imagem de até 5 MB");
+      return;
     }
     setBusy(true);
-    const id = product?.id ?? `${name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${crypto.randomUUID().slice(0, 8)}`;
+    const id = product?.id ?? productIdFromName(name);
     let imagePath = product?.image_url ?? null;
     let imageKey = product?.image_key ?? null;
     if (file) {
-      const safeName = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "-");
-      const path = `${id}/${crypto.randomUUID()}-${safeName}`;
-      const { error } = await supabase.storage.from("product-images").upload(path, file, { contentType: file.type });
-      if (error) { setBusy(false); toast.error("Não foi possível enviar a foto"); return; }
+      let optimized: File;
+      try {
+        optimized = await optimizeProductImage(file);
+      } catch {
+        setBusy(false);
+        toast.error("Não foi possível otimizar a foto. Escolha outra imagem.");
+        return;
+      }
+      const path = `${id}/${crypto.randomUUID()}-${safeFilename(optimized.name)}`;
+      const { error } = await supabase.storage
+        .from("product-images")
+        .upload(path, optimized, { contentType: optimized.type });
+      if (error) {
+        setBusy(false);
+        toast.error("Não foi possível enviar a foto");
+        return;
+      }
       imagePath = path;
       imageKey = null;
     }
     const { error } = await supabase.from("products").upsert({
-      id, name: name.trim(), description: description.trim(), price: numericPrice,
-      category, dimensions: dimensions.trim(), status, tags, image_url: imagePath, image_key: imageKey,
+      id,
+      name: name.trim(),
+      description: description.trim(),
+      price: numericPrice,
+      category,
+      dimensions: dimensions.trim(),
+      status,
+      tags,
+      image_url: imagePath,
+      image_key: imageKey,
       max_per_customer: numericLimit,
     });
     setBusy(false);
     if (error) toast.error("Não foi possível salvar o produto");
-    else { toast.success(product ? "Produto atualizado" : "Produto cadastrado"); await onSaved(); }
+    else {
+      toast.success(product ? "Produto atualizado" : "Produto cadastrado");
+      await onSaved();
+    }
   }
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[94vh] max-w-2xl overflow-y-auto">
-        <DialogHeader><DialogTitle>{product ? "Editar produto" : "Novo produto"}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>{product ? "Editar produto" : "Novo produto"}</DialogTitle>
+        </DialogHeader>
         <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5 sm:col-span-2"><Label htmlFor="product-name">Nome</Label><Input id="product-name" value={name} onChange={(e) => setName(e.target.value)} required /></div>
-          <div className="space-y-1.5 sm:col-span-2"><Label htmlFor="product-description">Descrição completa</Label><textarea id="product-description" value={description} onChange={(e) => setDescription(e.target.value)} required rows={3} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></div>
-          <div className="space-y-1.5"><Label htmlFor="product-price">Preço (R$)</Label><Input id="product-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} required /></div>
-          <div className="space-y-1.5"><Label htmlFor="product-category">Categoria</Label><Select value={category} onValueChange={setCategory}><SelectTrigger id="product-category"><SelectValue /></SelectTrigger><SelectContent>{categories.filter((item) => item.id !== "novidades").map((item) => <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>)}</SelectContent></Select></div>
-          <div className="space-y-1.5 sm:col-span-2"><Label htmlFor="product-dimensions">Tamanho / Dimensões</Label><Input id="product-dimensions" value={dimensions} onChange={(e) => setDimensions(e.target.value)} placeholder="Ex.: Aproximadamente 20 × 15 cm" required /></div>
-          <div className="space-y-1.5"><Label htmlFor="product-limit">Limite máximo por cliente</Label><Input id="product-limit" type="number" min="0" step="1" inputMode="numeric" value={maxPerCustomer} onChange={(e) => setMaxPerCustomer(e.target.value)} placeholder="0 = sem limite" /><p className="text-xs text-muted-foreground">Vazio ou 0: sem limite. O histórico de pedidos não cancelados conta no limite.</p></div>
-          <div className="space-y-1.5"><Label htmlFor="product-status">Status</Label><Select value={status} onValueChange={setStatus}><SelectTrigger id="product-status"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="available">Disponível</SelectItem><SelectItem value="out_of_stock">Esgotado</SelectItem></SelectContent></Select></div>
-          <div className="space-y-1.5"><Label htmlFor="product-photo">Nova foto (até 5 MB)</Label><label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input px-3 text-sm text-muted-foreground"><Upload className="size-4" /><span className="truncate">{file?.name ?? "Escolher imagem"}</span><input id="product-photo" type="file" accept="image/*" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} /></label></div>
-          <fieldset className="sm:col-span-2"><legend className="mb-2 text-sm font-medium">Seções da vitrine</legend><div className="grid grid-cols-2 gap-3">{tagOptions.map((tag) => <label key={tag.id} className="flex items-center gap-2 text-sm"><Checkbox checked={tags.includes(tag.id)} onCheckedChange={(checked) => setTags((current) => checked ? [...current, tag.id] : current.filter((item) => item !== tag.id))} />{tag.label}</label>)}</div></fieldset>
-          <div className="flex justify-end gap-2 sm:col-span-2"><Button type="button" variant="outline" onClick={onClose}>Cancelar</Button><Button type="submit" variant="cta" disabled={busy}>{busy && <Loader2 className="animate-spin" />} Salvar produto</Button></div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="product-name">Nome</Label>
+            <Input
+              id="product-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="product-description">Descrição completa</Label>
+            <textarea
+              id="product-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              required
+              rows={3}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="product-price">Preço (R$)</Label>
+            <Input
+              id="product-price"
+              inputMode="decimal"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="product-category">Categoria</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger id="product-category">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="product-dimensions">Tamanho / Dimensões</Label>
+            <Input
+              id="product-dimensions"
+              value={dimensions}
+              onChange={(e) => setDimensions(e.target.value)}
+              placeholder="Ex.: Aproximadamente 20 × 15 cm"
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="product-limit">Limite máximo por cliente</Label>
+            <Input
+              id="product-limit"
+              type="number"
+              min="0"
+              step="1"
+              inputMode="numeric"
+              value={maxPerCustomer}
+              onChange={(e) => setMaxPerCustomer(e.target.value)}
+              placeholder="0 = sem limite"
+            />
+            <p className="text-xs text-muted-foreground">
+              Vazio ou 0: sem limite. O histórico de pedidos não cancelados conta no limite.
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="product-status">Status</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger id="product-status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="available">Disponível</SelectItem>
+                <SelectItem value="out_of_stock">Esgotado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="product-photo">Nova foto (até 5 MB)</Label>
+            <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input px-3 text-sm text-muted-foreground">
+              <Upload className="size-4" />
+              <span className="truncate">{file?.name ?? "Escolher imagem"}</span>
+              <input
+                id="product-photo"
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Reduzida para até 800 × 800 e comprimida automaticamente.
+            </p>
+          </div>
+          <fieldset className="sm:col-span-2">
+            <legend className="mb-2 text-sm font-medium">Seções da vitrine</legend>
+            <div className="grid grid-cols-2 gap-3">
+              {tagOptions.map((tag) => (
+                <label key={tag.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={tags.includes(tag.id)}
+                    onCheckedChange={(checked) =>
+                      setTags((current) =>
+                        checked ? [...current, tag.id] : current.filter((item) => item !== tag.id),
+                      )
+                    }
+                  />
+                  {tag.label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <div className="flex justify-end gap-2 sm:col-span-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="cta" disabled={busy}>
+              {busy && <Loader2 className="animate-spin" />}{" "}
+              {busy ? "Otimizando e salvando..." : "Salvar produto"}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
