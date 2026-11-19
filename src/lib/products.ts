@@ -7,7 +7,7 @@ import canetas from "@/assets/produto-canetas.jpg";
 import cubo from "@/assets/produto-cubo.jpg";
 import chaves from "@/assets/produto-chaves.jpg";
 import fone from "@/assets/produto-fone.jpg";
-import logo from "@/assets/giga-shopping-logo.jpg";
+import logoAsset from "@/assets/giga-shopping-logo.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import {
@@ -46,7 +46,7 @@ export async function resolveProductImage(
   return (
     (row.image_key && productImages[row.image_key]) ||
     fallbackProducts.find((product) => product.id === row.id)?.image ||
-    logo
+    logoAsset.url
   );
 }
 

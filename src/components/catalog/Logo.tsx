@@ -1,15 +1,21 @@
-import logo from "@/assets/giga-shopping-logo.jpg";
+import logoAsset from "@/assets/giga-shopping-logo.png.asset.json";
 import { cn } from "@/lib/utils";
 
 export function Logo({ className, eager }: { className?: string; eager?: boolean }) {
   return (
-    <img
-      src={logo}
-      alt="GIGA SHOPPING — Preço único R$ 7,50"
-      width={965}
-      height={640}
-      loading={eager ? "eager" : "lazy"}
-      className={cn("h-auto object-contain", className)}
-    />
+    <span className={cn("relative inline-block", className)}>
+      <span
+        aria-hidden
+        className="bg-logo-glow pointer-events-none absolute -inset-x-6 -inset-y-3 -z-10"
+      />
+      <img
+        src={logoAsset.url}
+        alt="GIGA SHOPPING — Preço único R$ 7,50"
+        width={949}
+        height={632}
+        loading={eager ? "eager" : "lazy"}
+        className="block h-auto w-full object-contain"
+      />
+    </span>
   );
 }
