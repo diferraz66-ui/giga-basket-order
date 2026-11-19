@@ -33,3 +33,4 @@
 - [x] Limite máximo por cliente somando todos os pedidos não cancelados, nos produtos, vitrine, carrinho e edição interna
 - [x] Testar as novas regras no celular, computador e fluxo interno
 - [x] Auditar cada requisito em todos os produtos, larguras e etapas do fluxo
+- [x] Banner da vitrine: luminária substituída por blocos de anotações
