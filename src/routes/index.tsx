@@ -13,6 +13,7 @@ import { ProductCard } from "@/components/catalog/ProductCard";
 import { CartSheet } from "@/components/catalog/CartSheet";
 import { StoreWelcomeDialog } from "@/components/catalog/StoreWelcomeDialog";
 import { CatalogViewToggle, type CatalogView } from "@/components/catalog/CatalogViewToggle";
+import { TopBannerCarousel } from "@/components/catalog/TopBannerCarousel";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -94,6 +95,7 @@ function Catalog() {
           </section>
         ) : (
           <>
+            <TopBannerCarousel />
             <section className="px-3 pt-4 sm:px-5">
               <div className="relative overflow-hidden rounded-2xl bg-primary shadow-soft">
                 <img
