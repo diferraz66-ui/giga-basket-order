@@ -182,29 +182,44 @@ export function ProductsPanel() {
     if (!files.length) return;
 
     setLinkPhotoProgress(0);
+    setLinkPhotoSummary(null);
+    setBulkProgress("Consultando produtos ativos e sua numeração atual...");
+
     let databaseProducts: Tables<"products">[];
     try {
       databaseProducts = await fetchAllProductRows();
     } catch {
+      setBulkProgress(null);
       toast.error("Não foi possível consultar todos os produtos do estoque");
       return;
     }
 
-    const numberedProducts = assignActiveProductNumbers(databaseProducts);
-    const productByNumber = new Map<number, { id: string; name: string }>();
-    for (const product of numberedProducts) {
-      if (product.sequence !== null) productByNumber.set(product.sequence, product);
-    }
+    // A numeração corresponde à lista do Admin: cadastro ascendente e somente produtos ativos.
+    const activeProducts = assignActiveProductNumbers(
+      databaseProducts.filter((product) => product.status !== "hidden"),
+    )
+      .filter((product) => product.sequence !== null)
+      .sort((a, b) => {
+        const dateOrder = a.created_at.localeCompare(b.created_at);
+        return dateOrder || a.id.localeCompare(b.id);
+      });
+
+    const productByNumber = new Map<number, Tables<"products">>();
+    activeProducts.forEach((product, index) => productByNumber.set(index + 1, product));
 
     let linked = 0;
     const unmatched: string[] = [];
     const processedNumbers = new Set<number>();
+
     for (const [index, file] of files.entries()) {
       setBulkProgress(`Vinculando foto ${index + 1} de ${files.length}: ${file.name}`);
-      const basename = file.name.replace(/\.[^./\\]+$/, "").trim();
-      const numberMatch = basename.match(/^0*(\d+)$/);
-      const number = numberMatch ? Number(numberMatch[1]) : NaN;
+
+      const basename = file.name.replace(/\\.[^.]+$/, "").trim();
+      const numberMatch = basename.match(/^\\s*(\\d+)/);
+      const digits = numberMatch?.[1] ?? "";
+      const number = digits ? Number.parseInt(digits, 10) : NaN;
       const product = Number.isSafeInteger(number) ? productByNumber.get(number) : undefined;
+
       if (!file.type.startsWith("image/") || !product || processedNumbers.has(number)) {
         unmatched.push(file.name);
         setLinkPhotoProgress(Math.round(((index + 1) / files.length) * 100));
@@ -227,19 +242,28 @@ export function ProductsPanel() {
           .update({ image_url: path, image_key: null })
           .eq("id", product.id);
         if (updateError) throw updateError;
+
         linked += 1;
+        toast.success(`✅ Foto vinculada ao produto #${String(number).padStart(2, "0")} (${product.name})`);
       } catch {
         if (uploadedPath) {
           await supabase.storage.from("product-images").remove([uploadedPath]);
         }
         unmatched.push(file.name);
       }
+
       setLinkPhotoProgress(Math.round(((index + 1) / files.length) * 100));
     }
 
     setBulkProgress(null);
+    await reload();
     setLinkPhotoSummary({ linked, unmatched });
-    if (linked) await reload();
+    if (unmatched.length > 0) {
+      toast.warning(`${unmatched.length} arquivo(s) sem correspondência ou com falha no vínculo`);
+    }
+    if (linked > 0) {
+      toast.success(`✅ ${linked} foto(s) vinculada(s) com sucesso pelos números!`);
+    }
   }
 
   async function importPhotos(event: ChangeEvent<HTMLInputElement>) {
