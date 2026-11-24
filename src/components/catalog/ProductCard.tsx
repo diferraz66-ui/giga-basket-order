@@ -1,5 +1,5 @@
-import { useState } from "react";\nimport { Minus, Plus } from "lucide-react";
-import { Ruler, ShoppingCart } from "lucide-react";
+import { useState } from "react";
+import { Minus, Plus, Ruler, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { Product } from "@/data/catalog";
@@ -22,12 +22,13 @@ export function ProductCard({
   const { add, items, purchasedQuantities, setQuantity } = useCart();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const soldOut = product.status === "out_of_stock";
-  const quantity =
-    (items.find((item) => item.id === product.id)?.quantity ?? 0) +
-    (purchasedQuantities[product.id] ?? 0);
-  const limitReached = isProductLimitReached(quantity, product.maxPerCustomer);\n  const cartQuantity = items.find((item) => item.id === product.id)?.quantity ?? 0;\n\n  function decreaseProduct() {\n    setQuantity(product.id, cartQuantity - 1, product.maxPerCustomer);\n  }\n\n  function increaseProduct() {\n    const added = add({ id: product.id, name: product.name, price: product.price, maxPerCustomer: product.maxPerCustomer });\n    if (!added) return;\n  }
+  const purchasedQuantity = purchasedQuantities[product.id] ?? 0;
+  const cartQuantity = items.find((item) => item.id === product.id)?.quantity ?? 0;
+  const quantity = cartQuantity + purchasedQuantity;
+  const limitReached = isProductLimitReached(quantity, product.maxPerCustomer);\n\n  function decreaseProduct() {\n    setQuantity(product.id, cartQuantity - 1, product.maxPerCustomer);\n  }\n\n  function increaseProduct() {\n    const added = add({ id: product.id, name: product.name, price: product.price, maxPerCustomer: product.maxPerCustomer });\n    if (!added) return;\n  }
 
   function addProduct() {
+    if (limitReached) return;
     const added = add({
       id: product.id,
       name: product.name,
