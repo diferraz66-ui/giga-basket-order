@@ -214,8 +214,8 @@ export function ProductsPanel() {
     for (const [index, file] of files.entries()) {
       setBulkProgress(`Vinculando foto ${index + 1} de ${files.length}: ${file.name}`);
 
-      const basename = file.name.replace(/\\.[^.]+$/, "").trim();
-      const numberMatch = basename.match(/^\\s*(\\d+)/);
+      const basename = file.name.replace(/\.[^.]+$/, "").trim();
+      const numberMatch = basename.match(/^\s*(\d+)/);
       const digits = numberMatch?.[1] ?? "";
       const number = digits ? Number.parseInt(digits, 10) : NaN;
       const product = Number.isSafeInteger(number) ? productByNumber.get(number) : undefined;
