@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { staffAuthPassword, staffLoginEmail } from "@/lib/staff";
+import { staffAuthPassword } from "@/lib/staff";
 
 const createSellerSchema = z.object({
   fullName: z.string().trim().min(3).max(100),
