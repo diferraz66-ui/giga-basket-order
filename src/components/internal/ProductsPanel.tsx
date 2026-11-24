@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import {
+  Camera,
   Download,
   FileSpreadsheet,
   Images,
@@ -33,7 +34,7 @@ import {
 } from "@/data/catalog";
 import { formatBRL } from "@/lib/order";
 import { resolveProductImage } from "@/lib/products";
-import { optimizeProductImage } from "@/lib/product-image";
+import { optimizeProductImage, processSmartProductImage } from "@/lib/product-image";
 import {
   bulkPhotoDefaults,
   parseProductCsv,
@@ -364,6 +365,52 @@ function ProductForm({
   const [tags, setTags] = useState<ProductTag[]>((product?.tags ?? []) as ProductTag[]);
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const cameraInput = useRef<HTMLInputElement>(null);
+  const galleryInput = useRef<HTMLInputElement>(null);
+  const [smartPhoto, setSmartPhoto] = useState<File | null>(null);
+  const [smartPreview, setSmartPreview] = useState<string | null>(null);
+  const [smartPhotoConfirmed, setSmartPhotoConfirmed] = useState(Boolean(product));
+  const [processingSmartPhoto, setProcessingSmartPhoto] = useState(false);
+  const [photoProgress, setPhotoProgress] = useState("");
+  const [photoNotice, setPhotoNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (smartPreview) URL.revokeObjectURL(smartPreview);
+    };
+  }, [smartPreview]);
+
+  async function selectSmartPhoto(event: ChangeEvent<HTMLInputElement>) {
+    const selected = event.target.files?.[0];
+    event.target.value = "";
+    if (!selected) return;
+    setPhotoNotice(null);
+    setProcessingSmartPhoto(true);
+    setPhotoProgress("Removendo fundo e ajustando enquadramento...");
+    try {
+      const result = await processSmartProductImage(selected, setPhotoProgress);
+      setSmartPhoto(result.file);
+      setFile(null);
+      setSmartPreview(URL.createObjectURL(result.file));
+      if (!product) setSmartPhotoConfirmed(false);
+      if (!result.backgroundRemoved) {
+        setPhotoNotice("A remoção de fundo não ficou disponível neste aparelho. A foto foi centralizada em fundo branco, mantendo o fundo original.");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível processar a foto. Tente outra imagem.");
+    } finally {
+      setProcessingSmartPhoto(false);
+      setPhotoProgress("");
+    }
+  }
+
+  function discardSmartPhoto() {
+    setSmartPhoto(null);
+    setFile(null);
+    setSmartPreview(null);
+    setPhotoNotice(null);
+    if (!product) setSmartPhotoConfirmed(false);
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -394,7 +441,7 @@ function ProductForm({
     if (file) {
       let optimized: File;
       try {
-        optimized = await optimizeProductImage(file);
+        optimized = smartPhoto === file ? file : await optimizeProductImage(file);
       } catch {
         setBusy(false);
         toast.error("Não foi possível otimizar a foto. Escolha outra imagem.");
@@ -439,6 +486,67 @@ function ProductForm({
         <DialogHeader>
           <DialogTitle>{product ? "Editar produto" : "Novo produto"}</DialogTitle>
         </DialogHeader>
+        <section className="space-y-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="font-display text-sm font-extrabold uppercase">Foto inteligente do produto</p>
+              <p className="text-xs text-muted-foreground">Tire uma foto ou escolha uma imagem da galeria. O tratamento acontece no próprio navegador.</p>
+            </div>
+            <span className="rounded-full bg-background px-3 py-1 text-[10px] font-bold text-primary">800 × 800 · WebP/JPEG</span>
+          </div>
+          <Button type="button" variant="cta" className="h-11 w-full" onClick={() => galleryInput.current?.click()} disabled={processingSmartPhoto || busy}>
+            <Images className="size-4" /> 📸 Foto Inteligente (Câmera / Galeria)
+          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button type="button" variant="outline" onClick={() => cameraInput.current?.click()} disabled={processingSmartPhoto || busy}>
+              <Camera className="size-4" /> Tirar foto
+            </Button>
+            <Button type="button" variant="outline" onClick={() => galleryInput.current?.click()} disabled={processingSmartPhoto || busy}>
+              <Images className="size-4" /> Escolher da galeria
+            </Button>
+          </div>
+          <input ref={cameraInput} type="file" accept="image/*" capture="environment" className="sr-only" onChange={(event) => void selectSmartPhoto(event)} aria-label="Tirar foto do produto com a câmera traseira" />
+          <input ref={galleryInput} type="file" accept="image/*" className="sr-only" onChange={(event) => void selectSmartPhoto(event)} aria-label="Escolher foto do produto na galeria" />
+          {processingSmartPhoto && (
+            <div role="status" className="flex items-center gap-3 rounded-xl bg-background p-3 text-sm">
+              <Loader2 className="size-5 shrink-0 animate-spin text-primary" />
+              <span>{photoProgress || "Removendo fundo e ajustando enquadramento..."}</span>
+            </div>
+          )}
+          {photoNotice && <p role="status" className="rounded-lg bg-background p-3 text-xs text-muted-foreground">{photoNotice}</p>}
+          {smartPreview && (
+            <div className="space-y-3 rounded-xl border border-border bg-background p-3">
+              <div className="mx-auto aspect-square w-full max-w-[280px] overflow-hidden rounded-lg border border-border bg-white">
+                <img src={smartPreview} alt="Prévia da foto do produto tratada em fundo branco" className="size-full object-contain" />
+              </div>
+              {!smartPhotoConfirmed && !product ? (
+                <>
+                  <p className="text-center text-sm font-bold">A foto e o recorte ficaram corretos?</p>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <Button type="button" className="bg-green-600 text-white hover:bg-green-700" onClick={() => {
+                      if (smartPhoto) {
+                        setFile(smartPhoto);
+                        setSmartPhotoConfirmed(true);
+                        toast.success("Foto selecionada. Agora preencha os dados do produto.");
+                      }
+                    }}>
+                      SIM, USAR ESTA FOTO
+                    </Button>
+                    <Button type="button" variant="destructive" onClick={discardSmartPhoto}>
+                      NÃO, NOVA FOTO / GALERIA
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <p className="text-center text-sm font-semibold text-green-700">Foto selecionada para este produto</p>
+              )}
+            </div>
+          )}
+          {!product && !smartPhotoConfirmed && !smartPreview && !processingSmartPhoto && (
+            <p className="text-center text-xs text-muted-foreground">Depois de confirmar a foto, o formulário de cadastro será liberado.</p>
+          )}
+        </section>
+        {(!product && !smartPhotoConfirmed) ? null : (
         <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="product-name">Nome</Label>
@@ -563,12 +671,13 @@ function ProductForm({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" variant="cta" disabled={busy}>
+            <Button type="submit" variant="cta" disabled={busy || processingSmartPhoto}>
               {busy && <Loader2 className="animate-spin" />}{" "}
               {busy ? "Otimizando e salvando..." : "Salvar produto"}
             </Button>
           </div>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );
