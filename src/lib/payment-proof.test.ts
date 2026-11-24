@@ -52,7 +52,7 @@ describe("validação antifraude do comprovante Pix", () => {
     expect(hasValidProofForCurrentTotal({ ...proof, status: "in_progress", total: 15 })).toBe(false);
   });
   it("preserva cupons de pedidos históricos já concluídos", () => {
-    const legacy = {
+    expect(hasValidProofForCurrentTotal({
       payment_proof_path: "pedido/current",
       payment_proof_amount: 7.5,
       payment_proof_validated_at: "2026-01-01T10:00:00Z",
@@ -60,7 +60,6 @@ describe("validação antifraude do comprovante Pix", () => {
       total: 7.5,
       status: "completed",
       payment_proof_name: null,
-    };
-    expect(hasValidProofForCurrentTotal(legacy)).toBe(true);
+    })).toBe(true);
   });
 });
