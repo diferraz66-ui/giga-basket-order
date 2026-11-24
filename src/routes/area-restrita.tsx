@@ -15,6 +15,7 @@ import { QuickControlPanel } from "@/components/internal/QuickControlPanel";
 import { CustomersPanel } from "@/components/internal/CustomersPanel";
 import { ReportsTeamPanel } from "@/components/internal/ReportsTeamPanel";
 import { BannersPanel } from "@/components/internal/BannersPanel";
+import { ReviewsPanel } from "@/components/internal/ReviewsPanel";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth";
@@ -136,6 +137,7 @@ function StaffDashboard({ member, role }: { member: Tables<"team_members">; role
             {role === "admin" && <TabsTrigger value="customers" className="shrink-0 px-4 py-2.5">Clientes GIGA</TabsTrigger>}
             {role === "admin" && <TabsTrigger value="reports" className="shrink-0 px-4 py-2.5">Relatórios e Equipe</TabsTrigger>}
             {role === "admin" && <TabsTrigger value="banners" className="shrink-0 px-4 py-2.5">Banners Topo</TabsTrigger>}
+            {role === "admin" && <TabsTrigger value="reviews" className="shrink-0 px-4 py-2.5">Avaliações</TabsTrigger>}
           </TabsList>
           <TabsContent value="orders"><OrdersPanel role={role} /></TabsContent>
           {role === "admin" && <TabsContent value="products"><ProductsPanel /></TabsContent>}
@@ -143,6 +145,7 @@ function StaffDashboard({ member, role }: { member: Tables<"team_members">; role
           {role === "admin" && <TabsContent value="customers"><CustomersPanel /></TabsContent>}
           {role === "admin" && <TabsContent value="reports"><ReportsTeamPanel /></TabsContent>}
           {role === "admin" && <TabsContent value="banners"><BannersPanel /></TabsContent>}
+          {role === "admin" && <TabsContent value="reviews"><ReviewsPanel /></TabsContent>}
         </Tabs>
       </main>
       <PasswordChangeDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
