@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { CheckCircle2, Copy, Loader2, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -12,9 +12,7 @@ import {
   buildOrderMessage,
   formatBRL,
   formatOrderNumber,
-  isProductLimitReached,
   minimumOrderProgress,
-  productLimitMessage,
   whatsappLink,
   type CartItem,
 } from "@/lib/order";
