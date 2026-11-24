@@ -39,13 +39,14 @@ const whatsappField = z
   );
 
 const signUpSchema = z.object({
+  email: z.string().trim().email("Informe um e-mail válido"),
   fullName: z.string().trim().min(3, "Informe seu nome completo").max(100, "Nome muito longo"),
   whatsapp: whatsappField,
   password: z.string().min(6, "A senha precisa ter pelo menos 6 caracteres").max(72),
 });
 
 const signInSchema = z.object({
-  whatsapp: whatsappField,
+  whatsapp: z.string().trim().min(1, "Informe seu e-mail ou WhatsApp"),
   password: z.string().min(1, "Informe sua senha"),
 });
 
@@ -71,6 +72,7 @@ export function CheckoutAuthDialog({
 }) {
   const [mode, setMode] = useState<"signup" | "signin">("signup");
   const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [password, setPassword] = useState("");
   const [optIn, setOptIn] = useState(false);
@@ -121,13 +123,13 @@ export function CheckoutAuthDialog({
     }
 
     if (mode === "signup") {
-      const parsed = signUpSchema.safeParse({ fullName, whatsapp, password });
+      const parsed = signUpSchema.safeParse({ fullName, email, whatsapp, password });
       if (!parsed.success)
         return setError(parsed.error.issues[0]?.message ?? "Confira os dados informados.");
-      const phone = normalizeWhatsapp(parsed.data.whatsapp)!;
+      const phone = normalizeWhatsapp(parsed.data.whatsapp);
       setBusy(true);
       const { data, error: signUpError } = await supabase.auth.signUp({
-        email: whatsappToLoginEmail(phone),
+        email: parsed.data.email,
         password: parsed.data.password,
         options: {
           data: { full_name: parsed.data.fullName, whatsapp: phone, marketing_opt_in: optIn },
@@ -161,7 +163,7 @@ export function CheckoutAuthDialog({
     const phone = normalizeWhatsapp(parsed.data.whatsapp)!;
     setBusy(true);
     const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email: whatsappToLoginEmail(phone),
+      email: parsed.data.whatsapp.includes("@") ? parsed.data.whatsapp : whatsappToLoginEmail(phone!),
       password: parsed.data.password,
     });
     if (signInError) {
@@ -232,6 +234,7 @@ export function CheckoutAuthDialog({
               </div>
 
               {mode === "signup" && (
+                <>
                 <div className="space-y-1.5">
                   <Label htmlFor="checkout-full-name">Nome completo</Label>
                   <Input
@@ -243,9 +246,14 @@ export function CheckoutAuthDialog({
                     className="h-12 text-base"
                   />
                 </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="checkout-email">E-mail</Label>
+                  <Input id="checkout-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="voce@email.com" className="h-12 text-base" />
+                </div>
+                </>
               )}
               <div className="space-y-1.5">
-                <Label htmlFor="checkout-whatsapp">WhatsApp</Label>
+                <Label htmlFor="checkout-whatsapp">{mode === "signup" ? "WhatsApp" : "E-mail ou WhatsApp"}</Label>
                 <Input
                   id="checkout-whatsapp"
                   type="tel"
