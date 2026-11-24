@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   CheckCircle2,
+  Copy,
   FileCheck2,
   FileText,
   Loader2,
@@ -115,6 +116,8 @@ export function OrderCard({
     JSON.stringify(list.map(({ id, quantity }) => ({ id, quantity })));
   const dirty = itemSignature(items) !== itemSignature(order.items);
   const localTotal = cartTotal(items);
+  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+  const minimumOrderReached = totalQuantity >= 10 && localTotal >= 75;
   const proofValid = !dirty && hasValidProofForCurrentTotal(order);
   const searchResults = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("pt-BR");
@@ -127,6 +130,15 @@ export function OrderCard({
       )
       .slice(0, 5);
   }, [products, query]);
+
+  async function copyPixKey() {
+    try {
+      await navigator.clipboard.writeText("68.616.873/0001-67");
+      toast.success("Chave Pix copiada");
+    } catch {
+      toast.error("Não foi possível copiar a chave Pix");
+    }
+  }
 
   function changeQuantity(id: string, delta: number) {
     const selected = items.find((item) => item.id === id);
@@ -168,6 +180,10 @@ export function OrderCard({
   }
 
   async function updateStatus(status: OrderStatus) {
+    if (status === "in_progress" && !minimumOrderReached) {
+      toast.error("O pedido precisa ter no mínimo 10 itens e R$ 75,00 para iniciar o atendimento.");
+      return;
+    }
     setBusy("status");
     const { error } = await supabase.from("orders").update({ status }).eq("id", order.id);
     setBusy(null);
@@ -250,7 +266,7 @@ export function OrderCard({
   }
 
   async function finalize() {
-    if (!proofValid) return;
+    if (!minimumOrderReached || !proofValid) return;
     setBusy("finalize");
     const { error } = await supabase.rpc("finalize_order", { p_order_id: order.id });
     setBusy(null);
@@ -440,6 +456,22 @@ export function OrderCard({
             ALTERAÇÕES
           </Button>
 
+          {!minimumOrderReached && (
+            <p role="alert" className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-3 text-sm font-semibold text-destructive">
+              ⚠️ Quantidade mínima não atingida: o pedido precisa ter no mínimo 10 itens (R$ 75,00) para iniciar o atendimento ou finalizar.
+            </p>
+          )}
+
+          <div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 p-3">
+            <p className="text-sm font-extrabold uppercase text-primary">PAGAMENTO SOMENTE VIA PIX</p>
+            <p className="mt-2 text-sm"><strong>Chave Pix (CNPJ):</strong> 68.616.873/0001-67</p>
+            <p className="text-sm"><strong>Banco:</strong> Itaú</p>
+            <p className="text-sm"><strong>Favorecido:</strong> BAHIA MEGA SHOPPING IMPORTADOS LTDA (GIGA SHOPPING)</p>
+            <Button type="button" size="sm" variant="outline" className="mt-3 w-full" onClick={() => void copyPixKey()}>
+              <Copy /> Copiar Chave Pix
+            </Button>
+          </div>
+
           <div className="mt-4 rounded-xl border border-border p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
@@ -504,7 +536,7 @@ export function OrderCard({
               <Button
                 size="sm"
                 onClick={() => void updateStatus("in_progress")}
-                disabled={Boolean(busy)}
+                disabled={!minimumOrderReached || Boolean(busy)}
               >
                 <Play /> Iniciar atendimento
               </Button>
@@ -523,7 +555,7 @@ export function OrderCard({
               size="sm"
               variant="cta"
               onClick={() => void finalize()}
-              disabled={!proofValid || Boolean(busy)}
+              disabled={!minimumOrderReached || !proofValid || Boolean(busy)}
             >
               {busy === "finalize" ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}{" "}
               FINALIZAR PEDIDO
