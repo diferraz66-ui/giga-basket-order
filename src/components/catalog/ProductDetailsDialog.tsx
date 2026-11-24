@@ -26,6 +26,7 @@ export function ProductDetailsDialog({
   const [zoom, setZoom] = useState(1);
   const imageViewport = useRef<HTMLDivElement>(null);
   const dragState = useRef<{ x: number; y: number; left: number; top: number; moved: boolean } | null>(null);
+  const suppressImageClick = useRef(false);
   const soldOut = product.status === "out_of_stock";
   const cartQuantity = items.find((item) => item.id === product.id)?.quantity ?? 0;
   const totalQuantity = cartQuantity + (purchasedQuantities[product.id] ?? 0);
@@ -75,7 +76,10 @@ export function ProductDetailsDialog({
                 if (!viewport || !drag) return;
                 const dx = event.clientX - drag.x;
                 const dy = event.clientY - drag.y;
-                if (Math.abs(dx) > 3 || Math.abs(dy) > 3) drag.moved = true;
+                if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+                  drag.moved = true;
+                  suppressImageClick.current = true;
+                }
                 viewport.scrollLeft = drag.left - dx;
                 viewport.scrollTop = drag.top - dy;
               }}
@@ -86,7 +90,10 @@ export function ProductDetailsDialog({
                 dragState.current = null;
               }}
               onClick={() => {
-                if (dragState.current?.moved) return;
+                if (suppressImageClick.current) {
+                  suppressImageClick.current = false;
+                  return;
+                }
                 setZoom((value) => (value >= 2.5 ? 1 : Math.min(2.5, value + 0.5)));
               }}
             >
