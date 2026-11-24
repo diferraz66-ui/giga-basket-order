@@ -88,6 +88,7 @@ export function hasValidProofForCurrentTotal(order: {
   payment_proof_validated_at: string | null;
   payment_proof_validated_total: number | null;
   total: number;
+  status?: string;
   payment_proof_name?: string | null;
 }) {
   return Boolean(
@@ -97,6 +98,6 @@ export function hasValidProofForCurrentTotal(order: {
     order.payment_proof_validated_total !== null &&
     toCents(order.payment_proof_amount) === toCents(Number(order.total)) &&
     toCents(order.payment_proof_validated_total) === toCents(Number(order.total)) &&
-    order.payment_proof_name?.startsWith("PIX_VALIDATED:")
+    (order.payment_proof_name?.startsWith("PIX_VALIDATED:") || (order.status === "completed" && !order.payment_proof_name))
   );
 }
