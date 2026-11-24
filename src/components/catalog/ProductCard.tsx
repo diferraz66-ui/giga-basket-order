@@ -39,7 +39,7 @@ export function ProductCard({
         <button
           type="button"
           onClick={() => setDetailsOpen(true)}
-          className="relative block aspect-square w-full bg-card text-left"
+          className="relative block aspect-square w-full shrink-0 bg-white p-2 text-left"
           aria-label={`Ver detalhes e ampliar foto de ${product.name}`}
         >
           <img
@@ -127,7 +127,7 @@ export function ProductCard({
           width={816}
           height={816}
           loading="lazy"
-          className="h-full w-full object-contain p-3"
+          className="h-full w-full object-contain"
         />
         {product.tags.includes("oferta") && (
           <span className="absolute left-2 top-2 rounded-md bg-primary px-2 py-1 font-display text-[10px] font-extrabold uppercase text-primary-foreground">
@@ -145,13 +145,13 @@ export function ProductCard({
           </span>
         )}
       </button>
-      <div className="flex flex-1 flex-col gap-1 p-3">
+      <div className="flex h-full flex-1 flex-col justify-between gap-1 p-3">
         <button type="button" onClick={() => setDetailsOpen(true)} className="text-left">
-          <h3 className="line-clamp-2 text-sm font-bold leading-tight hover:text-primary sm:text-base">
+          <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-bold leading-tight hover:text-primary sm:text-base">
             {product.name}
           </h3>
         </button>
-        <p className="line-clamp-2 text-xs text-muted-foreground">{product.description}</p>
+        <p className="line-clamp-2 min-h-[2rem] text-xs text-gray-500">{product.description}</p>
         <p
           className="flex items-center gap-1 truncate text-[10px] text-muted-foreground"
           title={product.dimensions || "Consulte o vendedor"}
@@ -164,7 +164,7 @@ export function ProductCard({
             Limite: até {product.maxPerCustomer} un. por cliente
           </p>
         )}
-        <div className="mt-auto pt-2">
+        <div className="mt-auto min-h-[3.5rem] pt-2">
           <p className="font-display text-xl font-extrabold text-primary">
             {formatBRL(product.price)}
             <span className="ml-1 font-sans text-xs font-medium text-muted-foreground">
