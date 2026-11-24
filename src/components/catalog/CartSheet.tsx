@@ -154,7 +154,7 @@ export function CartSheet({ products }: { products: Product[] }) {
             </SheetTitle>
           </SheetHeader>
           <div className="border-b border-primary/20 bg-primary/5 px-4 py-3 text-center text-xs font-semibold leading-relaxed text-foreground">
-            💳 Pagamento aceito exclusivamente via PIX (Chave CNPJ: 68.616.873/0001-67 - Banco Itaú)
+            💳 Pagamento somente via PIX
           </div>
           {done ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
