@@ -79,7 +79,7 @@ function StaffLogin({ hasCustomerSession }: { hasCustomerSession: boolean }) {
     if (!parsed.success) { setError(parsed.error.issues[0]?.message ?? "Confira os dados"); return; }
     setBusy(true);
     const { error: authError } = await supabase.auth.signInWithPassword({
-      email: staffLoginEmail(parsed.data.username),
+      email: parsed.data.username.includes("@") ? parsed.data.username : staffLoginEmail(parsed.data.username),
       password: staffAuthPassword(parsed.data.password),
     });
     setBusy(false);
@@ -95,7 +95,14 @@ function StaffLogin({ hasCustomerSession }: { hasCustomerSession: boolean }) {
         <p className="mt-2 text-sm text-muted-foreground">Acesso exclusivo para Admin/Financeiro e Vendedor.</p>
         {hasCustomerSession && <p className="mt-4 rounded-lg bg-accent p-3 text-sm text-accent-foreground">A conta atual é de cliente. Entre com um login da equipe para continuar.</p>}
         <form onSubmit={submit} className="mt-6 space-y-4">
-          <div className="space-y-1.5"><Label htmlFor="staff-username">Login</Label><Input id="staff-username" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} autoComplete="username" placeholder="admin ou vendedor" className="h-12" /></div>
+          <div className="space-y-1.5"><Label htmlFor="staff-username">E-mail ou login</Label><Input id="staff-username" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} autoComplete="username" placeholder="E-mail ou login da equipe" className="h-12" /></div>
+          <button type="button" className="text-sm font-medium text-primary underline" onClick={async () => {
+            if (!username.includes("@")) return setError("Informe o e-mail cadastrado para receber o link de redefinição.");
+            setBusy(true);
+            const { error: resetError } = await supabase.auth.resetPasswordForEmail(username.trim(), { redirectTo: window.location.origin });
+            setBusy(false);
+            setError(resetError ? "Não foi possível enviar o link. Confira o e-mail." : "Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha.");
+          }}>Esqueci minha senha</button>
           <div className="space-y-1.5"><Label htmlFor="staff-password">Senha</Label><Input id="staff-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" className="h-12" /></div>
           {error && <p role="alert" className="rounded-lg bg-accent px-3 py-2 text-sm text-accent-foreground">{error}</p>}
           <Button type="submit" variant="cta" className="h-12 w-full" disabled={busy}>{busy && <Loader2 className="animate-spin" />} Entrar na área restrita</Button>
