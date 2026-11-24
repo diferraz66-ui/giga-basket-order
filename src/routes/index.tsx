@@ -186,7 +186,11 @@ function Catalog() {
                 const product = products.find((item) => item.id === review.product_id);
                 return (
                   <article key={review.id} className="w-72 shrink-0 rounded-xl border border-white/10 bg-white/10 p-3 text-ink-foreground">
-                    <p className="text-sm tracking-wide text-yellow-400" aria-label="5 estrelas">★★★★★</p>
+                    <div className="flex gap-0.5" aria-label={`${review.rating} de 5 estrelas`}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <span key={star} className={star <= review.rating ? "text-yellow-400" : "text-white/30"}>★</span>
+                      ))}
+                    </div>
                     <p className="mt-2 line-clamp-4 min-h-16 text-sm leading-relaxed">“{review.comment}”</p>
                     <div className="mt-3 flex items-center gap-2 border-t border-white/10 pt-3">
                       {product && <img src={product.image} alt={product.name} className="size-11 rounded-lg bg-white object-contain p-1" />}
