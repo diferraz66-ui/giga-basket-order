@@ -55,14 +55,14 @@ type RecordWithImage = { product: Tables<"products">; image: string };
 
 function normalizeProductName(value: string) {
   return value
-    .replace(/\\.[^.]+$/, "")
+    .replace(/\.[^.]+$/, "")
     .normalize("NFD")
-    .replace(/[\\u0300-\\u036f]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[_-]+/g, " ")
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
-    .replace(/\\s+/g, " ");
+    .replace(/\s+/g, " ");
 }
 
 function safeFilename(filename: string) {
@@ -78,6 +78,8 @@ export function ProductsPanel() {
   const [editing, setEditing] = useState<Tables<"products"> | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<string | null>(null);
+  const linkPhotoInput = useRef<HTMLInputElement>(null);
+  const [linkPhotoSummary, setLinkPhotoSummary] = useState<{ linked: number; unmatched: string[] } | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
   const csvInput = useRef<HTMLInputElement>(null);
 
