@@ -5,7 +5,7 @@ import banner from "@/assets/banner-ofertas.jpg";
 import storeBackground from "@/assets/fundo-vitrine-giga.png.asset.json";
 import { categoryLabel, searchProducts, type CategoryId } from "@/data/catalog";
 import { useAuth } from "@/lib/auth";
-import { useCatalogProducts } from "@/lib/products";
+import { assignActiveProductNumbers, useCatalogProducts } from "@/lib/products";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { CatalogHeader } from "@/components/catalog/CatalogHeader";
@@ -78,7 +78,7 @@ function Catalog() {
     () => searchProducts(products, query, category),
     [products, query, category],
   );
-  const sequenceById = useMemo(() => new Map(products.map((product, index) => [product.id, index + 1])), [products]);
+  const sequenceById = useMemo(() => new Map(assignActiveProductNumbers(products).filter((product) => product.sequence !== null).map((product) => [product.id, product.sequence!])), [products]);
   const firstName = profile?.full_name.split(" ")[0];
 
   return (
