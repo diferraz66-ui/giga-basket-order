@@ -78,7 +78,7 @@ function Catalog() {
     () => searchProducts(products, query, category),
     [products, query, category],
   );
-  const sequenceById = useMemo(() => new Map(assignActiveProductNumbers(products).filter((product) => product.sequence !== null).map((product) => [product.id, product.sequence!])), [products]);
+  const sequenceById = useMemo(() => new Map(products.map((product, index) => [product.id, index + 1])), [products]);
   const firstName = profile?.full_name.split(" ")[0];
 
   return (
