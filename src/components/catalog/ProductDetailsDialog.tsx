@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { ProductReviewForm } from "./ProductReviewForm";
 import type { Product } from "@/data/catalog";
 import { useCart } from "@/lib/cart";
 import { formatBRL, isProductLimitReached, productLimitMessage } from "@/lib/order";
@@ -17,10 +18,12 @@ export function ProductDetailsDialog({
   product,
   open,
   onOpenChange,
+  reviewSummary,
 }: {
   product: Product;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  reviewSummary?: { average: number; count: number };
 }) {
   const { add, setQuantity, items, purchasedQuantities } = useCart();
   const [zoom, setZoom] = useState(1);
@@ -226,6 +229,12 @@ export function ProductDetailsDialog({
             )}
           </div>
         </div>
+        {reviewSummary && reviewSummary.count > 0 && (
+          <p className="mt-4 flex items-center gap-2 text-sm font-bold text-yellow-600">
+            ⭐ {reviewSummary.average.toFixed(1)} de 5 ({reviewSummary.count} avaliações)
+          </p>
+        )}
+        <ProductReviewForm productId={product.id} productName={product.name} active={open} />
       </DialogContent>
     </Dialog>
   );
