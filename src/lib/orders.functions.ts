@@ -45,6 +45,20 @@ async function requireActiveStaff(context: { supabase: SupabaseClient<Database>;
   }
 }
 
+async function requireActiveAdmin(context: { supabase: SupabaseClient<Database>; userId: string }) {
+  const [{ data: member }, { data: roles }] = await Promise.all([
+    context.supabase
+      .from("team_members")
+      .select("user_id, active")
+      .eq("user_id", context.userId)
+      .maybeSingle(),
+    context.supabase.from("user_roles").select("role").eq("user_id", context.userId),
+  ]);
+  if (!member?.active || !roles?.some((item: { role: string }) => item.role === "admin")) {
+    throw new Error("Liberação manual permitida exclusivamente para Admin ativo");
+  }
+}
+
 function hasValidSignature(bytes: Uint8Array, type: AcceptedType) {
   if (type === "image/jpeg") return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
   if (type === "image/png") {
@@ -167,32 +181,88 @@ export const uploadPaymentProof = createServerFn({ method: "POST" })
       const outputText = response.output
         .flatMap((item) => (item.type === "message" ? item.content : []))
         .find((item) => item.type === "output_text")?.text;
-      if (!outputText)
-        return {
-          accepted: false as const,
-          reason: "Não foi possível validar o comprovante. Tente um arquivo mais legível.",
-        };
+      if (!outputText) {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const reviewPath = `${data.orderId}/review-${crypto.randomUUID()}`;
+        const { error: uploadError } = await supabaseAdmin.storage.from("payment-proofs").upload(reviewPath, file, { contentType: file.type, upsert: false });
+        if (uploadError) return { accepted: false as const, reason: "Não foi possível analisar nem salvar o comprovante para revisão." };
+        const { error: saveError } = await supabaseAdmin.from("orders").update({
+          payment_proof_path: reviewPath,
+          payment_proof_name: file.name.slice(0, 160),
+          payment_proof_type: file.type,
+          payment_proof_amount: null,
+          payment_proof_validated_at: null,
+          payment_proof_validated_total: null,
+        }).eq("id", data.orderId).eq("total", order.total).in("status", [...ACTIVE_STATUSES]);
+        if (saveError) {
+          await supabaseAdmin.storage.from("payment-proofs").remove([reviewPath]);
+          return { accepted: false as const, reason: "Não foi possível registrar o comprovante para revisão do Admin." };
+        }
+        return { accepted: false as const, reason: "Não foi possível validar automaticamente. O comprovante foi salvo para revisão manual do Admin.", savedForReview: true as const };
+      }
       analysis = analysisSchema.parse(JSON.parse(outputText));
     } catch {
-      return {
-        accepted: false as const,
-        reason: "Não foi possível validar o comprovante agora. Tente novamente.",
-      };
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const reviewPath = `${data.orderId}/review-${crypto.randomUUID()}`;
+      const { error: uploadError } = await supabaseAdmin.storage.from("payment-proofs").upload(reviewPath, file, { contentType: file.type, upsert: false });
+      if (uploadError) return { accepted: false as const, reason: "Não foi possível validar nem salvar o arquivo para revisão." };
+      const { error: saveError } = await supabaseAdmin.from("orders").update({
+        payment_proof_path: reviewPath,
+        payment_proof_name: file.name.slice(0, 160),
+        payment_proof_type: file.type,
+        payment_proof_amount: null,
+        payment_proof_validated_at: null,
+        payment_proof_validated_total: null,
+      }).eq("id", data.orderId).eq("total", order.total).in("status", [...ACTIVE_STATUSES]);
+      if (saveError) {
+        await supabaseAdmin.storage.from("payment-proofs").remove([reviewPath]);
+        return { accepted: false as const, reason: "Não foi possível registrar o comprovante para revisão manual." };
+      }
+      return { accepted: false as const, reason: "Falha na análise automática. O comprovante foi salvo para revisão manual do Admin.", savedForReview: true as const };
     }
 
-    const expectedDate = (order.created_at ?? "").slice(0, 10) || getBahiaDate();
-    const validation = validatePaymentProof(analysis, Number(order.total), expectedDate);
-    if (!validation.ok) return { accepted: false as const, reason: validation.reason };
+    const transactionId = analysis.transaction_id?.trim() ?? "";
+    if (transactionId) {
+      const { data: existing, error: duplicateError } = await context.supabase
+        .from("orders")
+        .select("id")
+        .eq("payment_proof_name", `PIX_VALIDATED:${transactionId}`)
+        .neq("id", order.id)
+        .limit(1);
+      if (duplicateError) return { accepted: false as const, reason: "Não foi possível verificar a duplicidade do ID Pix. Tente novamente." };
+      if (existing?.length) return { accepted: false as const, reason: "❌ Comprovante duplicado: este ID de transação Pix já foi utilizado em outro pedido!" };
+    }
 
-    const transactionId = analysis.transaction_id!.trim();
-    const { data: existing, error: duplicateError } = await context.supabase
-      .from("orders")
-      .select("id")
-      .eq("payment_proof_name", `PIX_VALIDATED:${transactionId}`)
-      .neq("id", order.id)
-      .limit(1);
-    if (duplicateError) return { accepted: false as const, reason: "Não foi possível verificar a duplicidade do ID Pix. Tente novamente." };
-    if (existing?.length) return { accepted: false as const, reason: "❌ Comprovante duplicado: este ID de transação Pix já foi utilizado em outro pedido!" };
+    const saveForManualReview = async (reason: string) => {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const reviewPath = `${order.id}/review-${crypto.randomUUID()}`;
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("payment-proofs")
+        .upload(reviewPath, file, { contentType: file.type, upsert: false });
+      if (uploadError) return { accepted: false as const, reason: `${reason} O arquivo não pôde ser salvo para revisão do Admin.` };
+      const { error: updateError } = await supabaseAdmin
+        .from("orders")
+        .update({
+          payment_proof_path: reviewPath,
+          payment_proof_name: file.name.slice(0, 160),
+          payment_proof_type: file.type,
+          payment_proof_amount: null,
+          payment_proof_validated_at: null,
+          payment_proof_validated_total: null,
+        })
+        .eq("id", order.id)
+        .eq("total", order.total)
+        .in("status", [...ACTIVE_STATUSES]);
+      if (updateError) {
+        await supabaseAdmin.storage.from("payment-proofs").remove([reviewPath]);
+        return { accepted: false as const, reason: `${reason} O arquivo não pôde ser registrado para revisão.` };
+      }
+      return { accepted: false as const, reason, savedForReview: true as const };
+    };
+
+    const expectedDate = getBahiaDate(new Date(order.created_at));
+    const validation = validatePaymentProof(analysis, Number(order.total), expectedDate);
+    if (!validation.ok) return await saveForManualReview(validation.reason);
 
     const path = `${order.id}/current`;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -250,6 +320,9 @@ export const manualReleasePaymentProof = createServerFn({ method: "POST" })
     }
     if (!order.payment_proof_path) {
       throw new Error("Anexe o comprovante antes de solicitar a liberação manual");
+    }
+    if (order.payment_proof_path && (await context.supabase.from("orders").select("payment_proof_name").eq("id", order.id).single()).data?.payment_proof_name?.startsWith("PIX_VALIDATED:")) {
+      throw new Error("Este comprovante já está validado. A liberação manual só se aplica a comprovantes pendentes de revisão.");
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const marker = `PIX_VALIDATED:ADMIN_MANUAL:${data.reason.replace(/[\r\n]+/g, " ").trim()}`.slice(0, 160);
