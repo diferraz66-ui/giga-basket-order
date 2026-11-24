@@ -9,12 +9,14 @@ export function ProductRow({
   products,
   view = "grid",
   reviewStats,
+  sequenceById,
 }: {
   title: string;
   icon?: ReactNode;
   products: Product[];
   view?: CatalogView;
   reviewStats?: Record<string, { average: number; count: number }>;
+  sequenceById?: Map<string, number>;
 }) {
   if (products.length === 0) return null;
   return (
@@ -34,7 +36,7 @@ export function ProductRow({
         }
       >
         {products.map((product) => (
-          <ProductCard key={product.id} product={product} layout={view} reviewSummary={reviewStats?.[product.id]} />
+          <ProductCard key={product.id} product={product} layout={view} reviewSummary={reviewStats?.[product.id]} sequence={sequenceById?.get(product.id)} />
         ))}
       </div>
     </section>
