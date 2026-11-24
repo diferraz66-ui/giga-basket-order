@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { categories, categoryLabel, type CategoryId } from "@/data/catalog";
 import { formatBRL } from "@/lib/order";
-import { assignActiveProductNumbers, resolveProductImage } from "@/lib/products";
+import { assignActiveProductNumbers, fetchAllProductRows, resolveProductImage } from "@/lib/products";
 
 type ProductRowType = Tables<"products">;
 
@@ -23,22 +23,14 @@ export function QuickControlPanel() {
   const images = useRef(new Map<string, string>());
 
   const reload = useCallback(async () => {
-    const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: true }).order("id", { ascending: true });
-    if (error) {
+    try {
+      const data = await fetchAllProductRows();
+      setRecords(await Promise.all(data.map(async (product) => ({ product, image: images.current.get(product.id) ?? (await resolveProductImage(product)), saving: false }))));
+    } catch {
       toast.error("Não foi possível carregar os produtos");
-    } else {
-      setRecords(
-        await Promise.all(
-          (data ?? []).map(async (product) => ({
-            product,
-            image:
-              images.current.get(product.id) ?? (await resolveProductImage(product)),
-            saving: false,
-          })),
-        ),
-      );
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -122,8 +114,9 @@ export function QuickControlPanel() {
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1.5">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {saving && <Loader2 className="size-3.5 animate-spin text-primary" />}
+                    <Button size="sm" variant={hidden ? "secondary" : "outline"} disabled={saving} onClick={() => void setStatus(product, hidden ? "available" : "hidden")} className="h-7 px-2 text-[10px]">{hidden ? "Reexibir" : "Ocultar"}</Button>
                     <label className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
                       DISP
                       <Switch
