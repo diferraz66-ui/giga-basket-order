@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Flame, Sparkles, Star, Tag } from "lucide-react";
+import { Sparkles, Star, Tag } from "lucide-react";
 import banner from "@/assets/banner-ofertas.jpg";
 import storeBackground from "@/assets/fundo-vitrine-giga.png.asset.json";
 import { categoryLabel, searchProducts, type CategoryId } from "@/data/catalog";
@@ -124,12 +124,6 @@ function Catalog() {
               <CatalogViewToggle value={view} onChange={setView} />
             </div>
             <ProductRow
-              title="Ofertas Especiais"
-              icon={<Flame className="size-5 text-highlight" />}
-              products={products.filter((product) => product.tags.includes("oferta"))}
-              view={view}
-            />
-            <ProductRow
               title="Mais Vendidos"
               icon={<Star className="size-5 text-highlight" />}
               products={products.filter((product) => product.tags.includes("mais-vendido"))}
@@ -139,11 +133,6 @@ function Catalog() {
               title="Novidades"
               icon={<Sparkles className="size-5 text-highlight" />}
               products={products.filter((product) => product.tags.includes("novidade"))}
-              view={view}
-            />
-            <ProductRow
-              title="Produtos em Destaque"
-              products={products.filter((product) => product.tags.includes("destaque"))}
               view={view}
             />
           </>
