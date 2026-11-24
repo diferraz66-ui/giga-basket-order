@@ -55,13 +55,13 @@ type RecordWithImage = { product: Tables<"products">; image: string };
 
 function normalizeProductName(value: string) {
   return value
-    .replace(/\.[^.]+$/, "")
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[\r\n\t\u200B]/g, " ")
+    .trim()
+    .replace(/[\s_-]+/g, " ")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[_-]+/g, " ")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim()
     .replace(/\s+/g, " ");
 }
 
@@ -166,14 +166,25 @@ export function ProductsPanel() {
     if (!files.length) return;
 
     setLinkPhotoProgress(0);
-    const { data: databaseProducts, error: productsError } = await supabase.from("products").select("*");
-    if (productsError) {
-      toast.error("Não foi possível consultar os produtos do estoque");
-      return;
+    const databaseProducts: Array<{ id: string; name: string }> = [];
+    const pageSize = 1000;
+    let offset = 0;
+    while (true) {
+      const { data, error: productsError } = await supabase
+        .from("products")
+        .select("id,name")
+        .range(offset, offset + pageSize - 1);
+      if (productsError) {
+        toast.error("Não foi possível consultar todos os produtos do estoque");
+        return;
+      }
+      databaseProducts.push(...(data ?? []));
+      if (!data || data.length < pageSize) break;
+      offset += pageSize;
     }
 
-    const productsByName = new Map<string, Tables<"products">[]>();
-    for (const product of databaseProducts ?? []) {
+    const productsByName = new Map<string, Array<{ id: string; name: string }>>();
+    for (const product of databaseProducts) {
       const normalized = normalizeProductName(product.name);
       if (!normalized) continue;
       const matches = productsByName.get(normalized) ?? [];
