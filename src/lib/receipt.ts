@@ -40,6 +40,7 @@ export function buildReceiptMessage(order: Order) {
     `CUPOM NÃO FISCAL - PEDIDO Nº ${formatOrderNumber(order.order_number)}`,
     "",
     `Data e Horário do pagamento: ${formatDateTime(order.paid_at)}`,
+    `Referência de validação Pix: ${order.payment_proof_name?.replace(/^PIX_VALIDATED:/, "") ?? "—"}`,
     `Cliente: ${order.customer_name}`,
     `WhatsApp: ${formatWhatsapp(order.customer_whatsapp)}`,
     "",
