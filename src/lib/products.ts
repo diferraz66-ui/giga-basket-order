@@ -60,7 +60,10 @@ export function mapProduct(row: Tables<"products">, image: string): Product {
     imageKey: row.image_key,
     imagePath: row.image_url,
     dimensions: row.dimensions,
-    status: row.status === "out_of_stock" ? "out_of_stock" : "available",
+    status:
+      row.status === "out_of_stock" || row.status === "hidden"
+        ? (row.status as Product["status"])
+        : "available",
     maxPerCustomer: row.max_per_customer,
     category: row.category as CategoryId,
     tags: row.tags.filter((tag): tag is ProductTag => validTags.includes(tag as ProductTag)),
@@ -83,7 +86,8 @@ export function useCatalogProducts() {
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      setItems(await fetchCatalogProducts());
+      const all = await fetchCatalogProducts();
+      setItems(all.filter((product) => product.status !== "hidden"));
       setError(false);
     } catch {
       setError(true);

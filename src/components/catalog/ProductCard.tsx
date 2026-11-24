@@ -57,7 +57,7 @@ export function ProductCard({
           )}
           {soldOut && (
             <span className="absolute inset-x-0 bottom-0 rounded-md bg-ink px-1 py-1 text-center font-display text-[9px] font-extrabold uppercase text-ink-foreground">
-              Esgotado
+              Indisponível
             </span>
           )}
         </button>
@@ -97,7 +97,7 @@ export function ProductCard({
           >
             <ShoppingCart className="hidden sm:block" />
             {soldOut ? (
-              "Esgotado"
+              "Indisponível"
             ) : limitReached ? (
               "Limite atingido"
             ) : (
@@ -141,7 +141,7 @@ export function ProductCard({
         )}
         {soldOut && (
           <span className="absolute inset-x-3 bottom-3 rounded-md bg-ink px-2 py-2 text-center font-display text-xs font-extrabold uppercase text-ink-foreground">
-            Esgotado
+            Indisponível
           </span>
         )}
       </button>
@@ -181,7 +181,7 @@ export function ProductCard({
         >
           <ShoppingCart className="hidden sm:block" />
           {soldOut
-            ? "Produto esgotado"
+            ? "Indisponível"
             : limitReached
               ? "Limite atingido"
               : "Adicionar ao carrinho"}

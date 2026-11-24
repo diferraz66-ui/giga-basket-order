@@ -285,9 +285,13 @@ export function ProductsPanel() {
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-bold leading-tight">{product.name}</h3>
                   <span
-                    className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-bold ${product.status === "available" ? "bg-secondary text-secondary-foreground" : "bg-destructive text-destructive-foreground"}`}
+                    className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-bold ${product.status === "available" ? "bg-secondary text-secondary-foreground" : product.status === "hidden" ? "bg-muted text-muted-foreground" : "bg-destructive text-destructive-foreground"}`}
                   >
-                    {product.status === "available" ? "Disponível" : "Esgotado"}
+                    {product.status === "available"
+                      ? "Disponível"
+                      : product.status === "hidden"
+                        ? "Oculto"
+                        : "Esgotado"}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -516,6 +520,7 @@ function ProductForm({
               <SelectContent>
                 <SelectItem value="available">Disponível</SelectItem>
                 <SelectItem value="out_of_stock">Esgotado</SelectItem>
+                <SelectItem value="hidden">Oculto (fora da vitrine)</SelectItem>
               </SelectContent>
             </Select>
           </div>

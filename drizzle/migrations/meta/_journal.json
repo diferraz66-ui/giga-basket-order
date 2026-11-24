@@ -71,6 +71,13 @@
       "when": 1795106650870,
       "tag": "0009_allow_novidades_product_category",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795110000000,
+      "tag": "0010_status_oculto_produtos",
+      "breakpoints": true
     }
   ]
 }
