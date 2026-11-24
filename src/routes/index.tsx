@@ -176,11 +176,11 @@ function Catalog() {
         <p className="mx-auto mt-3 max-w-xl rounded-lg border border-white/20 bg-white/10 px-3 py-2 font-semibold text-ink-foreground">
           💳 Pagamento somente via PIX
         </p>
-        {reviews.length > 0 && (
-          <section className="mx-auto mt-8 max-w-6xl text-left">
-            <h2 className="mb-3 text-center font-display text-lg font-extrabold uppercase text-ink-foreground sm:text-xl">
-              ⭐ CLIENTES SATISFEITOS — AVALIAÇÕES REAIS
-            </h2>
+        <section className="mx-auto mt-8 max-w-6xl text-left">
+          <h2 className="mb-3 text-center font-display text-lg font-extrabold uppercase text-ink-foreground sm:text-xl">
+            ⭐ CLIENTES SATISFEITOS — AVALIAÇÕES REAIS
+          </h2>
+          {reviews.length > 0 ? (
             <div className="no-scrollbar flex gap-3 overflow-x-auto pb-3">
               {reviews.slice(0, 8).map((review) => {
                 const product = products.find((item) => item.id === review.product_id);
@@ -204,8 +204,12 @@ function Catalog() {
                 );
               })}
             </div>
-          </section>
-        )}
+          ) : (
+            <p className="rounded-xl border border-white/10 bg-white/10 px-4 py-6 text-center text-sm text-ink-foreground/70">
+              Em breve, você poderá conferir aqui as avaliações reais dos nossos clientes.
+            </p>
+          )}
+        </section>
         <div className="mx-auto mt-6 flex max-w-3xl items-start justify-center gap-2 text-center text-sm font-semibold text-ink-foreground">
           <MapPin className="mt-0.5 size-5 shrink-0 text-highlight" />
           <p>Rua Sete de Setembro, nº 133 / 141 — Centro, Santo Antônio de Jesus, BA (próximo à Caixa Econômica Federal e à Farmácia de Cristina)</p>
