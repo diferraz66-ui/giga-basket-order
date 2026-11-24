@@ -256,15 +256,22 @@ export function CheckoutAuthDialog({
                 <Label htmlFor="checkout-whatsapp">{mode === "signup" ? "WhatsApp" : "E-mail ou WhatsApp"}</Label>
                 <Input
                   id="checkout-whatsapp"
-                  type="tel"
-                  inputMode="numeric"
+                  type={mode === "signup" ? "tel" : "text"}
+                  inputMode={mode === "signup" ? "numeric" : "email"}
                   autoComplete="tel-national"
                   value={whatsapp}
-                  onChange={(event) => setWhatsapp(maskWhatsapp(event.target.value))}
+                  onChange={(event) => setWhatsapp(mode === "signup" ? maskWhatsapp(event.target.value) : event.target.value)}
                   placeholder="(11) 98888-7777"
                   className="h-12 text-base"
                 />
               </div>
+              {mode === "signin" && <button type="button" className="text-sm font-medium text-primary underline" onClick={async () => {
+                if (!whatsapp.includes("@")) return setError("Informe seu e-mail cadastrado no campo acima para receber o link.");
+                setBusy(true);
+                const { error: resetError } = await supabase.auth.resetPasswordForEmail(whatsapp.trim(), { redirectTo: window.location.origin });
+                setBusy(false);
+                setError(resetError ? "Não foi possível enviar o link. Confira o e-mail." : "Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha.");
+              }}>Esqueci minha senha</button>}
               <div className="space-y-1.5">
                 <Label htmlFor="checkout-password">Senha</Label>
                 <Input
