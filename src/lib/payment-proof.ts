@@ -20,16 +20,16 @@ export function toCents(value: number) {
 }
 
 export function normalizeDigits(value: string | null | undefined) {
-  return (value ?? "").replace(/\\D/g, "");
+  return (value ?? "").replace(/\D/g, "");
 }
 
 export function normalizeRecipient(value: string | null | undefined) {
   return (value ?? "")
     .normalize("NFD")
-    .replace(/[\\u0300-\\u036f]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toUpperCase()
     .replace(/[^A-Z0-9 ]/g, " ")
-    .replace(/\\s+/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -43,12 +43,17 @@ export function validatePaymentProof(
     return { ok: false, reason: "Pagamento não efetivado ou Pix agendado. Envie o comprovante de uma transferência concluída." };
   }
   if (analysis.visually_tampered) return { ok: false, reason: "Foram identificados sinais visuais de edição ou adulteração no comprovante." };
-  if (!analysis.transaction_id?.trim()) return { ok: false, reason: "ID de transação E2E ou código de autenticação não identificado." };
-  if (!analysis.transaction_date || !/^\\d{4}-\\d{2}-\\d{2}$/.test(analysis.transaction_date)) {
+  const transactionId = analysis.transaction_id?.trim() ?? "";
+  const isEndToEnd = /^E[A-Z0-9]{31}$/i.test(transactionId);
+  const isBankAuthenticationCode = /^[A-Z0-9-]{6,64}$/i.test(transactionId);
+  if (!isEndToEnd && !isBankAuthenticationCode) {
+    return { ok: false, reason: "ID E2E inválido ou código de autenticação único não identificado." };
+  }
+  if (!analysis.transaction_date || !/^\d{4}-\d{2}-\d{2}$/.test(analysis.transaction_date)) {
     return { ok: false, reason: "Data da transação ausente ou ilegível." };
   }
-  if (analysis.transaction_date !== expectedDate) {
-    return { ok: false, reason: `Data divergente: comprovante de ${analysis.transaction_date}, esperado ${expectedDate}.` };
+  if (analysis.transaction_date !== expectedDate && analysis.transaction_date !== getBahiaDate()) {
+    return { ok: false, reason: `Data divergente: comprovante de ${analysis.transaction_date}, esperado ${expectedDate} ou hoje.` };
   }
   if (analysis.paid_amount === null || !Number.isFinite(analysis.paid_amount) || analysis.paid_amount < 0) {
     return { ok: false, reason: "Não foi possível identificar o valor pago no comprovante Pix." };
