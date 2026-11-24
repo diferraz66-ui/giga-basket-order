@@ -49,8 +49,8 @@ import {
   type OrderItem,
 } from "@/lib/operations";
 import { hasValidProofForCurrentTotal } from "@/lib/payment-proof";
-import { uploadPaymentProof } from "@/lib/orders.functions";
-import { orderStatusLabels, type OrderStatus } from "@/lib/staff";
+import { manualReleasePaymentProof, uploadPaymentProof } from "@/lib/orders.functions";
+import { orderStatusLabels, type OrderStatus, type StaffRole } from "@/lib/staff";
 
 type CatalogProduct = Pick<Tables<"products">, "id" | "name" | "price" | "status" | "max_per_customer">;
 type BusyAction = "status" | "items" | "proof" | "finalize" | "cancel" | null;
@@ -61,12 +61,14 @@ export function OrderCard({
   onChanged,
   onReceipt,
   onProof,
+  role,
 }: {
   order: Order;
   products: CatalogProduct[];
   onChanged: () => Promise<void>;
   onReceipt: (order: Order) => void;
   onProof: (order: Order) => void;
+  role: StaffRole;
 }) {
   const active = ["received", "in_progress", "awaiting_pix"].includes(order.status);
   const [items, setItems] = useState<OrderItem[]>(order.items);
@@ -74,10 +76,14 @@ export function OrderCard({
   const [purchasedQuantities, setPurchasedQuantities] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState<BusyAction>(null);
   const [proofError, setProofError] = useState<string | null>(null);
+  const [manualReleaseOpen, setManualReleaseOpen] = useState(false);
+  const [manualReleaseReason, setManualReleaseReason] = useState("");
+  const [validationDetails, setValidationDetails] = useState<{ transaction_id: string | null; transaction_date: string | null; paid_amount: number | null; recipient_cnpj: string | null; recipient_name: string | null; recipient_bank: string | null } | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const uploadProof = useServerFn(uploadPaymentProof);
+  const manualRelease = useServerFn(manualReleasePaymentProof);
 
   useEffect(() => {
     setItems(order.items);
@@ -256,10 +262,27 @@ export function OrderCard({
         setProofError(result.reason);
         return;
       }
+      setValidationDetails(result.validation ?? null);
       toast.success("Comprovante Pix validado. O pedido já pode ser finalizado.");
       await onChanged();
     } catch {
       setProofError("Não foi possível validar o comprovante agora. Tente novamente.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function requestManualRelease() {
+    if (role !== "admin" || !order.payment_proof_path || manualReleaseReason.trim().length < 8) return;
+    setBusy("proof");
+    try {
+      await manualRelease({ data: { orderId: order.id, reason: manualReleaseReason.trim() } });
+      setManualReleaseOpen(false);
+      setManualReleaseReason("");
+      toast.success("Liberação manual registrada pelo Admin. O pedido pode ser finalizado.");
+      await onChanged();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível liberar manualmente o pedido.");
     } finally {
       setBusy(null);
     }
@@ -510,24 +533,34 @@ export function OrderCard({
               </p>
             )}
             {proofValid && (
-              <div className="mt-3 rounded-lg bg-whatsapp/10 px-3 py-2 text-sm">
-                <p className="flex items-center gap-2 font-bold">
-                  <CheckCircle2 className="size-4 text-whatsapp" /> Comprovante validado:{" "}
-                  {formatBRL(Number(order.payment_proof_amount))}
+              <div className="mt-3 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-3 text-sm">
+                <p className="flex items-center gap-2 font-extrabold text-green-700 dark:text-green-300">
+                  <CheckCircle2 className="size-4" /> ✅ PIX VALIDADO
                 </p>
-                <button
-                  type="button"
-                  className="mt-1 text-xs font-medium underline underline-offset-2"
-                  onClick={() => onProof(order)}
-                >
-                  Visualizar arquivo validado
+                <p className="mt-1 text-xs">Valor: {formatBRL(Number(order.payment_proof_amount))}</p>
+                <p className="text-xs">ID E2E / referência: {order.payment_proof_name?.replace(/^PIX_VALIDATED:/, "").split(":")[0] ?? "—"}</p>
+                {order.payment_proof_name?.startsWith("PIX_VALIDATED:ADMIN_MANUAL:") ? (
+                  <p className="mt-1 text-xs font-bold text-amber-700">Liberação excepcional registrada pelo Admin</p>
+                ) : validationDetails ? (
+                  <div className="mt-2 space-y-0.5 text-xs">
+                    <p>Data: {validationDetails.transaction_date ?? "—"}</p>
+                    <p>Destinatário: {validationDetails.recipient_name ?? "—"}</p>
+                    <p>CNPJ: {validationDetails.recipient_cnpj ?? "—"}</p>
+                    <p>Banco: {validationDetails.recipient_bank ?? "—"}</p>
+                  </div>
+                ) : null}
+                <button type="button" className="mt-2 text-xs font-medium underline underline-offset-2" onClick={() => onProof(order)}>
+                  Visualizar comprovante
                 </button>
               </div>
             )}
             {!proofValid && !dirty && order.payment_proof_path && !proofError && (
-              <p className="mt-3 text-xs font-medium text-destructive">
-                O total ou os itens mudaram. Envie o comprovante novamente para validar.
-              </p>
+              <p className="mt-3 text-xs font-medium text-destructive">O comprovante não está validado para o total atual. Reenvie o arquivo ou solicite revisão manual do Admin.</p>
+            )}
+            {role === "admin" && !proofValid && !dirty && order.payment_proof_path && (
+              <Button type="button" variant="outline" className="mt-3 w-full border-amber-500 text-amber-700" disabled={Boolean(busy)} onClick={() => setManualReleaseOpen(true)}>
+                Liberação manual excepcional (Admin)
+              </Button>
             )}
           </div>
 
@@ -615,13 +648,40 @@ export function OrderCard({
               </Button>
             )}
             {order.status === "completed" && (
-              <Button size="sm" variant="outline" onClick={() => onReceipt(order)}>
+              <Button size="sm" variant="outline" disabled={!hasValidProofForCurrentTotal(order)} onClick={() => onReceipt(order)}>
                 <FileText /> Cupom não fiscal
               </Button>
             )}
           </div>
         </>
       )}
+
+      <Dialog open={manualReleaseOpen} onOpenChange={setManualReleaseOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Liberação manual excepcional</DialogTitle>
+            <DialogDescription>
+              Exclusivo para Admin. Use somente após conferir o comprovante e confirmar o crédito na conta da loja. A justificativa ficará registrada no pedido.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor={`manual-release-${order.id}`}>Justificativa obrigatória</Label>
+            <Textarea
+              id={`manual-release-${order.id}`}
+              value={manualReleaseReason}
+              onChange={(event) => setManualReleaseReason(event.target.value)}
+              maxLength={240}
+              placeholder="Descreva como o pagamento foi confirmado manualmente."
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setManualReleaseOpen(false)}>Cancelar</Button>
+            <Button variant="cta" disabled={manualReleaseReason.trim().length < 8 || busy === "proof"} onClick={() => void requestManualRelease()}>
+              {busy === "proof" && <Loader2 className="animate-spin" />} Confirmar liberação
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <DialogContent>
