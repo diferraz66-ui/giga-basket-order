@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Minus, Plus, Ruler, ShoppingCart, ZoomIn } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -24,6 +24,8 @@ export function ProductDetailsDialog({
 }) {
   const { add, setQuantity, items, purchasedQuantities } = useCart();
   const [zoom, setZoom] = useState(1);
+  const imageViewport = useRef<HTMLDivElement>(null);
+  const dragState = useRef<{ x: number; y: number; left: number; top: number; moved: boolean } | null>(null);
   const soldOut = product.status === "out_of_stock";
   const cartQuantity = items.find((item) => item.id === product.id)?.quantity ?? 0;
   const totalQuantity = cartQuantity + (purchasedQuantities[product.id] ?? 0);
@@ -51,11 +53,48 @@ export function ProductDetailsDialog({
       <DialogContent className="max-h-[94vh] max-w-3xl overflow-y-auto p-4 sm:p-6">
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <div className="relative h-72 overflow-auto rounded-2xl border border-border bg-card sm:h-96">
+            <div
+              ref={imageViewport}
+              className={`relative h-72 overflow-auto rounded-2xl border border-border bg-card sm:h-96 ${zoom > 1 ? "cursor-grab active:cursor-grabbing" : "cursor-zoom-in"}`}
+              style={{ touchAction: "none" }}
+              onPointerDown={(event) => {
+                const viewport = imageViewport.current;
+                if (!viewport || zoom <= 1) return;
+                dragState.current = {
+                  x: event.clientX,
+                  y: event.clientY,
+                  left: viewport.scrollLeft,
+                  top: viewport.scrollTop,
+                  moved: false,
+                };
+                viewport.setPointerCapture(event.pointerId);
+              }}
+              onPointerMove={(event) => {
+                const viewport = imageViewport.current;
+                const drag = dragState.current;
+                if (!viewport || !drag) return;
+                const dx = event.clientX - drag.x;
+                const dy = event.clientY - drag.y;
+                if (Math.abs(dx) > 3 || Math.abs(dy) > 3) drag.moved = true;
+                viewport.scrollLeft = drag.left - dx;
+                viewport.scrollTop = drag.top - dy;
+              }}
+              onPointerUp={() => {
+                dragState.current = null;
+              }}
+              onPointerCancel={() => {
+                dragState.current = null;
+              }}
+              onClick={() => {
+                if (dragState.current?.moved) return;
+                setZoom((value) => (value >= 2.5 ? 1 : Math.min(2.5, value + 0.5)));
+              }}
+            >
               <img
                 src={product.image}
                 alt={product.name}
-                className="h-full object-contain p-3 transition-[width]"
+                draggable={false}
+                className="block h-auto object-contain p-3"
                 style={{ width: `${zoom * 100}%`, maxWidth: "none" }}
               />
             </div>
@@ -81,8 +120,8 @@ export function ProductDetailsDialog({
                 variant="outline"
                 size="icon"
                 aria-label="Aumentar zoom"
-                disabled={zoom >= 3}
-                onClick={() => setZoom((value) => Math.min(3, value + 0.5))}
+                disabled={zoom >= 2.5}
+                onClick={() => setZoom((value) => Math.min(2.5, value + 0.5))}
               >
                 <Plus />
               </Button>
