@@ -11,9 +11,11 @@ import type { CatalogView } from "./CatalogViewToggle";
 export function ProductCard({
   product,
   layout = "grid",
+  reviewSummary,
 }: {
   product: Product;
   layout?: CatalogView;
+  reviewSummary?: { average: number; count: number };
 }) {
   const { add, items, purchasedQuantities } = useCart();
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -70,6 +72,9 @@ export function ProductCard({
           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground sm:text-sm">
             {product.description}
           </p>
+          {reviewSummary && reviewSummary.count > 0 && (
+            <p className="mt-1 text-xs font-bold text-yellow-600">⭐ {reviewSummary.average.toFixed(1)} ({reviewSummary.count})</p>
+          )}
           <p
             className="mt-1 flex items-center gap-1 truncate text-[10px] text-muted-foreground sm:text-xs"
             title={product.dimensions || "Consulte o vendedor"}
@@ -108,7 +113,7 @@ export function ProductCard({
             )}
           </Button>
         </div>
-        <ProductDetailsDialog product={product} open={detailsOpen} onOpenChange={setDetailsOpen} />
+        <ProductDetailsDialog product={product} reviewSummary={reviewSummary} open={detailsOpen} onOpenChange={setDetailsOpen} />
       </article>
     );
   }
@@ -152,6 +157,9 @@ export function ProductCard({
           </h3>
         </button>
         <p className="line-clamp-2 min-h-[2rem] text-xs text-gray-500">{product.description}</p>
+        {reviewSummary && reviewSummary.count > 0 && (
+          <p className="text-xs font-bold text-yellow-600">⭐ {reviewSummary.average.toFixed(1)} ({reviewSummary.count})</p>
+        )}
         <p
           className="flex items-center gap-1 truncate text-[10px] text-muted-foreground"
           title={product.dimensions || "Consulte o vendedor"}
@@ -187,7 +195,7 @@ export function ProductCard({
               : "Adicionar ao carrinho"}
         </Button>
       </div>
-      <ProductDetailsDialog product={product} open={detailsOpen} onOpenChange={setDetailsOpen} />
+      <ProductDetailsDialog product={product} reviewSummary={reviewSummary} open={detailsOpen} onOpenChange={setDetailsOpen} />
     </article>
   );
 }
