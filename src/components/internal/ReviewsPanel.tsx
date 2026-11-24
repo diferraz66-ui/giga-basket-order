@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { formatDateTime } from "@/lib/operations";
+import { useAuth } from "@/lib/auth";
 
 type Review = Tables<"product_reviews">;
 type ProductInfo = Pick<Tables<"products">, "id" | "name">;
@@ -17,6 +18,7 @@ const filters: Array<{ value: ReviewFilter; label: string }> = [
 ];
 
 export function ReviewsPanel() {
+  const { session } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [products, setProducts] = useState<ProductInfo[]>([]);
   const [filter, setFilter] = useState<ReviewFilter>("pendente");
@@ -43,7 +45,7 @@ export function ReviewsPanel() {
     setBusyId(review.id);
     const { error } = await supabase
       .from("product_reviews")
-      .update({ status, moderated_at: new Date().toISOString() })
+      .update({ status, moderated_at: new Date().toISOString(), moderated_by: session?.user.id ?? null })
       .eq("id", review.id);
     setBusyId(null);
     if (error) {
