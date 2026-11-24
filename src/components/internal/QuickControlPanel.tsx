@@ -123,7 +123,6 @@ export function QuickControlPanel() {
                 <div className="flex shrink-0 flex-col items-end gap-1.5">
                   <div className="flex items-center gap-2">
                     {saving && <Loader2 className="size-3.5 animate-spin text-primary" />}
-                    <label className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">OCULTAR<Switch checked={hidden} disabled={saving} onCheckedChange={(checked) => void setStatus(product, checked ? "hidden" : "available")} aria-label={`Ocultar ${product.name} da vitrine`} /></label>
                     <label className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
                       DISP
                       <Switch
