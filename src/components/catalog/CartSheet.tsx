@@ -28,6 +28,7 @@ import {
 export function CartSheet({ products }: { products: Product[] }) {
   const {
     items,
+    add,
     purchasedQuantities,
     total,
     open,
@@ -260,6 +261,21 @@ export function CartSheet({ products }: { products: Product[] }) {
                   );
                 })}
               </ul>
+              {products.filter(product => product.status === "available" && !items.some(item => item.id === product.id)).slice(0, 4).length > 0 && (
+                <section className="border-t border-border px-4 py-3">
+                  <h3 className="mb-2 text-xs font-extrabold uppercase tracking-wide">Aproveite e leve também</h3>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {products.filter(product => product.status === "available" && !items.some(item => item.id === product.id)).slice(0, 4).map(product => (
+                      <article key={product.id} className="w-32 shrink-0 rounded-xl border border-border bg-card p-2">
+                        <img src={product.image} alt="" loading="lazy" className="mb-1 aspect-square w-full rounded-md bg-white object-contain p-1" />
+                        <p className="line-clamp-2 min-h-8 text-[11px] font-bold">{product.name}</p>
+                        <p className="mt-1 text-xs font-extrabold text-primary">{formatBRL(product.price)}</p>
+                        <Button size="sm" variant="outline" className="mt-2 h-8 w-full px-1 text-[10px]" onClick={() => add({ id: product.id, name: product.name, price: product.price, maxPerCustomer: product.maxPerCustomer })}>+ Adicionar</Button>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              )}
               <div className="space-y-3 border-t border-border bg-muted px-5 py-5">
                 <div
                   id="minimum-order-progress"
