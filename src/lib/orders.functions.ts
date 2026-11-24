@@ -26,6 +26,7 @@ const analysisSchema = z.object({
 });
 
 const orderIdSchema = z.object({ orderId: z.string().uuid() });
+const manualReleaseSchema = z.object({ orderId: z.string().uuid(), reason: z.string().trim().min(8).max(300) });
 
 async function requireActiveStaff(context: { supabase: SupabaseClient<Database>; userId: string }) {
   const [{ data: member }, { data: roles }] = await Promise.all([
@@ -233,6 +234,42 @@ export const uploadPaymentProof = createServerFn({ method: "POST" })
     return { accepted: true as const, order: updated, validation: { ...analysis, amount: validation.amount } };
   });
 
+export const manualReleasePaymentProof = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => manualReleaseSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await requireActiveAdmin(context);
+    const { data: order, error } = await context.supabase
+      .from("orders")
+      .select("id, total, status, payment_proof_path")
+      .eq("id", data.orderId)
+      .single();
+    if (error || !order) throw new Error("Pedido não encontrado");
+    if (!ACTIVE_STATUSES.includes(order.status as (typeof ACTIVE_STATUSES)[number])) {
+      throw new Error("Somente pedidos em andamento podem receber liberação manual");
+    }
+    if (!order.payment_proof_path) {
+      throw new Error("Anexe o comprovante antes de solicitar a liberação manual");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const marker = `PIX_VALIDATED:ADMIN_MANUAL:${data.reason.replace(/[\\r\\n]+/g, " ").trim()}`.slice(0, 160);
+    const { data: updated, error: updateError } = await supabaseAdmin
+      .from("orders")
+      .update({
+        payment_proof_name: marker,
+        payment_proof_amount: order.total,
+        payment_proof_validated_at: new Date().toISOString(),
+        payment_proof_validated_total: order.total,
+      })
+      .eq("id", order.id)
+      .eq("total", order.total)
+      .in("status", [...ACTIVE_STATUSES])
+      .select()
+      .single();
+    if (updateError || !updated) throw new Error("Não foi possível registrar a liberação manual. Atualize o pedido e tente novamente.");
+    return { accepted: true as const, order: updated };
+  });
+
 export const getPaymentProofUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => orderIdSchema.parse(input))
@@ -251,7 +288,7 @@ export const getPaymentProofUrl = createServerFn({ method: "POST" })
     if (signError || !signed?.signedUrl) throw new Error("Não foi possível abrir o comprovante");
     return {
       url: publicFileUrl(signed.signedUrl),
-      name: order.payment_proof_name ?? "Comprovante Pix",
+      name: order.payment_proof_name?.startsWith("PIX_VALIDATED:") ? "Comprovante Pix validado" : (order.payment_proof_name ?? "Comprovante Pix"),
       type: order.payment_proof_type ?? "application/pdf",
     };
   });
