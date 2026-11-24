@@ -157,6 +157,7 @@ function Catalog() {
               products={products.filter((product) => product.tags.includes("mais-vendido"))}
               view={view}
               reviewStats={reviewStats}
+              sequenceById={sequenceById}
             />
             <ProductRow
               title="Novidades"
