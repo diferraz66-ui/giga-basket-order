@@ -53,9 +53,9 @@ const tagOptions: Array<{ id: ProductTag; label: string }> = [
 
 type RecordWithImage = { product: Tables<"products">; image: string };
 
-function normalizeProductName(value: string) {
+function normalizeProductName(value: string, removeExtension = false) {
   return value
-    .replace(/\.[^/.]+$/, "")
+    .replace(removeExtension ? /\.[^/.]+$/ : /$^/, "")
     .replace(/[\r\n\t\u200B]/g, " ")
     .trim()
     .replace(/[\s_-]+/g, " ")
@@ -196,7 +196,7 @@ export function ProductsPanel() {
     const unmatched: string[] = [];
     for (const [index, file] of files.entries()) {
       setBulkProgress(`Vinculando foto ${index + 1} de ${files.length}: ${file.name}`);
-      const normalizedFilename = normalizeProductName(file.name);
+      const normalizedFilename = normalizeProductName(file.name, true);
       const matches = productsByName.get(normalizedFilename) ?? [];
       if (!file.type.startsWith("image/") || matches.length !== 1) {
         unmatched.push(file.name);
