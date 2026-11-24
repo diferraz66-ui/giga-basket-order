@@ -7,7 +7,7 @@ export const staffLoginSchema = z.object({
     .string()
     .trim()
     .toLowerCase()
-    .regex(/^[a-z0-9._-]{3,30}$/, "Use de 3 a 30 letras, números, ponto, hífen ou sublinhado"),
+    .refine((value) => /^[a-z0-9._-]{3,30}$/.test(value) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), "Informe um e-mail ou login válido"),
   password: z.string().min(3, "A senha precisa ter pelo menos 3 caracteres").max(72),
 });
 
