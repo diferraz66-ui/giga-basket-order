@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CheckCircle2, Copy, Loader2, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
-import { store, type Product } from "@/data/catalog";
+import { store, type Product } from "@/data/catalog";\nimport { RelatedSuggestionsDialog } from "./RelatedSuggestionsDialog";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 import {
@@ -40,7 +40,7 @@ export function CartSheet({ products }: { products: Product[] }) {
   } = useCart();
   const { session, profile } = useAuth();
   const [busy, setBusy] = useState(false);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);\n  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [done, setDone] = useState<{ number: number; link: string; message: string } | null>(null);
   const progress = minimumOrderProgress(total);
 
@@ -59,7 +59,7 @@ export function CartSheet({ products }: { products: Product[] }) {
       toast.info("Aguarde enquanto carregamos seu cadastro.");
       return;
     }
-    setCheckoutOpen(true);
+    setSuggestionsOpen(true);
   }
 
   async function finalize({ identity: customer, delivery }: CheckoutResult) {
@@ -264,21 +264,6 @@ export function CartSheet({ products }: { products: Product[] }) {
                   );
                 })}
               </ul>
-              {products.filter(product => product.status === "available" && !items.some(item => item.id === product.id)).slice(0, 4).length > 0 && (
-                <section className="border-t border-border px-4 py-3">
-                  <h3 className="mb-2 text-xs font-extrabold uppercase tracking-wide">Aproveite e leve também</h3>
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {products.filter(product => product.status === "available" && !items.some(item => item.id === product.id)).slice(0, 4).map(product => (
-                      <article key={product.id} className="w-32 shrink-0 rounded-xl border border-border bg-card p-2">
-                        <img src={product.image} alt="" loading="lazy" className="mb-1 aspect-square w-full rounded-md bg-white object-contain p-1" />
-                        <p className="line-clamp-2 min-h-8 text-[11px] font-bold">{product.name}</p>
-                        <p className="mt-1 text-xs font-extrabold text-primary">{formatBRL(product.price)}</p>
-                        <Button size="sm" variant="outline" className="mt-2 h-8 w-full px-1 text-[10px]" onClick={() => add({ id: product.id, name: product.name, price: product.price, maxPerCustomer: product.maxPerCustomer })}>+ Adicionar</Button>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              )}
               <div className="space-y-3 border-t border-border bg-muted px-5 py-5">
                 <div
                   id="minimum-order-progress"
@@ -324,6 +309,21 @@ export function CartSheet({ products }: { products: Product[] }) {
           )}
         </SheetContent>
       </Sheet>
+      <RelatedSuggestionsDialog
+        open={suggestionsOpen}
+        onOpenChange={setSuggestionsOpen}
+        products={products}
+        cartItems={items}
+        onAdd={(product) => add({ id: product.id, name: product.name, price: product.price, maxPerCustomer: product.maxPerCustomer })}
+        onContinue={() => {
+          setSuggestionsOpen(false);
+          if (session && !profile) {
+            toast.info("Aguarde enquanto carregamos seu cadastro.");
+            return;
+          }
+          setCheckoutOpen(true);
+        }}
+      />
       <CheckoutAuthDialog
         open={checkoutOpen}
         onOpenChange={setCheckoutOpen}
