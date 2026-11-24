@@ -390,9 +390,10 @@ function ProductForm({
     try {
       const result = await processSmartProductImage(selected, setPhotoProgress);
       setSmartPhoto(result.file);
-      setFile(null);
+      setFile(product ? result.file : null);
       setSmartPreview(URL.createObjectURL(result.file));
       if (!product) setSmartPhotoConfirmed(false);
+      else setSmartPhotoConfirmed(true);
       if (!result.backgroundRemoved) {
         setPhotoNotice("A remoção de fundo não ficou disponível neste aparelho. A foto foi centralizada em fundo branco, mantendo o fundo original.");
       }
