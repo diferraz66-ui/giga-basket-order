@@ -1,4 +1,5 @@
-import { LogOut, Search, ShoppingCart, User } from "lucide-react";
+import { useState } from "react";
+import { LogOut, Search, ShoppingCart, User, ClipboardList, KeyRound } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,16 +12,23 @@ import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 import { formatWhatsapp } from "@/lib/phone";
 import { Logo } from "./Logo";
+import { CustomerOrdersDialog } from "./CustomerOrdersDialog";
+import { PasswordChangeDialog } from "@/components/auth/PasswordChangeDialog";
+import type { Product } from "@/data/catalog";
 
 export function CatalogHeader({
   query,
   onQueryChange,
+  products,
 }: {
   query: string;
   onQueryChange: (q: string) => void;
+  products: Product[];
 }) {
   const { count, setOpen } = useCart();
   const { session, profile, signOut } = useAuth();
+  const [ordersOpen, setOrdersOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 border-b border-ink bg-ink text-ink-foreground">
@@ -40,6 +48,8 @@ export function CatalogHeader({
         </label>
 
         <div className="flex shrink-0 items-center gap-1">
+          <button type="button" onClick={() => setOrdersOpen(true)} className="hidden h-10 items-center gap-1 rounded-full border border-ink-foreground/30 px-3 text-xs font-bold text-ink-foreground sm:flex"><ClipboardList className="size-4" /> Meus Pedidos</button>
+          <button type="button" onClick={() => setOrdersOpen(true)} aria-label="Meus Pedidos" className="flex size-10 items-center justify-center rounded-full text-ink-foreground hover:bg-ink-foreground/10 sm:hidden"><ClipboardList className="size-5" /></button>
           {session && (
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -58,6 +68,7 @@ export function CatalogHeader({
                   )}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setPasswordOpen(true)}><KeyRound className="size-4" /> Alterar senha</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => void signOut()}>
                   <LogOut className="size-4" /> Sair
                 </DropdownMenuItem>
@@ -79,6 +90,8 @@ export function CatalogHeader({
           </button>
         </div>
       </div>
+    <CustomerOrdersDialog open={ordersOpen} onOpenChange={setOrdersOpen} products={products} />
+      <PasswordChangeDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
     </header>
   );
 }
