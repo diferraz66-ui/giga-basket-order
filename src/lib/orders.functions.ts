@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
-import { validatePaymentProof } from "@/lib/payment-proof";
+import { getBahiaDate, validatePaymentProof } from "@/lib/payment-proof";
 
 const ACTIVE_STATUSES = ["received", "in_progress", "awaiting_pix"] as const;
 const MAX_FILE_SIZE = 8 * 1024 * 1024;
@@ -14,7 +14,14 @@ type AcceptedType = (typeof ACCEPTED_TYPES)[number];
 const analysisSchema = z.object({
   is_pix_receipt: z.boolean(),
   payment_completed: z.boolean(),
+  is_scheduled: z.boolean(),
+  visually_tampered: z.boolean(),
   paid_amount: z.number().nullable(),
+  transaction_id: z.string().nullable(),
+  transaction_date: z.string().nullable(),
+  recipient_cnpj: z.string().nullable(),
+  recipient_name: z.string().nullable(),
+  recipient_bank: z.string().nullable(),
   reason: z.string(),
 });
 
@@ -114,7 +121,7 @@ export const uploadPaymentProof = createServerFn({ method: "POST" })
               detail: "high" as const,
             };
       const response = await generateResponse({
-        model: "openai/gpt-6-astra",
+        model: "google/gemini-2.5-flash",
         instructions:
           "Você confere documentos bancários com critério rigoroso. Analise somente o que está visível. Não invente dados e não presuma que uma imagem comum seja um comprovante.",
         input: [
@@ -123,7 +130,7 @@ export const uploadPaymentProof = createServerFn({ method: "POST" })
             content: [
               {
                 type: "input_text",
-                text: "Verifique se o anexo é um comprovante bancário autêntico em aparência de uma transferência Pix concluída. Exija indicação clara de Pix, instituição ou identificação bancária e confirmação de pagamento/transferência. Rejeite fotos comuns, telas aleatórias, pedidos, conversas, boletos e documentos ambíguos. Extraia o valor efetivamente pago em reais, sem estimar. Se não houver valor legível, use null. Responda no esquema solicitado.",
+                text: "Analise o documento como comprovante Pix. Extraia apenas dados legíveis: se é Pix, pagamento concluído, se agendado, sinais visuais de adulteração, valor em reais, ID E2E/código de autenticação, data YYYY-MM-DD, CNPJ ou identificação do recebedor, nome do destinatário e banco destinatário. Não invente dados; use null quando ausentes. Não declare autenticidade criptográfica, apenas informe sinais visuais. Comprovante de agendamento nunca é pagamento concluído. Retorne JSON estrito.",
               },
               media,
             ],
@@ -139,10 +146,17 @@ export const uploadPaymentProof = createServerFn({ method: "POST" })
               properties: {
                 is_pix_receipt: { type: "boolean" },
                 payment_completed: { type: "boolean" },
+                is_scheduled: { type: "boolean" },
+                visually_tampered: { type: "boolean" },
                 paid_amount: { type: ["number", "null"] },
+                transaction_id: { type: ["string", "null"] },
+                transaction_date: { type: ["string", "null"] },
+                recipient_cnpj: { type: ["string", "null"] },
+                recipient_name: { type: ["string", "null"] },
+                recipient_bank: { type: ["string", "null"] },
                 reason: { type: "string" },
               },
-              required: ["is_pix_receipt", "payment_completed", "paid_amount", "reason"],
+              required: ["is_pix_receipt", "payment_completed", "is_scheduled", "visually_tampered", "paid_amount", "transaction_id", "transaction_date", "recipient_cnpj", "recipient_name", "recipient_bank", "reason"],
               additionalProperties: false,
             },
           },
@@ -165,8 +179,19 @@ export const uploadPaymentProof = createServerFn({ method: "POST" })
       };
     }
 
-    const validation = validatePaymentProof(analysis, Number(order.total));
+    const expectedDate = (order.created_at ?? "").slice(0, 10) || getBahiaDate();
+    const validation = validatePaymentProof(analysis, Number(order.total), expectedDate);
     if (!validation.ok) return { accepted: false as const, reason: validation.reason };
+
+    const transactionId = analysis.transaction_id!.trim();
+    const { data: existing, error: duplicateError } = await context.supabase
+      .from("orders")
+      .select("id")
+      .eq("payment_proof_name", `PIX_VALIDATED:${transactionId}`)
+      .neq("id", order.id)
+      .limit(1);
+    if (duplicateError) return { accepted: false as const, reason: "Não foi possível verificar a duplicidade do ID Pix. Tente novamente." };
+    if (existing?.length) return { accepted: false as const, reason: "❌ Comprovante duplicado: este ID de transação Pix já foi utilizado em outro pedido!" };
 
     const path = `${order.id}/current`;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -186,7 +211,7 @@ export const uploadPaymentProof = createServerFn({ method: "POST" })
       .from("orders")
       .update({
         payment_proof_path: path,
-        payment_proof_name: file.name.slice(0, 160),
+        payment_proof_name: `PIX_VALIDATED:${transactionId}`.slice(0, 160),
         payment_proof_type: file.type,
         payment_proof_amount: validation.amount,
         payment_proof_validated_at: new Date().toISOString(),
@@ -205,7 +230,7 @@ export const uploadPaymentProof = createServerFn({ method: "POST" })
         reason: "O total ou a situação do pedido mudou. Salve e envie o comprovante novamente.",
       };
     }
-    return { accepted: true as const, order: updated };
+    return { accepted: true as const, order: updated, validation: { ...analysis, amount: validation.amount } };
   });
 
 export const getPaymentProofUrl = createServerFn({ method: "POST" })
