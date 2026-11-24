@@ -126,7 +126,7 @@ export function CheckoutAuthDialog({
       const parsed = signUpSchema.safeParse({ fullName, email, whatsapp, password });
       if (!parsed.success)
         return setError(parsed.error.issues[0]?.message ?? "Confira os dados informados.");
-      const phone = normalizeWhatsapp(parsed.data.whatsapp);
+      const phone = normalizeWhatsapp(parsed.data.whatsapp)!;
       setBusy(true);
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: parsed.data.email,
