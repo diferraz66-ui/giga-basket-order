@@ -8,11 +8,13 @@ export function ProductRow({
   icon,
   products,
   view = "grid",
+  reviewStats,
 }: {
   title: string;
   icon?: ReactNode;
   products: Product[];
   view?: CatalogView;
+  reviewStats?: Record<string, { average: number; count: number }>;
 }) {
   if (products.length === 0) return null;
   return (
@@ -32,7 +34,7 @@ export function ProductRow({
         }
       >
         {products.map((product) => (
-          <ProductCard key={product.id} product={product} layout={view} />
+          <ProductCard key={product.id} product={product} layout={view} reviewSummary={reviewStats?.[product.id]} />
         ))}
       </div>
     </section>
