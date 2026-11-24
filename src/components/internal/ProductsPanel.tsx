@@ -198,18 +198,20 @@ export function ProductsPanel() {
 
     let linked = 0;
     const unmatched: string[] = [];
+    const processedNumbers = new Set<number>();
     for (const [index, file] of files.entries()) {
       setBulkProgress(`Vinculando foto ${index + 1} de ${files.length}: ${file.name}`);
       const basename = file.name.replace(/\.[^./\\]+$/, "").trim();
       const numberMatch = basename.match(/^0*(\d+)$/);
       const number = numberMatch ? Number(numberMatch[1]) : NaN;
       const product = Number.isSafeInteger(number) ? productByNumber.get(number) : undefined;
-      if (!file.type.startsWith("image/") || !product) {
+      if (!file.type.startsWith("image/") || !product || processedNumbers.has(number)) {
         unmatched.push(file.name);
         setLinkPhotoProgress(Math.round(((index + 1) / files.length) * 100));
         continue;
       }
 
+      processedNumbers.add(number);
       let uploadedPath: string | null = null;
       try {
         const optimized = await processSmartProductImage(file);
