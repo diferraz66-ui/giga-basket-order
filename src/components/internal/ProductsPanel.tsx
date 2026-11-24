@@ -34,7 +34,7 @@ import {
   type ProductTag,
 } from "@/data/catalog";
 import { formatBRL } from "@/lib/order";
-import { resolveProductImage } from "@/lib/products";
+import { assignActiveProductNumbers, resolveProductImage } from "@/lib/products";
 import { optimizeProductImage, processSmartProductImage } from "@/lib/product-image";
 import {
   bulkPhotoDefaults,
@@ -88,7 +88,7 @@ export function ProductsPanel() {
   const csvInput = useRef<HTMLInputElement>(null);
 
   const reload = useCallback(async () => {
-    const { data, error } = await supabase.from("products").select("*").order("created_at");
+    const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: true }).order("id", { ascending: true });
     if (error) toast.error("Não foi possível carregar os produtos");
     else
       setRecords(
@@ -106,7 +106,11 @@ export function ProductsPanel() {
     void reload();
   }, [reload]);
 
-  const numberedRecords = records.map((record, index) => ({ ...record, sequence: record.product.status === "hidden" ? null : records.slice(0, index + 1).filter((item) => item.product.status !== "hidden").length }));
+  const numberedRecords = assignActiveProductNumbers(records.map(({ product, image }) => ({ ...product, image }))).map((numbered) => ({
+    product: records.find((record) => record.product.id === numbered.id)!.product,
+    image: numbered.image,
+    sequence: numbered.sequence,
+  }));
   const visibleRecords = numberedRecords.filter(({ product, sequence }) => {
     const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
     const normalizedName = product.name.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
