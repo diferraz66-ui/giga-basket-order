@@ -9,9 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 import { formatBRL, formatOrderNumber } from "@/lib/order";
-import { normalizeWhatsapp } from "@/lib/phone";
+import { normalizeWhatsapp, whatsappToLoginEmail } from "@/lib/phone";
 import { PasswordChangeDialog } from "@/components/auth/PasswordChangeDialog";
-import { whatsappToLoginEmail } from "@/lib/phone";
 import type { Product } from "@/data/catalog";
 
 type OrderRow = { id: string; order_number: number; created_at: string; status: string; total: number; items: unknown };
