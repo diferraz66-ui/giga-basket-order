@@ -82,11 +82,29 @@ export function assignActiveProductNumbers<T extends { id: string; created_at?: 
   }));
 }
 
+export async function fetchAllProductRows() {
+  const pageSize = 1000;
+  const rows: Tables<"products">[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    rows.push(...(data ?? []));
+    if (!data || data.length < pageSize) break;
+    from += pageSize;
+  }
+  return rows;
+}
+
 export async function fetchCatalogProducts() {
-  const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: true }).order("id", { ascending: true });
-  if (error) throw error;
+  const rows = await fetchAllProductRows();
   return Promise.all(
-    (data ?? []).map(async (row) => mapProduct(row, await resolveProductImage(row))),
+    rows.map(async (row) => mapProduct(row, await resolveProductImage(row))),
   );
 }
 
