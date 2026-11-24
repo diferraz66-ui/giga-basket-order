@@ -155,6 +155,9 @@ function Catalog() {
         <p className="mx-auto mt-4 max-w-xl rounded-lg bg-primary px-3 py-2 font-bold text-primary-foreground">
           🛍️ PEDIDO MÍNIMO PARA COMPRAS ONLINE: R$ 75,00 (10 itens de R$ 7,50)
         </p>
+        <p className="mx-auto mt-3 max-w-xl rounded-lg border border-white/20 bg-white/10 px-3 py-2 font-semibold text-ink-foreground">
+          💳 Pagamento aceito exclusivamente via PIX (Chave CNPJ: 68.616.873/0001-67 - Banco Itaú)
+        </p>
         <Link
           to="/area-restrita"
           className="mt-5 inline-block text-ink-foreground/50 underline underline-offset-4 hover:text-ink-foreground"
@@ -170,8 +173,9 @@ function Catalog() {
 
 function MinimumOrderNotice() {
   return (
-    <p className="bg-highlight px-3 py-2.5 text-center font-display text-xs font-extrabold uppercase leading-snug text-highlight-foreground sm:text-sm">
-      🛍️ PEDIDO MÍNIMO PARA COMPRAS ONLINE: R$ 75,00 (10 itens de R$ 7,50)
-    </p>
+    <div className="space-y-1 bg-highlight px-3 py-2.5 text-center font-display text-xs font-extrabold leading-snug text-highlight-foreground sm:text-sm">
+      <p className="uppercase">🛍️ PEDIDO MÍNIMO PARA COMPRAS ONLINE: R$ 75,00 (10 itens de R$ 7,50)</p>
+      <p>💳 Pagamento aceito exclusivamente via PIX (Chave CNPJ: 68.616.873/0001-67 - Banco Itaú)</p>
+    </div>
   );
 }
