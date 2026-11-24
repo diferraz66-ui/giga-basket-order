@@ -511,7 +511,12 @@ function ProductForm({
           {processingSmartPhoto && (
             <div role="status" className="flex items-center gap-3 rounded-xl bg-background p-3 text-sm">
               <Loader2 className="size-5 shrink-0 animate-spin text-primary" />
-              <span>{photoProgress || "Removendo fundo e ajustando enquadramento..."}</span>
+              <div className="min-w-0 flex-1 space-y-2">
+                <span className="block">{photoProgress || "Removendo fundo e ajustando enquadramento..."}</span>
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full w-2/3 animate-pulse rounded-full bg-primary" />
+                </div>
+              </div>
             </div>
           )}
           {photoNotice && <p role="status" className="rounded-lg bg-background p-3 text-xs text-muted-foreground">{photoNotice}</p>}
@@ -643,7 +648,12 @@ function ProductForm({
                 type="file"
                 accept="image/*"
                 className="sr-only"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                onChange={(e) => {
+                  setFile(e.target.files?.[0] ?? null);
+                  setSmartPhoto(null);
+                  setSmartPreview(null);
+                  setPhotoNotice(null);
+                }}
               />
             </label>
             <p className="text-xs text-muted-foreground">
