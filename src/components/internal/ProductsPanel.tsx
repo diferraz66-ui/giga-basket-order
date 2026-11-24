@@ -112,8 +112,8 @@ export function ProductsPanel() {
     sequence: numbered.sequence,
   }));
   const visibleRecords = numberedRecords.filter(({ product, sequence }) => {
-    const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
-    const normalizedName = product.name.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
+    const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const normalizedName = product.name.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const matchesQuery = !normalizedQuery || normalizedName.includes(normalizedQuery) || String(sequence ?? "").includes(normalizedQuery) || String(sequence ?? "").padStart(2, "0").includes(normalizedQuery);
     return matchesQuery && (categoryFilter === "all" || product.category === categoryFilter);
   }).sort((a, b) => sortMode === "asc" ? a.product.name.localeCompare(b.product.name, "pt-BR") : sortMode === "desc" ? b.product.name.localeCompare(a.product.name, "pt-BR") : (a.sequence ?? Number.MAX_SAFE_INTEGER) - (b.sequence ?? Number.MAX_SAFE_INTEGER));
@@ -205,9 +205,11 @@ export function ProductsPanel() {
       offset += pageSize;
     }
 
-    const activeProducts = databaseProducts.filter((product) => product.status !== "hidden");
+    const numberedProducts = assignActiveProductNumbers(databaseProducts);
     const productByNumber = new Map<number, { id: string; name: string }>();
-    activeProducts.forEach((product, index) => productByNumber.set(index + 1, product));
+    for (const product of numberedProducts) {
+      if (product.sequence !== null) productByNumber.set(product.sequence, product);
+    }
 
     let linked = 0;
     const unmatched: string[] = [];
