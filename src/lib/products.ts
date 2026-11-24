@@ -70,8 +70,20 @@ export function mapProduct(row: Tables<"products">, image: string): Product {
   };
 }
 
+export function assignActiveProductNumbers<T extends { id: string; created_at?: string; status?: string }>(rows: T[]) {
+  const ordered = [...rows].sort((a, b) => {
+    const dateOrder = (a.created_at ?? "").localeCompare(b.created_at ?? "");
+    return dateOrder || a.id.localeCompare(b.id);
+  });
+  let sequence = 0;
+  return ordered.map((row) => ({
+    ...row,
+    sequence: row.status === "hidden" ? null : ++sequence,
+  }));
+}
+
 export async function fetchCatalogProducts() {
-  const { data, error } = await supabase.from("products").select("*").order("created_at");
+  const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: true }).order("id", { ascending: true });
   if (error) throw error;
   return Promise.all(
     (data ?? []).map(async (row) => mapProduct(row, await resolveProductImage(row))),
