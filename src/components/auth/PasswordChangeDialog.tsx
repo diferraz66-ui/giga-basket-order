@@ -13,12 +13,12 @@ export function PasswordChangeDialog({ open, onOpenChange }: { open: boolean; on
   const [busy, setBusy] = useState(false);
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (password.length < 6) return toast.error("A senha precisa ter pelo menos 6 caracteres.");
-    if (password !== confirmation) return toast.error("As senhas não conferem.");
+    if (password.length < 6) { toast.error("A senha precisa ter pelo menos 6 caracteres."); return; }
+    if (password !== confirmation) { toast.error("As senhas não conferem."); return; }
     setBusy(true);
     const { error } = await supabase.auth.updateUser({ password });
     setBusy(false);
-    if (error) return toast.error("Não foi possível alterar a senha.");
+    if (error) { toast.error("Não foi possível alterar a senha."); return; }
     toast.success("Senha alterada com sucesso.");
     setPassword(""); setConfirmation(""); onOpenChange(false);
   }

@@ -78,6 +78,13 @@
       "when": 1795110000000,
       "tag": "0010_status_oculto_produtos",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795560168871,
+      "tag": "0011_product_reviews",
+      "breakpoints": true
     }
   ]
 }

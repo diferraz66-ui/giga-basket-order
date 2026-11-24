@@ -16,8 +16,8 @@ export function ProductCard({
 }: {
   product: Product;
   layout?: CatalogView;
-  reviewSummary?: { average: number; count: number };
-  sequence?: number;
+  reviewSummary?: { average: number; count: number } | undefined;
+  sequence?: number | undefined;
 }) {
   const { add, items, purchasedQuantities } = useCart();
   const [detailsOpen, setDetailsOpen] = useState(false);

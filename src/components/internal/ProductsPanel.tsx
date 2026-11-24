@@ -84,9 +84,6 @@ export function ProductsPanel() {
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortMode, setSortMode] = useState<"number" | "asc" | "desc">("number");
-  const [query, setQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [sortMode, setSortMode] = useState<"number" | "asc" | "desc">("number");
   const photoInput = useRef<HTMLInputElement>(null);
   const csvInput = useRef<HTMLInputElement>(null);
 

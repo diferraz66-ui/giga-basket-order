@@ -44,7 +44,7 @@ export function BannersPanel() {
   async function upload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]; event.target.value = "";
     if (!file) return;
-    if (!file.type.startsWith("image/") || file.size > 12 * 1024 * 1024) return toast.error("Escolha uma imagem de até 12 MB.");
+    if (!file.type.startsWith("image/") || file.size > 12 * 1024 * 1024) { toast.error("Escolha uma imagem de até 12 MB."); return; }
     setBusy(true);
     try {
       const base64 = await optimizeBanner(file);

@@ -23,7 +23,7 @@ export function ProductDetailsDialog({
   product: Product;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  reviewSummary?: { average: number; count: number };
+  reviewSummary?: { average: number; count: number } | undefined;
 }) {
   const { add, setQuantity, items, purchasedQuantities } = useCart();
   const [zoom, setZoom] = useState(1);

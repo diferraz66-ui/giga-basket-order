@@ -15,7 +15,7 @@ export function AccountEmailDialog({ open, onOpenChange }: { open: boolean; onOp
     setBusy(true);
     const { error } = await supabase.auth.updateUser({ email: email.trim() });
     setBusy(false);
-    if (error) return toast.error("Não foi possível atualizar o e-mail.");
+    if (error) { toast.error("Não foi possível atualizar o e-mail."); return; }
     toast.success("Enviamos uma confirmação para o novo e-mail. Confirme para ativá-lo.");
     setEmail("");
     onOpenChange(false);

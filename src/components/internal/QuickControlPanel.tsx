@@ -3,6 +3,7 @@ import { Eye, EyeOff, Loader2, PackageCheck, PackageX, Search } from "lucide-rea
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { categories, categoryLabel, type CategoryId } from "@/data/catalog";

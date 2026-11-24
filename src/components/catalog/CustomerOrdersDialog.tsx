@@ -32,21 +32,21 @@ export function CustomerOrdersDialog({ open, onOpenChange, products }: { open: b
     setLoading(true);
     const { data, error } = await supabase.from("orders").select("id, order_number, created_at, status, total, items").eq("user_id", userId).order("created_at", { ascending: false });
     setLoading(false);
-    if (error) return toast.error("Não foi possível carregar seus pedidos.");
+    if (error) { toast.error("Não foi possível carregar seus pedidos."); return; }
     setOrders(data ?? []); setLoaded(true);
   }
   useEffect(() => { if (open && session?.user.id) void load(session.user.id); }, [open, session?.user.id]);
   useEffect(() => { if (!open && !session) { setLoaded(false); setOrders([]); } }, [open, session]);
   async function login() {
     const value = identifier.trim();
-    if (!value || !password) return toast.error("Informe seu e-mail ou WhatsApp e a senha.");
+    if (!value || !password) { toast.error("Informe seu e-mail ou WhatsApp e a senha."); return; }
     setLoading(true);
     const normalized = value.includes("@") ? null : normalizeWhatsapp(value);
-    if (!value.includes("@") && !normalized) { setLoading(false); return toast.error("Informe um WhatsApp válido com DDD."); }
+    if (!value.includes("@") && !normalized) { setLoading(false); { toast.error("Informe um WhatsApp válido com DDD."); return; } }
     const email = value.includes("@") ? value : whatsappToLoginEmail(normalized!);
     const result = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (result.error) return toast.error("E-mail/WhatsApp ou senha incorretos.");
+    if (result.error) { toast.error("E-mail/WhatsApp ou senha incorretos."); return; }
     await load(result.data.user.id);
   }
   function reorder(raw: unknown) {
@@ -62,7 +62,7 @@ export function CustomerOrdersDialog({ open, onOpenChange, products }: { open: b
   }
   const statusLabel: Record<string,string> = { received: "Recebido", in_progress: "Em atendimento", awaiting_pix: "Aguardando Pix", completed: "Concluído", cancelled: "Cancelado" };
   return <><Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto"><DialogHeader><DialogTitle className="flex items-center gap-2"><Package className="size-5" /> Meus Pedidos</DialogTitle></DialogHeader>
-    {!session && !loaded && <div className="space-y-3"><p className="text-sm text-muted-foreground">Entre com seu e-mail ou WhatsApp e a senha cadastrada.</p><div><Label htmlFor="orders-identifier">E-mail ou WhatsApp</Label><Input id="orders-identifier" value={identifier} onChange={e=>setIdentifier(e.target.value)} placeholder="Seu e-mail ou WhatsApp" /></div><div><Label htmlFor="orders-password">Senha</Label><Input id="orders-password" type="password" value={password} onChange={e=>setPassword(e.target.value)} /></div><Button className="w-full" onClick={()=>void login()} disabled={loading}>{loading && <Loader2 className="animate-spin" />} Consultar pedidos</Button><button type="button" className="text-sm font-medium text-primary underline" onClick={async()=>{if(!identifier.includes("@"))return toast.error("Para recuperar a senha, informe seu e-mail.");setLoading(true);const {error}=await supabase.auth.resetPasswordForEmail(identifier.trim(),{redirectTo:window.location.origin});setLoading(false);toast.success(error?"Não foi possível enviar o link. Confira o e-mail.":"Se o e-mail estiver cadastrado, você receberá um link.");}}>Esqueci minha senha</button></div>}
+    {!session && !loaded && <div className="space-y-3"><p className="text-sm text-muted-foreground">Entre com seu e-mail ou WhatsApp e a senha cadastrada.</p><div><Label htmlFor="orders-identifier">E-mail ou WhatsApp</Label><Input id="orders-identifier" value={identifier} onChange={e=>setIdentifier(e.target.value)} placeholder="Seu e-mail ou WhatsApp" /></div><div><Label htmlFor="orders-password">Senha</Label><Input id="orders-password" type="password" value={password} onChange={e=>setPassword(e.target.value)} /></div><Button className="w-full" onClick={()=>void login()} disabled={loading}>{loading && <Loader2 className="animate-spin" />} Consultar pedidos</Button><button type="button" className="text-sm font-medium text-primary underline" onClick={async()=>{if(!identifier.includes("@")){ toast.error("Para recuperar a senha, informe seu e-mail."); return; }setLoading(true);const {error}=await supabase.auth.resetPasswordForEmail(identifier.trim(),{redirectTo:window.location.origin});setLoading(false);toast.success(error?"Não foi possível enviar o link. Confira o e-mail.":"Se o e-mail estiver cadastrado, você receberá um link.");}}>Esqueci minha senha</button></div>}
     {loading && <div className="flex justify-center py-8"><Loader2 className="animate-spin" /></div>}
     {loaded && !loading && <div className="space-y-3"><div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={()=>setEmailOpen(true)}>Atualizar e-mail</Button><Button size="sm" variant="outline" onClick={()=>setPasswordOpen(true)}>Alterar senha</Button></div>{orders.length===0 ? <p className="py-8 text-center text-sm text-muted-foreground">Você ainda não possui pedidos.</p> : orders.map(order=><article key={order.id} className="rounded-xl border border-border p-3"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-bold">Pedido {formatOrderNumber(order.order_number)}</p><p className="text-xs text-muted-foreground">{new Date(order.created_at).toLocaleString("pt-BR")}</p></div><span className="rounded-full bg-muted px-3 py-1 text-xs font-bold">{statusLabel[order.status] ?? order.status}</span></div><p className="mt-2 font-display text-lg font-extrabold text-primary">{formatBRL(Number(order.total))}</p><Button size="sm" variant="outline" className="mt-2" onClick={()=>reorder(order.items)}><RotateCcw className="size-4" /> Pedir novamente</Button>{order.status === "completed" && Array.isArray(order.items) && (order.items as OrderItem[]).map(item => <div key={item.id} className="mt-3 border-t border-border pt-3"><div className="flex items-center gap-2">{products.find(product => product.id === item.id) && <img src={products.find(product => product.id === item.id)!.image} alt="" className="size-10 rounded-md bg-white object-contain p-1" />}<p className="text-sm font-semibold">{item.name}</p></div><ProductReviewForm productId={item.id} productName={item.name} orderId={order.id} /></div>)}</article>)}</div>}
   </DialogContent></Dialog><PasswordChangeDialog open={passwordOpen} onOpenChange={setPasswordOpen} /><AccountEmailDialog open={emailOpen} onOpenChange={setEmailOpen} /></>;

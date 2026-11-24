@@ -84,10 +84,10 @@ export function ProductReviewForm({
   }, [active, orderId, productId, session?.user.id]);
 
   async function submit() {
-    if (!session?.user.id) return toast.error("Entre em Meus Pedidos para enviar sua avaliação.");
-    if (!eligibleOrderId) return toast.error("Este produto ainda não possui uma compra concluída vinculada à sua conta.");
+    if (!session?.user.id) { toast.error("Entre em Meus Pedidos para enviar sua avaliação."); return; }
+    if (!eligibleOrderId) { toast.error("Este produto ainda não possui uma compra concluída vinculada à sua conta."); return; }
     if (name.trim().length < 2 || city.trim().length < 2 || !comment.trim()) {
-      return toast.error("Preencha seu nome, cidade e comentário.");
+      { toast.error("Preencha seu nome, cidade e comentário."); return; }
     }
     setSubmitting(true);
     const { error } = await supabase.from("product_reviews").insert({

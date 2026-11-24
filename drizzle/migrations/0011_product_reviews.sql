@@ -2,7 +2,7 @@ create table if not exists public.product_reviews (
   id uuid primary key default gen_random_uuid(),
   product_id text not null references public.products(id) on delete cascade,
   order_id uuid not null references public.orders(id) on delete cascade,
-  user_id uuid not null references auth.users(id) on delete cascade,
+  user_id uuid not null,
   customer_name text not null check (char_length(trim(customer_name)) between 2 and 100),
   city text not null check (char_length(trim(city)) between 2 and 100),
   rating smallint not null check (rating between 1 and 5),
@@ -10,7 +10,7 @@ create table if not exists public.product_reviews (
   status text not null default 'pendente' check (status in ('pendente', 'aprovado', 'recusado')),
   created_at timestamptz not null default now(),
   moderated_at timestamptz,
-  moderated_by uuid references auth.users(id) on delete set null,
+  moderated_by uuid,
   constraint product_reviews_order_product_unique unique (order_id, product_id)
 );
 
@@ -24,6 +24,7 @@ alter table public.product_reviews enable row level security;
 
 grant select on public.product_reviews to anon, authenticated;
 grant insert, update, delete on public.product_reviews to authenticated;
+grant all on public.product_reviews to service_role;
 
 drop policy if exists "Anyone can read approved reviews and owners/admins can read theirs" on public.product_reviews;
 create policy "Anyone can read approved reviews and owners/admins can read theirs"
@@ -31,7 +32,7 @@ create policy "Anyone can read approved reviews and owners/admins can read their
   using (
     status = 'aprovado'
     or user_id = auth.uid()
-    or public.has_role('admin'::public.app_role, auth.uid())
+    or public.has_role(auth.uid(), 'admin'::public.app_role)
   );
 
 drop policy if exists "Customers can submit reviews for completed purchases" on public.product_reviews;
@@ -62,11 +63,11 @@ drop policy if exists "Only admins can moderate reviews" on public.product_revie
 create policy "Only admins can moderate reviews"
   on public.product_reviews for update
   to authenticated
-  using (public.has_role('admin'::public.app_role, auth.uid()))
-  with check (public.has_role('admin'::public.app_role, auth.uid()));
+  using (public.has_role(auth.uid(), 'admin'::public.app_role))
+  with check (public.has_role(auth.uid(), 'admin'::public.app_role));
 
 drop policy if exists "Only admins can delete reviews" on public.product_reviews;
 create policy "Only admins can delete reviews"
   on public.product_reviews for delete
   to authenticated
-  using (public.has_role('admin'::public.app_role, auth.uid()));
+  using (public.has_role(auth.uid(), 'admin'::public.app_role));

@@ -21,11 +21,11 @@ export function PasswordRecoveryHandler() {
   }, []);
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (password.length < 6 || password !== confirmation) return toast.error("Confira a senha. Ela deve ter ao menos 6 caracteres e as duas precisam ser iguais.");
+    if (password.length < 6 || password !== confirmation) { toast.error("Confira a senha. Ela deve ter ao menos 6 caracteres e as duas precisam ser iguais."); return; }
     setBusy(true);
     const { error } = await supabase.auth.updateUser({ password });
     setBusy(false);
-    if (error) return toast.error("Não foi possível redefinir a senha. Solicite um novo link.");
+    if (error) { toast.error("Não foi possível redefinir a senha. Solicite um novo link."); return; }
     toast.success("Senha redefinida. Você já pode entrar.");
     setOpen(false); setPassword(""); setConfirmation("");
     window.history.replaceState({}, document.title, window.location.pathname + window.location.search);

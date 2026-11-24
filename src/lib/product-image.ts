@@ -116,7 +116,7 @@ async function renderSmartSquare(source: Blob, originalName: string) {
   let maxY = -1;
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
-      if (pixels[(y * width + x) * 4 + 3] > 18) {
+      if ((pixels[(y * width + x) * 4 + 3] ?? 0) > 18) {
         minX = Math.min(minX, x);
         minY = Math.min(minY, y);
         maxX = Math.max(maxX, x);
@@ -192,10 +192,10 @@ export async function processSmartProductImage(
     try {
       onProgress?.("Carregando o recorte inteligente...");
       const module = await import("@imgly/background-removal");
-      const removeBackground = module.default;
+      const removeBackground = module.removeBackground;
       onProgress?.("Removendo fundo e ajustando enquadramento...");
       foreground = await removeBackground(file, {
-        model: "small",
+        model: "isnet_quint8",
         output: { format: "image/png", quality: PRODUCT_IMAGE_QUALITY },
       });
       backgroundRemoved = true;
