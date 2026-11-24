@@ -84,6 +84,9 @@ export function ProductsPanel() {
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortMode, setSortMode] = useState<"number" | "asc" | "desc">("number");
+  const [query, setQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [sortMode, setSortMode] = useState<"number" | "asc" | "desc">("number");
   const photoInput = useRef<HTMLInputElement>(null);
   const csvInput = useRef<HTMLInputElement>(null);
 
@@ -113,6 +116,19 @@ export function ProductsPanel() {
     const matchesQuery = !normalizedQuery || normalizedName.includes(normalizedQuery) || String(sequence ?? "").includes(normalizedQuery) || String(sequence ?? "").padStart(2, "0").includes(normalizedQuery);
     return matchesQuery && (categoryFilter === "all" || product.category === categoryFilter);
   }).sort((a, b) => sortMode === "asc" ? a.product.name.localeCompare(b.product.name, "pt-BR") : sortMode === "desc" ? b.product.name.localeCompare(a.product.name, "pt-BR") : (a.sequence ?? Number.MAX_SAFE_INTEGER) - (b.sequence ?? Number.MAX_SAFE_INTEGER));
+  async function changeVisibility(product: Tables<"products">, hidden: boolean) {
+    const { error } = await supabase.from("products").update({ status: hidden ? "hidden" : "available" }).eq("id", product.id);
+    if (error) toast.error("Não foi possível alterar a visibilidade do produto");
+    else { toast.success(hidden ? `${product.name} ocultado da vitrine` : `${product.name} reexibido na vitrine`); await reload(); }
+  }
+
+  const numberedRecords = records.map((record, index) => ({ ...record, sequence: record.product.status === "hidden" ? null : records.slice(0, index + 1).filter((item) => item.product.status !== "hidden").length }));
+  const visibleRecords = numberedRecords.filter(({ product, sequence }) => {
+    const q = query.trim().toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const name = product.name.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return (!q || name.includes(q) || String(sequence ?? "").includes(q) || String(sequence ?? "").padStart(2, "0").includes(q)) && (categoryFilter === "all" || product.category === categoryFilter);
+  }).sort((a, b) => sortMode === "asc" ? a.product.name.localeCompare(b.product.name, "pt-BR") : sortMode === "desc" ? b.product.name.localeCompare(a.product.name, "pt-BR") : (a.sequence ?? Number.MAX_SAFE_INTEGER) - (b.sequence ?? Number.MAX_SAFE_INTEGER));
+
   async function changeVisibility(product: Tables<"products">, hidden: boolean) {
     const { error } = await supabase.from("products").update({ status: hidden ? "hidden" : "available" }).eq("id", product.id);
     if (error) toast.error("Não foi possível alterar a visibilidade do produto");
@@ -455,7 +471,7 @@ export function ProductsPanel() {
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">{sequence !== null ? <span className="rounded-lg bg-primary px-2 py-1 text-sm font-extrabold text-primary-foreground">{String(sequence).padStart(2, "0")}</span> : <span className="rounded bg-muted px-2 py-1 text-[10px]">SEM Nº</span>}<h3 className="font-bold leading-tight">{product.name}</h3></div>
+                  <div className="flex items-center gap-2">{sequence !== null ? <span className="rounded-lg bg-primary px-2 py-1 text-sm font-extrabold text-primary-foreground">{String(sequence).padStart(2, "0")}</span> : <span className="rounded bg-muted px-2 py-1 text-[10px]">SEM Nº</span>}<div className="flex items-center gap-2">{sequence !== null ? <span className="rounded-lg bg-primary px-2 py-1 text-sm font-extrabold text-primary-foreground">{String(sequence).padStart(2, "0")}</span> : <span className="rounded bg-muted px-2 py-1 text-[10px]">SEM Nº</span>}<h3 className="font-bold leading-tight">{product.name}</h3></div></div>
                   <span
                     className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-bold ${product.status === "available" ? "bg-secondary text-secondary-foreground" : product.status === "hidden" ? "bg-muted text-muted-foreground" : "bg-destructive text-destructive-foreground"}`}
                   >
