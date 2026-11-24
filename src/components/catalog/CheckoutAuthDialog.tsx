@@ -272,6 +272,13 @@ export function CheckoutAuthDialog({
                 setBusy(false);
                 setError(resetError ? "Não foi possível enviar o link. Confira o e-mail." : "Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha.");
               }}>Esqueci minha senha</button>}
+              {mode === "signin" && <button type="button" className="text-sm font-medium text-primary underline" onClick={async () => {
+                if (!whatsapp.includes("@")) return setError("Informe seu e-mail cadastrado no campo acima para receber o link.");
+                setBusy(true);
+                const { error: resetError } = await supabase.auth.resetPasswordForEmail(whatsapp.trim(), { redirectTo: window.location.origin });
+                setBusy(false);
+                setError(resetError ? "Não foi possível enviar o link. Confira o e-mail." : "Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha.");
+              }}>Esqueci minha senha</button>}
               <div className="space-y-1.5">
                 <Label htmlFor="checkout-password">Senha</Label>
                 <Input
