@@ -118,7 +118,7 @@ export function ProductCard({
       <button
         type="button"
         onClick={() => setDetailsOpen(true)}
-        className="relative block aspect-square w-full bg-card text-left"
+        className="relative block aspect-square w-full bg-white p-2 text-left"
         aria-label={`Ver detalhes e ampliar foto de ${product.name}`}
       >
         <img
