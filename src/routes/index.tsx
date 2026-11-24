@@ -57,7 +57,7 @@ function Catalog() {
       className="flex min-h-screen flex-col bg-background bg-cover bg-fixed bg-center"
       style={{ backgroundImage: `url(${storeBackground.url})` }}
     >
-      <CatalogHeader query={query} onQueryChange={setQuery} />
+      <CatalogHeader query={query} onQueryChange={setQuery} products={products} />
       <MinimumOrderNotice />
       <CategoryBar active={category} onChange={setCategory} />
       <main className="mx-auto w-full max-w-6xl flex-1">
