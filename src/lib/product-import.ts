@@ -134,7 +134,10 @@ export function parseProductCsv(text: string) {
     const line = rowIndex + 2;
     const get = (header: (typeof PRODUCT_CSV_HEADERS)[number]) =>
       cells[headers.indexOf(header)]?.trim() ?? "";
-    const name = get("Nome");
+    const name = get("Nome")
+      .replace(/[\r\n\t\u200B]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
     const price = Number(
       get("Preco")
         .replace(/^R\$\s*/, "")
