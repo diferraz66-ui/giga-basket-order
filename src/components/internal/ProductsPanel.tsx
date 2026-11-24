@@ -5,6 +5,7 @@ import {
   FileSpreadsheet,
   Images,
   Loader2,
+  Link2,
   Pencil,
   Plus,
   Trash2,
@@ -51,6 +52,18 @@ const tagOptions: Array<{ id: ProductTag; label: string }> = [
 ];
 
 type RecordWithImage = { product: Tables<"products">; image: string };
+
+function normalizeProductName(value: string) {
+  return value
+    .replace(/\\.[^.]+$/, "")
+    .normalize("NFD")
+    .replace(/[\\u0300-\\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\\s+/g, " ");
+}
 
 function safeFilename(filename: string) {
   return filename
@@ -142,6 +155,61 @@ export function ProductsPanel() {
     } finally {
       setBulkProgress(null);
     }
+  }
+
+  async function linkPhotosByName(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    if (!files.length) return;
+
+    const productsByName = new Map<string, Tables<"products">[]>();
+    for (const { product } of records) {
+      const normalized = normalizeProductName(product.name);
+      if (!normalized) continue;
+      const matches = productsByName.get(normalized) ?? [];
+      matches.push(product);
+      productsByName.set(normalized, matches);
+    }
+
+    let linked = 0;
+    const unmatched: string[] = [];
+    for (const [index, file] of files.entries()) {
+      setBulkProgress(`Vinculando foto ${index + 1} de ${files.length}: ${file.name}`);
+      const normalizedFilename = normalizeProductName(file.name);
+      const matches = productsByName.get(normalizedFilename) ?? [];
+      if (!file.type.startsWith("image/") || matches.length !== 1) {
+        unmatched.push(matches.length > 1 ? `${file.name} (nome duplicado no estoque)` : file.name);
+        continue;
+      }
+
+      const product = matches[0];
+      let uploadedPath: string | null = null;
+      try {
+        const optimized = await processSmartProductImage(file);
+        const path = `${product.id}/${crypto.randomUUID()}-${safeFilename(optimized.file.name)}`;
+        const { error: uploadError } = await supabase.storage
+          .from("product-images")
+          .upload(path, optimized.file, { contentType: optimized.file.type });
+        if (uploadError) throw uploadError;
+        uploadedPath = path;
+
+        const { error: updateError } = await supabase
+          .from("products")
+          .update({ image_url: path, image_key: null })
+          .eq("id", product.id);
+        if (updateError) throw updateError;
+        linked += 1;
+      } catch {
+        if (uploadedPath) {
+          await supabase.storage.from("product-images").remove([uploadedPath]);
+        }
+        unmatched.push(`${file.name} (falha no processamento ou envio)`);
+      }
+    }
+
+    setBulkProgress(null);
+    setLinkPhotoSummary({ linked, unmatched });
+    if (linked) await reload();
   }
 
   async function importPhotos(event: ChangeEvent<HTMLInputElement>) {
@@ -266,6 +334,40 @@ export function ProductsPanel() {
           {bulkProgress}
         </p>
       )}
+      <Dialog open={linkPhotoSummary !== null} onOpenChange={(open) => !open && setLinkPhotoSummary(null)}>
+        <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Resultado da vinculação de fotos</DialogTitle>
+          </DialogHeader>
+          {linkPhotoSummary && (
+            <div className="space-y-4">
+              <p className="rounded-xl bg-green-50 p-4 text-sm font-bold text-green-800 dark:bg-green-950 dark:text-green-200">
+                ✅ {linkPhotoSummary.linked} fotos vinculadas automaticamente aos produtos existentes!
+              </p>
+              {linkPhotoSummary.unmatched.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold">
+                    Arquivos que não foram vinculados ({linkPhotoSummary.unmatched.length})
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Confira se o nome do arquivo corresponde exatamente ao nome do produto no estoque. Depois, corrija o nome e tente novamente.
+                  </p>
+                  <ul className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-border p-3 text-sm">
+                    {linkPhotoSummary.unmatched.map((filename, index) => (
+                      <li key={`${filename}-${index}`} className="break-all">{filename}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Todas as imagens selecionadas foram vinculadas com sucesso.</p>
+              )}
+              <div className="flex justify-end">
+                <Button onClick={() => setLinkPhotoSummary(null)}>Concluir</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
       {loading ? (
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin text-primary" />
