@@ -11,7 +11,7 @@ import { ReceiptDialog } from "./ReceiptDialog";
 
 type CatalogProduct = Pick<Tables<"products">, "id" | "name" | "price" | "status" | "max_per_customer">;
 
-export function OrdersPanel({ role: _role }: { role: StaffRole }) {
+export function OrdersPanel({ role }: { role: StaffRole }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +63,7 @@ export function OrdersPanel({ role: _role }: { role: StaffRole }) {
               onChanged={reload}
               onReceipt={setReceipt}
               onProof={setProof}
+              role={role}
             />
           ))}
         </OrderColumn>
@@ -75,6 +76,7 @@ export function OrdersPanel({ role: _role }: { role: StaffRole }) {
               onChanged={reload}
               onReceipt={setReceipt}
               onProof={setProof}
+              role={role}
             />
           ))}
         </OrderColumn>
