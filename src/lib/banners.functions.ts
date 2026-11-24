@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { Buffer } from "node:buffer";
+import { randomUUID } from "node:crypto";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const bannerNameSchema = z.object({ name: z.string().trim().min(1).max(180) });
@@ -41,7 +43,7 @@ export const uploadTopBanner = createServerFn({ method: "POST" }).middleware([re
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const bytes = Buffer.from(data.base64, "base64");
   if (bytes.byteLength > 3_000_000) throw new Error("Banner otimizado excede o limite de 3 MB");
-  const name = `active-${crypto.randomUUID()}.webp`;
+  const name = `active-${randomUUID()}.webp`;
   const { error } = await supabaseAdmin.storage.from("product-images").upload(`banners/${name}`, bytes, { contentType: data.contentType, upsert: false });
   if (error) throw new Error("Não foi possível salvar o banner");
   return { ok: true as const };
