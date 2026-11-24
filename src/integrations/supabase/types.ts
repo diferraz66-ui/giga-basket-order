@@ -164,66 +164,6 @@ export type Database = {
         }
         Relationships: []
       }
-      product_reviews: {
-        Row: {
-          id: string;
-          product_id: string;
-          order_id: string;
-          user_id: string;
-          customer_name: string;
-          city: string;
-          rating: number;
-          comment: string;
-          status: string;
-          created_at: string;
-          moderated_at: string | null;
-          moderated_by: string | null;
-        };
-        Insert: {
-          id?: string;
-          product_id: string;
-          order_id: string;
-          user_id: string;
-          customer_name: string;
-          city: string;
-          rating: number;
-          comment: string;
-          status?: string;
-          created_at?: string;
-          moderated_at?: string | null;
-          moderated_by?: string | null;
-        };
-        Update: {
-          id?: string;
-          product_id?: string;
-          order_id?: string;
-          user_id?: string;
-          customer_name?: string;
-          city?: string;
-          rating?: number;
-          comment?: string;
-          status?: string;
-          created_at?: string;
-          moderated_at?: string | null;
-          moderated_by?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "product_reviews_product_id_fkey";
-            columns: ["product_id"];
-            isOneToOne: false;
-            referencedRelation: "products";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "product_reviews_order_id_fkey";
-            columns: ["order_id"];
-            isOneToOne: false;
-            referencedRelation: "orders";
-            referencedColumns: ["id"];
-          }
-        ];
-      };
       profiles: {
         Row: {
           created_at: string
