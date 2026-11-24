@@ -25,7 +25,16 @@ export function ProductCard({
   const purchasedQuantity = purchasedQuantities[product.id] ?? 0;
   const cartQuantity = items.find((item) => item.id === product.id)?.quantity ?? 0;
   const quantity = cartQuantity + purchasedQuantity;
-  const limitReached = isProductLimitReached(quantity, product.maxPerCustomer);\n\n  function decreaseProduct() {\n    setQuantity(product.id, cartQuantity - 1, product.maxPerCustomer);\n  }\n\n  function increaseProduct() {\n    const added = add({ id: product.id, name: product.name, price: product.price, maxPerCustomer: product.maxPerCustomer });\n    if (!added) return;\n  }
+  const limitReached = isProductLimitReached(quantity, product.maxPerCustomer);
+
+  function decreaseProduct() {
+    setQuantity(product.id, cartQuantity - 1, product.maxPerCustomer);
+  }
+
+  function increaseProduct() {
+    const added = add({ id: product.id, name: product.name, price: product.price, maxPerCustomer: product.maxPerCustomer });
+    if (!added) return;
+  }
 
   function addProduct() {
     if (limitReached) return;
