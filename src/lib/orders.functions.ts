@@ -252,7 +252,7 @@ export const manualReleasePaymentProof = createServerFn({ method: "POST" })
       throw new Error("Anexe o comprovante antes de solicitar a liberação manual");
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const marker = `PIX_VALIDATED:ADMIN_MANUAL:${data.reason.replace(/[\\r\\n]+/g, " ").trim()}`.slice(0, 160);
+    const marker = `PIX_VALIDATED:ADMIN_MANUAL:${data.reason.replace(/[\r\n]+/g, " ").trim()}`.slice(0, 160);
     const { data: updated, error: updateError } = await supabaseAdmin
       .from("orders")
       .update({
