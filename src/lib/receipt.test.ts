@@ -46,6 +46,7 @@ const paidOrder: Order = {
   payment_proof_amount: 7.5,
   payment_proof_validated_at: "2026-01-01T10:59:00Z",
   payment_proof_validated_total: 7.5,
+  payment_proof_name: "PIX_VALIDATED:EAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
   delivery_method: "pickup",
   pickup_name: "João Souza",
   pickup_document: "123.456.789-00",
