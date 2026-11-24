@@ -143,6 +143,7 @@ export function CartSheet({ products }: { products: Product[] }) {
           setOpen(value);
           if (!value) {
             setDone(null);
+            setSuggestionsOpen(false);
             setCheckoutOpen(false);
           }
         }}
