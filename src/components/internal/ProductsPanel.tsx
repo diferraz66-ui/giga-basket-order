@@ -301,6 +301,14 @@ export function ProductsPanel() {
             <Images /> Cadastro Rápido por Fotos (Lote)
           </Button>
           <Button
+            variant="outline"
+            size="sm"
+            disabled={bulkProgress !== null || loading}
+            onClick={() => linkPhotoInput.current?.click()}
+          >
+            <Link2 /> 🔗 Vincular Fotos pelo Nome
+          </Button>
+          <Button
             variant="cta"
             size="sm"
             disabled={bulkProgress !== null}
@@ -329,12 +337,27 @@ export function ProductsPanel() {
           onChange={(event) => void importPhotos(event)}
           aria-label="Selecionar fotos para cadastro em lote"
         />
+        <input
+          ref={linkPhotoInput}
+          type="file"
+          accept="image/*"
+          multiple
+          className="sr-only"
+          onChange={(event) => void linkPhotosByName(event)}
+          aria-label="Selecionar fotos para vincular aos produtos pelo nome"
+        />
       </div>
       {bulkProgress && (
         <p role="status" className="mb-4 flex items-center gap-2 rounded-lg bg-muted p-3 text-sm">
           <Loader2 className="size-4 animate-spin text-primary" />
           {bulkProgress}
+          <span className="sr-only">Processamento em andamento</span>
         </p>
+      )}
+      {bulkProgress && (
+        <div className="mb-4 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label="Progresso da vinculação de fotos">
+          <div className="h-full w-2/3 animate-pulse rounded-full bg-primary" />
+        </div>
       )}
       <Dialog open={linkPhotoSummary !== null} onOpenChange={(open) => !open && setLinkPhotoSummary(null)}>
         <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
