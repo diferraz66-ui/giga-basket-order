@@ -260,6 +260,7 @@ export function OrderCard({
       const result = await uploadProof({ data: form });
       if (!result.accepted) {
         setProofError(result.reason);
+        if (result.savedForReview) await onChanged();
         return;
       }
       setValidationDetails(result.validation ?? null);
@@ -538,7 +539,7 @@ export function OrderCard({
                   <CheckCircle2 className="size-4" /> ✅ PIX VALIDADO
                 </p>
                 <p className="mt-1 text-xs">Valor: {formatBRL(Number(order.payment_proof_amount))}</p>
-                <p className="text-xs">ID E2E / referência: {order.payment_proof_name?.replace(/^PIX_VALIDATED:/, "").split(":")[0] ?? "—"}</p>
+                {order.payment_proof_name?.startsWith("PIX_VALIDATED:ADMIN_MANUAL:") ? <p className="text-xs">Validação: liberação manual do Admin</p> : <p className="text-xs">ID E2E: {order.payment_proof_name?.replace(/^PIX_VALIDATED:/, "") ?? "—"}</p>}
                 {order.payment_proof_name?.startsWith("PIX_VALIDATED:ADMIN_MANUAL:") ? (
                   <p className="mt-1 text-xs font-bold text-amber-700">Liberação excepcional registrada pelo Admin</p>
                 ) : validationDetails ? (
@@ -554,8 +555,13 @@ export function OrderCard({
                 </button>
               </div>
             )}
-            {!proofValid && !dirty && order.payment_proof_path && !proofError && (
-              <p className="mt-3 text-xs font-medium text-destructive">O comprovante não está validado para o total atual. Reenvie o arquivo ou solicite revisão manual do Admin.</p>
+            {!proofValid && !dirty && order.payment_proof_path && !order.payment_proof_name?.startsWith("PIX_VALIDATED:") && (
+              <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-xs font-semibold text-destructive">
+                Comprovante pendente de validação. {role === "admin" ? "Confira o arquivo e use a liberação manual somente após confirmar o crédito na conta." : "Aguardando revisão do Admin."}
+              </p>
+            )}
+            {!proofValid && !dirty && order.payment_proof_path && order.payment_proof_name?.startsWith("PIX_VALIDATED:") && !proofError && (
+              <p className="mt-3 text-xs font-medium text-destructive">O total ou os itens mudaram. Envie o comprovante novamente para validar.</p>
             )}
             {role === "admin" && !proofValid && !dirty && order.payment_proof_path && (
               <Button type="button" variant="outline" className="mt-3 w-full border-amber-500 text-amber-700" disabled={Boolean(busy)} onClick={() => setManualReleaseOpen(true)}>
