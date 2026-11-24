@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Loader2, LockKeyhole, LogOut } from "lucide-react";
+import { ArrowLeft, KeyRound, Loader2, LockKeyhole, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Logo } from "@/components/catalog/Logo";
 import { PasswordChangeDialog } from "@/components/auth/PasswordChangeDialog";
 import { AccountEmailDialog } from "@/components/auth/AccountEmailDialog";
-import { KeyRound } from "lucide-react";
 import { OrdersPanel } from "@/components/internal/OrdersPanel";
 import { ProductsPanel } from "@/components/internal/ProductsPanel";
 import { QuickControlPanel } from "@/components/internal/QuickControlPanel";
@@ -135,15 +134,15 @@ function StaffDashboard({ member, role }: { member: Tables<"team_members">; role
             {role === "admin" && <TabsTrigger value="products" className="shrink-0 px-4 py-2.5">Produtos e Estoque</TabsTrigger>}
             {role === "admin" && <TabsTrigger value="quick-control" className="shrink-0 px-4 py-2.5">Controle Rápido (Lista)</TabsTrigger>}
             {role === "admin" && <TabsTrigger value="customers" className="shrink-0 px-4 py-2.5">Clientes GIGA</TabsTrigger>}
-            {role === "admin" && <TabsTrigger value="reports" className="shrink-0 px-4 py-2.5">Relatórios e Equipe</TabsTrigger>
-            {role === "admin" && <TabsTrigger value="banners" className="shrink-0 px-4 py-2.5">Banners Topo</TabsTrigger>}}
+            {role === "admin" && <TabsTrigger value="reports" className="shrink-0 px-4 py-2.5">Relatórios e Equipe</TabsTrigger>}
+            {role === "admin" && <TabsTrigger value="banners" className="shrink-0 px-4 py-2.5">Banners Topo</TabsTrigger>}
           </TabsList>
           <TabsContent value="orders"><OrdersPanel role={role} /></TabsContent>
           {role === "admin" && <TabsContent value="products"><ProductsPanel /></TabsContent>}
           {role === "admin" && <TabsContent value="quick-control"><QuickControlPanel /></TabsContent>}
           {role === "admin" && <TabsContent value="customers"><CustomersPanel /></TabsContent>}
-          {role === "admin" && <TabsContent value="reports"><ReportsTeamPanel /></TabsContent>
-          {role === "admin" && <TabsContent value="banners"><BannersPanel /></TabsContent>}}
+          {role === "admin" && <TabsContent value="reports"><ReportsTeamPanel /></TabsContent>}
+          {role === "admin" && <TabsContent value="banners"><BannersPanel /></TabsContent>}
         </Tabs>
       </main>
       <PasswordChangeDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
