@@ -23,7 +23,7 @@ export function TopBannerCarousel() {
     pointer.current = null;
   }
   return <section aria-label="Banners da GIGA Shopping" className="px-3 pt-4 sm:px-5">
-    <div className="relative overflow-hidden rounded-2xl bg-white shadow-soft" onPointerDown={event=>{pointer.current=event.pointerId;startX.current=event.clientX;}} onPointerUp={event=>{if(pointer.current===event.pointerId)finishSwipe(event.clientX);}} onPointerCancel={()=>{pointer.current=null;}}>
+    <div className="relative overflow-hidden rounded-2xl bg-white shadow-soft" style={{ touchAction: "pan-y" }} onPointerDown={event=>{pointer.current=event.pointerId;startX.current=event.clientX;event.currentTarget.setPointerCapture(event.pointerId);}} onPointerUp={event=>{if(pointer.current===event.pointerId)finishSwipe(event.clientX);}} onPointerCancel={()=>{pointer.current=null;}}>
       <div className="flex transition-transform duration-500 ease-out" style={{transform:`translateX(-${index*100}%)`}}>
         {banners.map((banner,i)=><div key={banner.name} className="w-full shrink-0"><img src={banner.url} alt={`Banner promocional ${i+1}`} loading={i===0 ? "eager" : "lazy"} fetchPriority={i===0 ? "high" : "auto"} className="aspect-[3/1] w-full object-contain" /></div>)}
       </div>
