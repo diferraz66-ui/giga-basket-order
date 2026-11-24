@@ -167,7 +167,7 @@ async function renderSmartSquare(source: Blob, originalName: string) {
     type = "image/jpeg";
   }
   if (!blob) throw new Error("Não foi possível gerar a imagem final");
-  const baseName = originalName.replace(/\\.[^.]+$/, "") || "produto";
+  const baseName = originalName.replace(/\.[^.]+$/, "") || "produto";
   return new File([blob], `${baseName}-giga.${type === "image/webp" ? "webp" : "jpg"}`, {
     type,
     lastModified: Date.now(),
