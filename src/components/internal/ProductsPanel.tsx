@@ -54,8 +54,8 @@ const tagOptions: Array<{ id: ProductTag; label: string }> = [
 type RecordWithImage = { product: Tables<"products">; image: string };
 
 function normalizeProductName(value: string, removeExtension = false) {
-  return value
-    .replace(removeExtension ? /\.[^/.]+$/ : /$^/, "")
+  const name = removeExtension ? value.replace(/\.[^/.]+$/, "") : value;
+  return name
     .replace(/[\r\n\t\u200B]/g, " ")
     .trim()
     .replace(/[\s_-]+/g, " ")
