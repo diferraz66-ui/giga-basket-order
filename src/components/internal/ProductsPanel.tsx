@@ -34,7 +34,7 @@ import {
   type ProductTag,
 } from "@/data/catalog";
 import { formatBRL } from "@/lib/order";
-import { assignActiveProductNumbers, resolveProductImage } from "@/lib/products";
+import { assignActiveProductNumbers, fetchAllProductRows, resolveProductImage } from "@/lib/products";
 import { optimizeProductImage, processSmartProductImage } from "@/lib/product-image";
 import {
   bulkPhotoDefaults,
@@ -88,18 +88,14 @@ export function ProductsPanel() {
   const csvInput = useRef<HTMLInputElement>(null);
 
   const reload = useCallback(async () => {
-    const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: true }).order("id", { ascending: true });
-    if (error) toast.error("Não foi possível carregar os produtos");
-    else
-      setRecords(
-        await Promise.all(
-          (data ?? []).map(async (product) => ({
-            product,
-            image: await resolveProductImage(product),
-          })),
-        ),
-      );
-    setLoading(false);
+    try {
+      const data = await fetchAllProductRows();
+      setRecords(await Promise.all(data.map(async (product) => ({ product, image: await resolveProductImage(product) }))));
+    } catch {
+      toast.error("Não foi possível carregar os produtos");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -186,23 +182,12 @@ export function ProductsPanel() {
     if (!files.length) return;
 
     setLinkPhotoProgress(0);
-    const databaseProducts: Array<{ id: string; name: string; created_at: string; status: string }> = [];
-    const pageSize = 1000;
-    let offset = 0;
-    while (true) {
-      const { data, error: productsError } = await supabase
-        .from("products")
-        .select("id,name,created_at,status")
-        .order("created_at", { ascending: true })
-        .order("id", { ascending: true })
-        .range(offset, offset + pageSize - 1);
-      if (productsError) {
-        toast.error("Não foi possível consultar todos os produtos do estoque");
-        return;
-      }
-      databaseProducts.push(...(data ?? []));
-      if (!data || data.length < pageSize) break;
-      offset += pageSize;
+    let databaseProducts: Tables<"products">[];
+    try {
+      databaseProducts = await fetchAllProductRows();
+    } catch {
+      toast.error("Não foi possível consultar todos os produtos do estoque");
+      return;
     }
 
     const numberedProducts = assignActiveProductNumbers(databaseProducts);
