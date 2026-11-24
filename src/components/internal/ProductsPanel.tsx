@@ -355,7 +355,7 @@ export function ProductsPanel() {
         </p>
       )}
       {bulkProgress && (
-        <div className="mb-4 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label="Progresso da vinculação de fotos">
+        <div className="mb-4 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label="Progresso do processamento em lote">
           <div className="h-full w-2/3 animate-pulse rounded-full bg-primary" />
         </div>
       )}
