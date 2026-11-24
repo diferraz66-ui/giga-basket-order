@@ -37,7 +37,9 @@ export function filterCustomers(customers: CustomerSummary[], filter: CustomerFi
 }
 
 function csvCell(value: string | number | boolean | null) {
-  const text = value === null ? "" : String(value);
+  let text = value === null ? "" : String(value);
+  // evita que planilhas executem formulas vindas de dados digitados por clientes
+  if (typeof value === "string" && /^[=+\-@\t\r]/.test(text)) text = `'${text}`;
   return `"${text.replace(/"/g, '""')}"`;
 }
 
