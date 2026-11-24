@@ -16,6 +16,7 @@ import {
   minimumOrderProgress,
   whatsappLink,
   type CartItem,
+  isProductLimitReached,
 } from "@/lib/order";
 import { formatWhatsapp } from "@/lib/phone";
 import {
