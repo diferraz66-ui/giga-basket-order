@@ -12,10 +12,12 @@ export function ProductCard({
   product,
   layout = "grid",
   reviewSummary,
+  sequence,
 }: {
   product: Product;
   layout?: CatalogView;
   reviewSummary?: { average: number; count: number };
+  sequence?: number;
 }) {
   const { add, items, purchasedQuantities } = useCart();
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -52,6 +54,7 @@ export function ProductCard({
             loading="lazy"
             className="h-full w-full object-contain p-1"
           />
+          {sequence !== undefined && <span className="absolute bottom-2 right-2 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white">{String(sequence).padStart(2, "0")}</span>}
           {product.tags.includes("oferta") && (
             <span className="absolute left-0 top-0 rounded-md bg-primary px-1.5 py-1 font-display text-[9px] font-extrabold uppercase text-primary-foreground">
               Oferta
@@ -134,6 +137,7 @@ export function ProductCard({
           loading="lazy"
           className="max-h-full max-w-full object-contain"
         />
+        {sequence !== undefined && <span className="absolute bottom-2 right-2 rounded bg-black/55 px-1.5 py-0.5 text-[9px] font-bold text-white">{String(sequence).padStart(2, "0")}</span>}
         {product.tags.includes("oferta") && (
           <span className="absolute left-2 top-2 rounded-md bg-primary px-2 py-1 font-display text-[10px] font-extrabold uppercase text-primary-foreground">
             Oferta
