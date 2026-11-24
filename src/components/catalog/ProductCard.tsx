@@ -118,7 +118,7 @@ export function ProductCard({
       <button
         type="button"
         onClick={() => setDetailsOpen(true)}
-        className="relative block aspect-square w-full bg-white p-2 text-left"
+        className="relative flex h-40 w-full items-center justify-center overflow-hidden bg-white p-2 text-left sm:h-44"
         aria-label={`Ver detalhes e ampliar foto de ${product.name}`}
       >
         <img
@@ -127,7 +127,7 @@ export function ProductCard({
           width={816}
           height={816}
           loading="lazy"
-          className="h-full w-full object-contain"
+          className="max-h-full max-w-full object-contain"
         />
         {product.tags.includes("oferta") && (
           <span className="absolute left-2 top-2 rounded-md bg-primary px-2 py-1 font-display text-[10px] font-extrabold uppercase text-primary-foreground">
