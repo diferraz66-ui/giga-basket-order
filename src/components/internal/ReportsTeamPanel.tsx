@@ -19,6 +19,7 @@ export function ReportsTeamPanel() {
   const [busy, setBusy] = useState(false);
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const createSellerFn = useServerFn(createSeller);
   const deleteSellerFn = useServerFn(deleteSeller);
@@ -68,9 +69,9 @@ export function ReportsTeamPanel() {
     event.preventDefault();
     setBusy(true);
     try {
-      await createSellerFn({ data: { fullName, username, password } });
+      await createSellerFn({ data: { fullName, username, email, password } });
       toast.success("Vendedor cadastrado");
-      setFullName(""); setUsername(""); setPassword("");
+      setFullName(""); setUsername(""); setEmail(""); setPassword("");
       await load();
     } catch {
       toast.error("Não foi possível cadastrar. Confira os dados e se o login já existe.");
@@ -127,6 +128,7 @@ export function ReportsTeamPanel() {
           <form onSubmit={submitSeller} className="space-y-3 rounded-xl bg-muted p-4">
             <h4 className="flex items-center gap-2 text-sm font-bold"><Plus className="size-4" /> Cadastrar novo vendedor</h4>
             <div><Label htmlFor="seller-name">Nome do vendedor</Label><Input id="seller-name" value={fullName} onChange={(e) => setFullName(e.target.value)} required minLength={3} /></div>
+            <div><Label htmlFor="seller-email">E-mail</Label><Input id="seller-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" /></div>
             <div><Label htmlFor="seller-login">Login</Label><Input id="seller-login" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} required minLength={3} autoComplete="off" /></div>
             <div><Label htmlFor="seller-password">Senha (mínimo 3 caracteres)</Label><Input id="seller-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={3} autoComplete="new-password" /></div>
             <Button type="submit" variant="cta" className="w-full" disabled={busy}>{busy && <Loader2 className="animate-spin" />} Cadastrar vendedor</Button>
