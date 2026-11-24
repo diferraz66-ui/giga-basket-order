@@ -148,7 +148,7 @@ export function CheckoutAuthDialog({
       }
       if (!data.session || !data.user) {
         setMode("signin");
-        return setError("Cadastro criado! Entre com seu WhatsApp e senha para finalizar.");
+        return setError("Cadastro criado! Confirme seu e-mail e entre com seu e-mail e senha para finalizar.");
       }
       onComplete({
         identity: { userId: data.user.id, fullName: parsed.data.fullName, whatsapp: phone },
@@ -258,10 +258,10 @@ export function CheckoutAuthDialog({
                   id="checkout-whatsapp"
                   type={mode === "signup" ? "tel" : "text"}
                   inputMode={mode === "signup" ? "numeric" : "email"}
-                  autoComplete="tel-national"
+                  autoComplete={mode === "signup" ? "tel-national" : "username"}
                   value={whatsapp}
                   onChange={(event) => setWhatsapp(mode === "signup" ? maskWhatsapp(event.target.value) : event.target.value)}
-                  placeholder="(11) 98888-7777"
+                  placeholder={mode === "signup" ? "(11) 98888-7777" : "E-mail ou WhatsApp"}
                   className="h-12 text-base"
                 />
               </div>
