@@ -5,7 +5,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
-import { store, type Product } from "@/data/catalog";\nimport { RelatedSuggestionsDialog } from "./RelatedSuggestionsDialog";
+import { store, type Product } from "@/data/catalog";
+import { RelatedSuggestionsDialog } from "./RelatedSuggestionsDialog";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 import {
@@ -38,7 +39,8 @@ export function CartSheet({ products }: { products: Product[] }) {
   } = useCart();
   const { session, profile } = useAuth();
   const [busy, setBusy] = useState(false);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);\n  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [done, setDone] = useState<{ number: number; link: string; message: string } | null>(null);
   const progress = minimumOrderProgress(total);
 
