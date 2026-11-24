@@ -5,7 +5,7 @@ import {
   FileSpreadsheet,
   Images,
   Loader2,
-  Link2,
+  Search,
   Pencil,
   Plus,
   Trash2,
@@ -81,6 +81,9 @@ export function ProductsPanel() {
   const linkPhotoInput = useRef<HTMLInputElement>(null);
   const [linkPhotoSummary, setLinkPhotoSummary] = useState<{ linked: number; unmatched: string[] } | null>(null);
   const [linkPhotoProgress, setLinkPhotoProgress] = useState(0);
+  const [query, setQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [sortMode, setSortMode] = useState<"number" | "asc" | "desc">("number");
   const photoInput = useRef<HTMLInputElement>(null);
   const csvInput = useRef<HTMLInputElement>(null);
 
@@ -102,6 +105,19 @@ export function ProductsPanel() {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  const numberedRecords = records.map((record, index) => ({ ...record, sequence: record.product.status === "hidden" ? null : records.slice(0, index + 1).filter((item) => item.product.status !== "hidden").length }));
+  const visibleRecords = numberedRecords.filter(({ product, sequence }) => {
+    const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
+    const normalizedName = product.name.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
+    const matchesQuery = !normalizedQuery || normalizedName.includes(normalizedQuery) || String(sequence ?? "").includes(normalizedQuery) || String(sequence ?? "").padStart(2, "0").includes(normalizedQuery);
+    return matchesQuery && (categoryFilter === "all" || product.category === categoryFilter);
+  }).sort((a, b) => sortMode === "asc" ? a.product.name.localeCompare(b.product.name, "pt-BR") : sortMode === "desc" ? b.product.name.localeCompare(a.product.name, "pt-BR") : (a.sequence ?? Number.MAX_SAFE_INTEGER) - (b.sequence ?? Number.MAX_SAFE_INTEGER));
+  async function changeVisibility(product: Tables<"products">, hidden: boolean) {
+    const { error } = await supabase.from("products").update({ status: hidden ? "hidden" : "available" }).eq("id", product.id);
+    if (error) toast.error("Não foi possível alterar a visibilidade do produto");
+    else { toast.success(hidden ? `${product.name} ocultado da vitrine` : `${product.name} reexibido na vitrine`); await reload(); }
+  }
 
   async function remove(product: Tables<"products">) {
     if (!window.confirm(`Excluir ${product.name}?`)) return;
@@ -160,19 +176,21 @@ export function ProductsPanel() {
     }
   }
 
-  async function linkPhotosByName(event: ChangeEvent<HTMLInputElement>) {
+  async function linkPhotosByNumber(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
     event.target.value = "";
     if (!files.length) return;
 
     setLinkPhotoProgress(0);
-    const databaseProducts: Array<{ id: string; name: string }> = [];
+    const databaseProducts: Array<{ id: string; name: string; created_at: string; status: string }> = [];
     const pageSize = 1000;
     let offset = 0;
     while (true) {
       const { data, error: productsError } = await supabase
         .from("products")
-        .select("id,name")
+        .select("id,name,created_at,status")
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
         .range(offset, offset + pageSize - 1);
       if (productsError) {
         toast.error("Não foi possível consultar todos os produtos do estoque");
@@ -183,28 +201,24 @@ export function ProductsPanel() {
       offset += pageSize;
     }
 
-    const productsByName = new Map<string, Array<{ id: string; name: string }>>();
-    for (const product of databaseProducts) {
-      const normalized = normalizeProductName(product.name);
-      if (!normalized) continue;
-      const matches = productsByName.get(normalized) ?? [];
-      matches.push(product);
-      productsByName.set(normalized, matches);
-    }
+    const activeProducts = databaseProducts.filter((product) => product.status !== "hidden");
+    const productByNumber = new Map<number, { id: string; name: string }>();
+    activeProducts.forEach((product, index) => productByNumber.set(index + 1, product));
 
     let linked = 0;
     const unmatched: string[] = [];
     for (const [index, file] of files.entries()) {
       setBulkProgress(`Vinculando foto ${index + 1} de ${files.length}: ${file.name}`);
-      const normalizedFilename = normalizeProductName(file.name, true);
-      const matches = productsByName.get(normalizedFilename) ?? [];
-      if (!file.type.startsWith("image/") || matches.length !== 1) {
+      const basename = file.name.replace(/\\.[^./\\\\]+$/, "").trim();
+      const numberMatch = basename.match(/^0*(\\d+)$/);
+      const number = numberMatch ? Number(numberMatch[1]) : NaN;
+      const product = Number.isSafeInteger(number) ? productByNumber.get(number) : undefined;
+      if (!file.type.startsWith("image/") || !product) {
         unmatched.push(file.name);
         setLinkPhotoProgress(Math.round(((index + 1) / files.length) * 100));
         continue;
       }
 
-      const product = matches[0];
       let uploadedPath: string | null = null;
       try {
         const optimized = await processSmartProductImage(file);
@@ -327,7 +341,7 @@ export function ProductsPanel() {
             disabled={bulkProgress !== null || loading}
             onClick={() => linkPhotoInput.current?.click()}
           >
-            <Link2 /> 🔗 Vincular Fotos pelo Nome
+            🔢 Vincular Fotos por Número
           </Button>
           <Button
             variant="cta"
@@ -364,8 +378,8 @@ export function ProductsPanel() {
           accept="image/*"
           multiple
           className="sr-only"
-          onChange={(event) => void linkPhotosByName(event)}
-          aria-label="Selecionar fotos para vincular aos produtos pelo nome"
+          onChange={(event) => void linkPhotosByNumber(event)}
+          aria-label="Selecionar fotos para vincular aos produtos por número"
         />
       </div>
       {bulkProgress && (
@@ -391,7 +405,7 @@ export function ProductsPanel() {
           {linkPhotoSummary && (
             <div className="space-y-4">
               <p className="rounded-xl bg-green-50 p-4 text-sm font-bold text-green-800 dark:bg-green-950 dark:text-green-200">
-                ✅ {linkPhotoSummary.linked} fotos vinculadas automaticamente aos produtos da planilha/estoque!
+                ✅ {linkPhotoSummary.linked} fotos vinculadas com sucesso pelos números!
               </p>
               {linkPhotoSummary.unmatched.length > 0 ? (
                 <div className="space-y-2">
@@ -399,7 +413,7 @@ export function ProductsPanel() {
                     ⚠️ {linkPhotoSummary.unmatched.length} fotos não encontraram produto correspondente
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Confira se o nome do arquivo corresponde exatamente ao nome do produto no estoque. Depois, corrija o nome e tente novamente.
+                    Use somente o número atual no nome do arquivo, como 01.jpg ou 15.webp. Números que não existem no estoque ficam nesta lista.
                   </p>
                   <ul className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-border p-3 text-sm">
                     {linkPhotoSummary.unmatched.map((filename, index) => (
@@ -422,8 +436,14 @@ export function ProductsPanel() {
           <Loader2 className="animate-spin text-primary" />
         </div>
       ) : (
+        <>
+        <div className="mb-4 grid gap-2 sm:grid-cols-[minmax(220px,1fr)_220px_220px]">
+          <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="🔍 Buscar por nº ou nome do produto..." className="pl-9" aria-label="Buscar por número ou nome do produto" /></div>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}><SelectTrigger><SelectValue placeholder="Todas as Categorias" /></SelectTrigger><SelectContent><SelectItem value="all">Todas as Categorias</SelectItem>{categories.map((item) => <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>)}</SelectContent></Select>
+          <Select value={sortMode} onValueChange={(value) => setSortMode(value as "number" | "asc" | "desc")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="number">Numeração (01 → 99)</SelectItem><SelectItem value="asc">Ordem Alfabética (A → Z)</SelectItem><SelectItem value="desc">Inversa (Z → A)</SelectItem></SelectContent></Select>
+        </div>
         <div className="grid gap-3 md:grid-cols-2">
-          {records.map(({ product, image }) => (
+          {visibleRecords.map(({ product, image, sequence }) => (
             <article
               key={product.id}
               className="flex gap-3 rounded-2xl border border-border bg-card p-3"
@@ -435,7 +455,7 @@ export function ProductsPanel() {
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-bold leading-tight">{product.name}</h3>
+                  <div className="flex items-center gap-2">{sequence !== null ? <span className="rounded-lg bg-primary px-2 py-1 text-sm font-extrabold text-primary-foreground">{String(sequence).padStart(2, "0")}</span> : <span className="rounded bg-muted px-2 py-1 text-[10px]">SEM Nº</span>}<h3 className="font-bold leading-tight">{product.name}</h3></div>
                   <span
                     className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-bold ${product.status === "available" ? "bg-secondary text-secondary-foreground" : product.status === "hidden" ? "bg-muted text-muted-foreground" : "bg-destructive text-destructive-foreground"}`}
                   >
@@ -455,7 +475,8 @@ export function ProductsPanel() {
                 <p className="mt-2 font-display text-lg font-extrabold text-primary">
                   {formatBRL(Number(product.price))}
                 </p>
-                <div className="mt-2 flex gap-1">
+                <div className="mt-2 flex flex-wrap gap-1">
+                  <Button size="sm" variant={product.status === "hidden" ? "secondary" : "outline"} onClick={() => void changeVisibility(product, product.status !== "hidden")}>{product.status === "hidden" ? "Reexibir" : "Ocultar"}</Button>
                   <Button
                     size="sm"
                     variant="outline"
@@ -478,7 +499,9 @@ export function ProductsPanel() {
               </div>
             </article>
           ))}
+          {visibleRecords.length === 0 && <p className="col-span-full rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">Nenhum produto encontrado com esses filtros.</p>}
         </div>
+        </>
       )}
       {formOpen && (
         <ProductForm
