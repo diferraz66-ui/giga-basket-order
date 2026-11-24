@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from "react";\nimport { Minus, Plus } from "lucide-react";
 import { Ruler, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,13 +19,13 @@ export function ProductCard({
   reviewSummary?: { average: number; count: number } | undefined;
   sequence?: number | undefined;
 }) {
-  const { add, items, purchasedQuantities } = useCart();
+  const { add, items, purchasedQuantities, setQuantity } = useCart();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const soldOut = product.status === "out_of_stock";
   const quantity =
     (items.find((item) => item.id === product.id)?.quantity ?? 0) +
     (purchasedQuantities[product.id] ?? 0);
-  const limitReached = isProductLimitReached(quantity, product.maxPerCustomer);
+  const limitReached = isProductLimitReached(quantity, product.maxPerCustomer);\n  const cartQuantity = items.find((item) => item.id === product.id)?.quantity ?? 0;\n\n  function decreaseProduct() {\n    setQuantity(product.id, cartQuantity - 1, product.maxPerCustomer);\n  }\n\n  function increaseProduct() {\n    const added = add({ id: product.id, name: product.name, price: product.price, maxPerCustomer: product.maxPerCustomer });\n    if (!added) return;\n  }
 
   function addProduct() {
     const added = add({
@@ -96,25 +96,31 @@ export function ProductCard({
             {formatBRL(product.price)}
           </p>
           <p className="text-[9px] text-muted-foreground sm:text-xs">/unidade</p>
-          <Button
-            variant="cta"
-            size="sm"
-            className="mt-2 h-auto min-h-10 w-full whitespace-normal px-1 py-2 text-[10px] leading-tight sm:px-3 sm:text-xs"
-            disabled={soldOut}
-            onClick={addProduct}
-          >
-            <ShoppingCart className="hidden sm:block" />
-            {soldOut ? (
-              "Indisponível"
-            ) : limitReached ? (
-              "Limite atingido"
-            ) : (
-              <>
+          {cartQuantity > 0 ? (
+            <div className="mt-2 flex h-10 items-center justify-between rounded-full border border-primary/30 bg-primary/5 px-1">
+              <button type="button" aria-label={`Diminuir ${product.name}`} className="flex size-8 items-center justify-center rounded-full hover:bg-primary/10" onClick={decreaseProduct}>
+                <Minus className="size-4" />
+              </button>
+              <span aria-live="polite" className="min-w-6 text-center text-sm font-extrabold">{cartQuantity}</span>
+              <button type="button" aria-label={`Aumentar ${product.name}`} title={limitReached ? "Limite por cliente atingido" : undefined} disabled={soldOut || limitReached || cartQuantity >= 99} className="flex size-8 items-center justify-center rounded-full hover:bg-primary/10 disabled:opacity-40" onClick={increaseProduct}>
+                <Plus className="size-4" />
+              </button>
+            </div>
+          ) : (
+            <Button
+              variant="cta"
+              size="sm"
+              className="mt-2 h-auto min-h-10 w-full whitespace-normal px-1 py-2 text-[10px] leading-tight sm:px-3 sm:text-xs"
+              disabled={soldOut || limitReached}
+              onClick={addProduct}
+            >
+              <ShoppingCart className="hidden sm:block" />
+              {soldOut ? "Indisponível" : limitReached ? "Limite atingido" : <>
                 <span className="sm:hidden">Adicionar</span>
                 <span className="hidden sm:inline">Adicionar ao carrinho</span>
-              </>
-            )}
-          </Button>
+              </>}
+            </Button>
+          )}
         </div>
         <ProductDetailsDialog product={product} reviewSummary={reviewSummary} open={detailsOpen} onOpenChange={setDetailsOpen} />
       </article>
@@ -184,20 +190,28 @@ export function ProductCard({
             </span>
           </p>
         </div>
-        <Button
-          variant="cta"
-          size="sm"
-          className="mt-2 h-auto min-h-10 w-full whitespace-normal px-2 py-2 text-[11px] leading-tight sm:text-xs"
-          disabled={soldOut}
-          onClick={addProduct}
-        >
-          <ShoppingCart className="hidden sm:block" />
-          {soldOut
-            ? "Indisponível"
-            : limitReached
-              ? "Limite atingido"
-              : "Adicionar ao carrinho"}
-        </Button>
+        {cartQuantity > 0 ? (
+          <div className="mt-2 flex h-10 items-center justify-between rounded-full border border-primary/30 bg-primary/5 px-1">
+            <button type="button" aria-label={`Diminuir ${product.name}`} className="flex size-8 items-center justify-center rounded-full hover:bg-primary/10" onClick={decreaseProduct}>
+              <Minus className="size-4" />
+            </button>
+            <span aria-live="polite" className="min-w-6 text-center text-sm font-extrabold">{cartQuantity}</span>
+            <button type="button" aria-label={`Aumentar ${product.name}`} title={limitReached ? "Limite por cliente atingido" : undefined} disabled={soldOut || limitReached || cartQuantity >= 99} className="flex size-8 items-center justify-center rounded-full hover:bg-primary/10 disabled:opacity-40" onClick={increaseProduct}>
+              <Plus className="size-4" />
+            </button>
+          </div>
+        ) : (
+          <Button
+            variant="cta"
+            size="sm"
+            className="mt-2 h-auto min-h-10 w-full whitespace-normal px-2 py-2 text-[11px] leading-tight sm:text-xs"
+            disabled={soldOut || limitReached}
+            onClick={addProduct}
+          >
+            <ShoppingCart className="hidden sm:block" />
+            {soldOut ? "Indisponível" : limitReached ? "Limite atingido" : "Adicionar ao carrinho"}
+          </Button>
+        )}
       </div>
       <ProductDetailsDialog product={product} reviewSummary={reviewSummary} open={detailsOpen} onOpenChange={setDetailsOpen} />
     </article>
