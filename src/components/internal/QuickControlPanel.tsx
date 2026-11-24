@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Eye, EyeOff, Loader2, PackageCheck, PackageX, Search } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -62,7 +63,10 @@ export function QuickControlPanel() {
     }
   }
 
-  const numberedRecords = assignActiveProductNumbers(records.map(({ product }) => product));
+  const sequenceById = new Map(
+    assignActiveProductNumbers(records.map(({ product }) => product)).map((item) => [item.id, item.sequence ?? null]),
+  );
+  const numberedRecords = records.map((record) => ({ ...record, sequence: sequenceById.get(record.product.id) ?? null }));
   const term = query.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const filtered = numberedRecords.filter(({ product, sequence }) => {
     const hay = `${product.name} ${product.description} ${categoryLabel(product.category as CategoryId)}`.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");

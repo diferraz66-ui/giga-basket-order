@@ -136,7 +136,7 @@ export const uploadPaymentProof = createServerFn({ method: "POST" })
               detail: "high" as const,
             };
       const response = await generateResponse({
-        model: "google/gemini-2.5-flash",
+        model: "openai/gpt-5-mini",
         instructions:
           "Você confere documentos bancários com critério rigoroso. Analise somente o que está visível. Não invente dados e não presuma que uma imagem comum seja um comprovante.",
         input: [

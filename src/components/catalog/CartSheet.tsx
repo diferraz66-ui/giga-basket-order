@@ -17,6 +17,7 @@ import {
   whatsappLink,
   type CartItem,
   isProductLimitReached,
+  productLimitMessage,
 } from "@/lib/order";
 import { formatWhatsapp } from "@/lib/phone";
 import {
