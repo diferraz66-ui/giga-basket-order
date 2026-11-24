@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { categories, categoryLabel, type CategoryId } from "@/data/catalog";
 import { formatBRL } from "@/lib/order";
-import { resolveProductImage } from "@/lib/products";
+import { assignActiveProductNumbers, resolveProductImage } from "@/lib/products";
 
 type ProductRowType = Tables<"products">;
 
@@ -23,7 +23,7 @@ export function QuickControlPanel() {
   const images = useRef(new Map<string, string>());
 
   const reload = useCallback(async () => {
-    const { data, error } = await supabase.from("products").select("*").order("created_at");
+    const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: true }).order("id", { ascending: true });
     if (error) {
       toast.error("Não foi possível carregar os produtos");
     } else {
@@ -70,7 +70,7 @@ export function QuickControlPanel() {
     }
   }
 
-  const numberedRecords = records.map((record, index) => ({ ...record, sequence: record.product.status === "hidden" ? null : records.slice(0, index + 1).filter((item) => item.product.status !== "hidden").length }));
+  const numberedRecords = assignActiveProductNumbers(records.map(({ product }) => product));
   const term = query.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const filtered = numberedRecords.filter(({ product, sequence }) => {
     const hay = `${product.name} ${product.description} ${categoryLabel(product.category as CategoryId)}`.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
