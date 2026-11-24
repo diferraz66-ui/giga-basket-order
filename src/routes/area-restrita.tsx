@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Logo } from "@/components/catalog/Logo";
+import { PasswordChangeDialog } from "@/components/auth/PasswordChangeDialog";
+import { KeyRound } from "lucide-react";
 import { OrdersPanel } from "@/components/internal/OrdersPanel";
 import { ProductsPanel } from "@/components/internal/ProductsPanel";
 import { QuickControlPanel } from "@/components/internal/QuickControlPanel";
@@ -106,13 +108,14 @@ function StaffLogin({ hasCustomerSession }: { hasCustomerSession: boolean }) {
 
 function StaffDashboard({ member, role }: { member: Tables<"team_members">; role: StaffRole }) {
   const { signOut } = useAuth();
+  const [passwordOpen, setPasswordOpen] = useState(false);
   async function logout() { await signOut(); toast.success("Você saiu da área restrita"); }
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-4"><Link to="/" aria-label="Voltar ao catálogo"><Logo className="w-20 sm:w-24" /></Link><span className="hidden h-8 w-px bg-border sm:block" /><div><p className="text-xs text-muted-foreground">Área Restrita · {role === "admin" ? "Admin/Financeiro" : "Vendedor"}</p><p className="text-sm font-bold">{member.full_name}</p></div></div>
-          <Button variant="outline" size="sm" onClick={() => void logout()}><LogOut /> Sair</Button>
+          <div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => setPasswordOpen(true)}><KeyRound /> Alterar senha</Button><Button variant="outline" size="sm" onClick={() => void logout()}><LogOut /> Sair</Button></div>
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-3 py-6 sm:px-5">
@@ -131,6 +134,7 @@ function StaffDashboard({ member, role }: { member: Tables<"team_members">; role
           {role === "admin" && <TabsContent value="reports"><ReportsTeamPanel /></TabsContent>}
         </Tabs>
       </main>
+      <PasswordChangeDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
     </div>
   );
 }
