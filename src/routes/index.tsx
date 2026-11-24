@@ -1,11 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Sparkles, Star, Tag } from "lucide-react";
+import { MapPin, Sparkles, Star, Tag } from "lucide-react";
 import banner from "@/assets/banner-ofertas.jpg";
 import storeBackground from "@/assets/fundo-vitrine-giga.png.asset.json";
 import { categoryLabel, searchProducts, type CategoryId } from "@/data/catalog";
 import { useAuth } from "@/lib/auth";
 import { useCatalogProducts } from "@/lib/products";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { CatalogHeader } from "@/components/catalog/CatalogHeader";
 import { CategoryBar } from "@/components/catalog/CategoryBar";
 import { ProductRow } from "@/components/catalog/ProductRow";
@@ -46,6 +48,31 @@ function Catalog() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<CategoryId | null>(null);
   const [view, setView] = useState<CatalogView>("grid");
+  const [reviews, setReviews] = useState<Tables<"product_reviews">[]>([]);
+  useEffect(() => {
+    let current = true;
+    void supabase
+      .from("product_reviews")
+      .select("*")
+      .eq("status", "aprovado")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        if (current) setReviews(data ?? []);
+      });
+    return () => { current = false; };
+  }, []);
+  const reviewStats = useMemo(() => {
+    const grouped: Record<string, { total: number; count: number }> = {};
+    for (const review of reviews) {
+      const current = grouped[review.product_id] ?? { total: 0, count: 0 };
+      current.total += review.rating;
+      current.count += 1;
+      grouped[review.product_id] = current;
+    }
+    return Object.fromEntries(
+      Object.entries(grouped).map(([id, value]) => [id, { average: value.total / value.count, count: value.count }]),
+    ) as Record<string, { average: number; count: number }>;
+  }, [reviews]);
   const filtering = query.trim() !== "" || category !== null;
   const results = useMemo(
     () => searchProducts(products, query, category),
@@ -88,7 +115,7 @@ function Catalog() {
                 }
               >
                 {results.map((product) => (
-                  <ProductCard key={product.id} product={product} layout={view} />
+                  <ProductCard key={product.id} product={product} layout={view} reviewSummary={reviewStats[product.id]} />
                 ))}
               </div>
             )}
@@ -128,12 +155,14 @@ function Catalog() {
               icon={<Star className="size-5 text-highlight" />}
               products={products.filter((product) => product.tags.includes("mais-vendido"))}
               view={view}
+              reviewStats={reviewStats}
             />
             <ProductRow
               title="Novidades"
               icon={<Sparkles className="size-5 text-highlight" />}
               products={products.filter((product) => product.tags.includes("novidade"))}
               view={view}
+              reviewStats={reviewStats}
             />
           </>
         )}
@@ -147,6 +176,36 @@ function Catalog() {
         <p className="mx-auto mt-3 max-w-xl rounded-lg border border-white/20 bg-white/10 px-3 py-2 font-semibold text-ink-foreground">
           💳 Pagamento somente via PIX
         </p>
+        {reviews.length > 0 && (
+          <section className="mx-auto mt-8 max-w-6xl text-left">
+            <h2 className="mb-3 text-center font-display text-lg font-extrabold uppercase text-ink-foreground sm:text-xl">
+              ⭐ CLIENTES SATISFEITOS — AVALIAÇÕES REAIS
+            </h2>
+            <div className="no-scrollbar flex gap-3 overflow-x-auto pb-3">
+              {reviews.slice(0, 8).map((review) => {
+                const product = products.find((item) => item.id === review.product_id);
+                return (
+                  <article key={review.id} className="w-72 shrink-0 rounded-xl border border-white/10 bg-white/10 p-3 text-ink-foreground">
+                    <p className="text-sm tracking-wide text-yellow-400" aria-label="5 estrelas">★★★★★</p>
+                    <p className="mt-2 line-clamp-4 min-h-16 text-sm leading-relaxed">“{review.comment}”</p>
+                    <div className="mt-3 flex items-center gap-2 border-t border-white/10 pt-3">
+                      {product && <img src={product.image} alt={product.name} className="size-11 rounded-lg bg-white object-contain p-1" />}
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-bold">{review.customer_name}</p>
+                        <p className="truncate text-[11px] text-ink-foreground/70">{review.city}</p>
+                        {product && <p className="truncate text-[10px] text-ink-foreground/60">{product.name}</p>}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        )}
+        <div className="mx-auto mt-6 flex max-w-3xl items-start justify-center gap-2 text-center text-sm font-semibold text-ink-foreground">
+          <MapPin className="mt-0.5 size-5 shrink-0 text-highlight" />
+          <p>Rua Sete de Setembro, nº 133 / 141 — Centro, Santo Antônio de Jesus, BA (próximo à Caixa Econômica Federal e à Farmácia de Cristina)</p>
+        </div>
         <Link
           to="/area-restrita"
           className="mt-5 inline-block text-ink-foreground/50 underline underline-offset-4 hover:text-ink-foreground"
