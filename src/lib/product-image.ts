@@ -35,17 +35,18 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: "image/webp" | "image/jpe
 }
 
 function drawCanvas(image: HTMLImageElement, whiteBackground: boolean) {
-  const { width, height } = fitProductImage(image.naturalWidth, image.naturalHeight);
+  const size = PRODUCT_IMAGE_MAX_SIZE;
+  const scale = Math.min(1, size / image.naturalWidth, size / image.naturalHeight);
+  const width = Math.max(1, Math.round(image.naturalWidth * scale));
+  const height = Math.max(1, Math.round(image.naturalHeight * scale));
   const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
+  canvas.width = size;
+  canvas.height = size;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Este navegador não consegue otimizar a imagem");
-  if (whiteBackground) {
-    context.fillStyle = "white";
-    context.fillRect(0, 0, width, height);
-  }
-  context.drawImage(image, 0, 0, width, height);
+  context.fillStyle = "white";
+  context.fillRect(0, 0, size, size);
+  context.drawImage(image, Math.round((size - width) / 2), Math.round((size - height) / 2), width, height);
   return canvas;
 }
 
