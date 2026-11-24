@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { ArrowRight, Plus, ShoppingBag } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowRight, Check, Plus, ShoppingBag } from "lucide-react";
 import type { Product } from "@/data/catalog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -21,8 +21,9 @@ export function RelatedSuggestionsDialog({
   onAdd: (product: Product) => boolean;
   onContinue: () => void;
 }) {
+  const [addedIds, setAddedIds] = useState<string[]>([]);
   const suggestions = useMemo(() => {
-    const selectedIds = new Set(cartItems.map((item) => item.id));
+    const selectedIds = new Set([...cartItems.map((item) => item.id), ...addedIds]);
     const selectedCategories = new Set(
       cartItems
         .map((item) => products.find((product) => product.id === item.id)?.category)
@@ -32,7 +33,7 @@ export function RelatedSuggestionsDialog({
     const sameCategory = available.filter((product) => selectedCategories.has(product.category));
     const complementary = available.filter((product) => !selectedCategories.has(product.category));
     return [...sameCategory, ...complementary].slice(0, 4);
-  }, [cartItems, products]);
+  }, [addedIds, cartItems, products]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -63,9 +64,12 @@ export function RelatedSuggestionsDialog({
                   size="sm"
                   variant="outline"
                   className="mt-2 h-9 w-full px-2 text-xs"
-                  onClick={() => onAdd(product)}
+                  disabled={addedIds.includes(product.id)}
+                  onClick={() => {
+                    if (onAdd(product)) setAddedIds((current) => [...current, product.id]);
+                  }}
                 >
-                  <Plus className="size-3.5" /> Adicionar
+                  {addedIds.includes(product.id) ? <><Check className="size-3.5" /> Adicionado</> : <><Plus className="size-3.5" /> Adicionar</>}
                 </Button>
               </article>
             ))}
