@@ -80,6 +80,7 @@ export function ProductsPanel() {
   const [bulkProgress, setBulkProgress] = useState<string | null>(null);
   const linkPhotoInput = useRef<HTMLInputElement>(null);
   const [linkPhotoSummary, setLinkPhotoSummary] = useState<{ linked: number; unmatched: string[] } | null>(null);
+  const [linkPhotoProgress, setLinkPhotoProgress] = useState(0);
   const photoInput = useRef<HTMLInputElement>(null);
   const csvInput = useRef<HTMLInputElement>(null);
 
@@ -164,8 +165,15 @@ export function ProductsPanel() {
     event.target.value = "";
     if (!files.length) return;
 
+    setLinkPhotoProgress(0);
+    const { data: databaseProducts, error: productsError } = await supabase.from("products").select("*");
+    if (productsError) {
+      toast.error("Não foi possível consultar os produtos do estoque");
+      return;
+    }
+
     const productsByName = new Map<string, Tables<"products">[]>();
-    for (const { product } of records) {
+    for (const product of databaseProducts ?? []) {
       const normalized = normalizeProductName(product.name);
       if (!normalized) continue;
       const matches = productsByName.get(normalized) ?? [];
@@ -180,7 +188,8 @@ export function ProductsPanel() {
       const normalizedFilename = normalizeProductName(file.name);
       const matches = productsByName.get(normalizedFilename) ?? [];
       if (!file.type.startsWith("image/") || matches.length !== 1) {
-        unmatched.push(matches.length > 1 ? `${file.name} (nome duplicado no estoque)` : file.name);
+        unmatched.push(file.name);
+        setLinkPhotoProgress(Math.round(((index + 1) / files.length) * 100));
         continue;
       }
 
@@ -205,8 +214,9 @@ export function ProductsPanel() {
         if (uploadedPath) {
           await supabase.storage.from("product-images").remove([uploadedPath]);
         }
-        unmatched.push(`${file.name} (falha no processamento ou envio)`);
+        unmatched.push(file.name);
       }
+      setLinkPhotoProgress(Math.round(((index + 1) / files.length) * 100));
     }
 
     setBulkProgress(null);
@@ -355,8 +365,11 @@ export function ProductsPanel() {
         </p>
       )}
       {bulkProgress && (
-        <div className="mb-4 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label="Progresso do processamento em lote">
-          <div className="h-full w-2/3 animate-pulse rounded-full bg-primary" />
+        <div className="mb-4 space-y-1">
+          <div className="flex justify-between text-xs text-muted-foreground"><span>Progresso do processamento</span><span>{linkPhotoProgress}%</span></div>
+          <div className="h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label="Progresso do processamento em lote" aria-valuemin={0} aria-valuemax={100} aria-valuenow={linkPhotoProgress}>
+            <div className="h-full rounded-full bg-primary transition-[width] duration-200" style={{ width: `${linkPhotoProgress}%` }} />
+          </div>
         </div>
       )}
       <Dialog open={linkPhotoSummary !== null} onOpenChange={(open) => !open && setLinkPhotoSummary(null)}>
@@ -367,12 +380,12 @@ export function ProductsPanel() {
           {linkPhotoSummary && (
             <div className="space-y-4">
               <p className="rounded-xl bg-green-50 p-4 text-sm font-bold text-green-800 dark:bg-green-950 dark:text-green-200">
-                ✅ {linkPhotoSummary.linked} fotos vinculadas automaticamente aos produtos existentes!
+                ✅ {linkPhotoSummary.linked} fotos vinculadas automaticamente aos produtos da planilha/estoque!
               </p>
               {linkPhotoSummary.unmatched.length > 0 ? (
                 <div className="space-y-2">
                   <p className="text-sm font-semibold">
-                    Arquivos que não foram vinculados ({linkPhotoSummary.unmatched.length})
+                    ⚠️ {linkPhotoSummary.unmatched.length} fotos não encontraram produto correspondente
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Confira se o nome do arquivo corresponde exatamente ao nome do produto no estoque. Depois, corrija o nome e tente novamente.
