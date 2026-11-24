@@ -1,11 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const bannerNameSchema = z.object({ name: z.string().trim().min(1).max(180) });
 const uploadSchema = z.object({ base64: z.string().min(100).max(5_000_000), contentType: z.literal("image/webp") });
 
-async function requireAdmin(userId: string, supabase: { rpc: (name: "has_role", args: { _user_id: string; _role: "admin" }) => Promise<{ data: boolean | null }> }) {
+async function requireAdmin(userId: string, supabase: SupabaseClient) {
   const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (!data) throw new Error("Apenas Admin pode gerenciar banners");
 }
