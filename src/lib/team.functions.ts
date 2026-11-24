@@ -6,6 +6,7 @@ import { staffAuthPassword, staffLoginEmail } from "@/lib/staff";
 const createSellerSchema = z.object({
   fullName: z.string().trim().min(3).max(100),
   username: z.string().trim().toLowerCase().regex(/^[a-z0-9._-]{3,30}$/),
+  email: z.string().trim().email().max(254),
   password: z.string().min(3).max(72),
 });
 
@@ -21,7 +22,7 @@ export const createSeller = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
-      email: staffLoginEmail(data.username),
+      email: data.email,
       password: staffAuthPassword(data.password),
       email_confirm: true,
       user_metadata: { staff: true, full_name: data.fullName, username: data.username },
