@@ -57,10 +57,8 @@ export function CartSheet({ products }: { products: Product[] }) {
 
   function startCheckout() {
     if (!progress.reached) return;
-    if (session && !profile) {
-      toast.info("Aguarde enquanto carregamos seu cadastro.");
-      return;
-    }
+    // Checkout não depende do carregamento do perfil: o modal oferece login/cadastro.
+    // Abrimos as sugestões imediatamente e deixamos o modal de checkout resolver a identidade.
     setSuggestionsOpen(true);
   }
 
