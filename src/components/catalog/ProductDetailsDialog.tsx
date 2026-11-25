@@ -128,6 +128,7 @@ export function ProductDetailsDialog({
 
                 if (pointers.current.size >= 2) {
                   const [first, second] = [...pointers.current.values()];
+                  if (!first || !second) return;
                   const center = midpoint(first, second);
                   gesture.current = {
                     ...gesture.current,
@@ -162,6 +163,7 @@ export function ProductDetailsDialog({
 
                 if (pointers.current.size >= 2) {
                   const [first, second] = [...pointers.current.values()];
+                  if (!first || !second) return;
                   const center = midpoint(first, second);
                   const nextZoom = Math.max(1, Math.min(3, gesture.current.startZoom * (distance(first, second) / Math.max(1, gesture.current.startDistance))));
                   const rect = viewport.getBoundingClientRect();
@@ -192,6 +194,7 @@ export function ProductDetailsDialog({
                 pointers.current.delete(event.pointerId);
                 if (pointers.current.size === 1 && zoom > 1) {
                   const remaining = [...pointers.current.values()][0];
+                  if (!remaining) return;
                   gesture.current.mode = "pan";
                   gesture.current.lastPoint = remaining;
                   const viewport = imageViewport.current;

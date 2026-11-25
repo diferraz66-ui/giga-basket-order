@@ -669,8 +669,8 @@ function ProductForm({
       image_key: imageKey,
       max_per_customer: sellerMode ? 0 : numericLimit,
     };
-    const { error } = sellerMode
-      ? await supabase.from("products").insert({ ...payload, status_aprovacao: "pendente", cadastrado_por: sellerUserId! })
+    const { error } = sellerMode && sellerUserId
+      ? await supabase.from("products").insert({ ...payload, status_aprovacao: "pendente", cadastrado_por: sellerUserId })
       : await supabase.from("products").upsert(payload);
     setBusy(false);
     if (error) toast.error("Não foi possível salvar o produto");
@@ -816,7 +816,7 @@ function ProductForm({
             <p className="text-xs text-muted-foreground">
               Vazio ou 0: sem limite. O histórico de pedidos não cancelados conta no limite.
             </p>
-          </div>
+          </div>}
           {!sellerMode && <div className="space-y-1.5">
             <Label htmlFor="product-status">Status</Label>
             <Select value={status} onValueChange={setStatus}>
@@ -844,14 +844,13 @@ function ProductForm({
                   setFile(e.target.files?.[0] ?? null);
                   setSmartPhoto(null);
                   setSmartPreview(null);
-                  setPhotoNotice(null);
                 }}
               />
             </label>
             <p className="text-xs text-muted-foreground">
               Reduzida para até 800 × 800 e comprimida automaticamente.
             </p>
-          </div>
+          </div>}
           {!sellerMode && <fieldset className="sm:col-span-2">
             <legend className="mb-2 text-sm font-medium">Seções da vitrine</legend>
             <div className="grid grid-cols-2 gap-3">
