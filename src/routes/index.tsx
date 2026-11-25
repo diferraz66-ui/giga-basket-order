@@ -133,9 +133,13 @@ function Catalog() {
     return [...tagged, ...ranked].slice(0, 100);
   }, [products, salesByProduct]);
 
-  const categorySections = categories
-    .filter((item) => item.id !== "novidades")
-    .slice(0, 5);
+  const categorySections = [
+    categories.find((item) => item.id === "cozinha")!,
+    categories.find((item) => item.id === "casa-decoracao")!,
+    categories.find((item) => item.id === "organizacao")!,
+    categories.find((item) => item.id === "utilidades")!,
+    categories.find((item) => item.id === "beleza")!,
+  ];
 
   return (
     <div className="flex min-h-screen flex-col bg-[#F7F7F8]">
