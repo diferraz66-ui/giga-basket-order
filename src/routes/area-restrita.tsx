@@ -16,6 +16,8 @@ import { CustomersPanel } from "@/components/internal/CustomersPanel";
 import { ReportsTeamPanel } from "@/components/internal/ReportsTeamPanel";
 import { BannersPanel } from "@/components/internal/BannersPanel";
 import { ReviewsPanel } from "@/components/internal/ReviewsPanel";
+import { ProductAuthorizationsPanel } from "@/components/internal/ProductAuthorizationsPanel";
+import { SellerProductPanel } from "@/components/internal/SellerProductPanel";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth";
@@ -130,6 +132,12 @@ function StaffLogin({ hasCustomerSession }: { hasCustomerSession: boolean }) {
   );
 }
 
+function SellerProductTab({ userId }: { userId: string }) {
+  const [enabled, setEnabled] = useState(false);
+  useEffect(() => { let active = true; void supabase.from("team_members").select("pode_cadastrar_produtos").eq("user_id", userId).maybeSingle().then(({data}) => { if(active) setEnabled(Boolean(data?.pode_cadastrar_produtos)); }); return () => { active = false; }; }, [userId]);
+  return enabled ? <TabsTrigger value="seller-products" className="shrink-0 px-4 py-2.5">Incluir Produto</TabsTrigger> : null;
+}
+
 function StaffDashboard({ member, role }: { member: Tables<"team_members">; role: StaffRole }) {
   const { signOut } = useAuth();
   const [passwordOpen, setPasswordOpen] = useState(false);
@@ -164,6 +172,8 @@ function StaffDashboard({ member, role }: { member: Tables<"team_members">; role
             {role === "admin" && <TabsTrigger value="reports" className="shrink-0 px-4 py-2.5">Relatórios e Equipe</TabsTrigger>}
             {role === "admin" && <TabsTrigger value="banners" className="shrink-0 px-4 py-2.5">Banners Topo</TabsTrigger>}
             {role === "admin" && <TabsTrigger value="reviews" className="shrink-0 px-4 py-2.5">Avaliações</TabsTrigger>}
+            {role === "admin" && <TabsTrigger value="authorizations" className="shrink-0 px-4 py-2.5">Autorizações</TabsTrigger>}
+            {role === "vendedor" && <SellerProductTab userId={member.user_id} />}
           </TabsList>
           <TabsContent value="orders"><OrdersPanel role={role} targetOrder={typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("pedido") : null} /></TabsContent>
           {role === "admin" && <TabsContent value="products"><ProductsPanel /></TabsContent>}
@@ -172,6 +182,8 @@ function StaffDashboard({ member, role }: { member: Tables<"team_members">; role
           {role === "admin" && <TabsContent value="reports"><ReportsTeamPanel /></TabsContent>}
           {role === "admin" && <TabsContent value="banners"><BannersPanel /></TabsContent>}
           {role === "admin" && <TabsContent value="reviews"><ReviewsPanel /></TabsContent>}
+          {role === "admin" && <TabsContent value="authorizations"><ProductAuthorizationsPanel /></TabsContent>}
+          {role === "vendedor" && <TabsContent value="seller-products"><SellerProductPanel userId={member.user_id} /></TabsContent>}
         </Tabs>
       </main>
       <PasswordChangeDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
