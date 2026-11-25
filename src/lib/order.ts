@@ -93,6 +93,8 @@ export function buildOrderMessage(args: {
     ...lines,
     "",
     `*Valor Total: ${formatBRL(cartTotal(args.items))}*`,
+    "",
+    `🔗 Abrir pedido no painel: ${typeof window !== "undefined" ? window.location.origin : ""}/area-restrita?pedido=${args.orderNumber}`,
   ].join("\n");
 }
 
