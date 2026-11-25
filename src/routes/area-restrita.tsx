@@ -41,25 +41,40 @@ function InternalArea() {
   const [role, setRole] = useState<StaffRole | null>(null);
   const [checking, setChecking] = useState(false);
 
+  const userId = session?.user?.id ?? null;
+
   useEffect(() => {
     let active = true;
-    if (!session?.user) {
-      setMember(null); setRole(null); setChecking(false);
+    if (!userId) {
+      setMember(null);
+      setRole(null);
+      setChecking(false);
       return () => { active = false; };
     }
+
+    // Revalidate only when the authenticated user changes, not on token refresh/focus.
     setChecking(true);
     void Promise.all([
-      supabase.from("team_members").select("*").eq("user_id", session.user.id).maybeSingle(),
-      supabase.from("user_roles").select("role").eq("user_id", session.user.id),
+      supabase.from("team_members").select("*").eq("user_id", userId).maybeSingle(),
+      supabase.from("user_roles").select("role").eq("user_id", userId),
     ]).then(([{ data: teamMember }, { data: roles }]) => {
       if (!active) return;
-      const staffRole = roles?.find((item) => item.role === "admin")?.role ?? roles?.find((item) => item.role === "vendedor")?.role ?? null;
+      const staffRole =
+        roles?.find((item) => item.role === "admin")?.role ??
+        roles?.find((item) => item.role === "vendedor")?.role ??
+        null;
       setMember(teamMember?.active ? teamMember : null);
       setRole(teamMember?.active ? staffRole : null);
       setChecking(false);
+    }).catch(() => {
+      if (!active) return;
+      setMember(null);
+      setRole(null);
+      setChecking(false);
     });
+
     return () => { active = false; };
-  }, [session?.user]);
+  }, [userId]);
 
   if (loading || (session && checking)) {
     return <div className="flex min-h-screen items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
@@ -129,7 +144,16 @@ function StaffDashboard({ member, role }: { member: Tables<"team_members">; role
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-3 py-6 sm:px-5">
-        <Tabs defaultValue="orders">
+        <Tabs
+          defaultValue={
+            typeof window !== "undefined"
+              ? window.sessionStorage.getItem("giga-internal-active-tab") ?? "orders"
+              : "orders"
+          }
+          onValueChange={(value) => {
+            window.sessionStorage.setItem("giga-internal-active-tab", value);
+          }}
+        >
           <TabsList className="no-scrollbar mb-5 flex h-auto w-full justify-start gap-1 overflow-x-auto bg-muted p-1">
             <TabsTrigger value="orders" className="shrink-0 px-4 py-2.5">Pedidos</TabsTrigger>
             {role === "admin" && <TabsTrigger value="products" className="shrink-0 px-4 py-2.5">Produtos e Estoque</TabsTrigger>}
