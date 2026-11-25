@@ -54,12 +54,12 @@ export function ProductDetailsDialog({
         onOpenChange(value);
       }}
     >
-      <DialogContent className="max-h-[94vh] max-w-3xl overflow-y-auto p-4 sm:p-6">
+      <DialogContent className="mx-auto w-[92vw] max-w-md max-h-[82vh] overflow-y-auto rounded-2xl p-4 gap-3 sm:w-full sm:max-w-3xl sm:max-h-[90vh] sm:gap-5 sm:p-6">
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <div
               ref={imageViewport}
-              className={`relative h-72 overflow-auto rounded-2xl border border-border bg-card sm:h-96 ${zoom > 1 ? "cursor-grab active:cursor-grabbing" : "cursor-zoom-in"}`}
+              className={`relative h-48 overflow-auto rounded-2xl border border-border bg-card sm:h-64 ${zoom > 1 ? "cursor-grab active:cursor-grabbing" : "cursor-zoom-in"}`}
               style={{ touchAction: "none" }}
               onPointerDown={(event) => {
                 const viewport = imageViewport.current;
@@ -104,12 +104,12 @@ export function ProductDetailsDialog({
                 src={product.image}
                 alt={product.name}
                 draggable={false}
-                className="block h-auto object-contain p-3"
+                className="block h-full object-contain p-2"
                 style={{ width: `${zoom * 100}%`, maxWidth: "none" }}
               />
             </div>
             <div
-              className="mt-2 flex items-center justify-center gap-2"
+              className="mt-1 flex items-center justify-center gap-2"
               aria-label="Controles de zoom"
             >
               <Button
@@ -138,16 +138,16 @@ export function ProductDetailsDialog({
             </div>
           </div>
 
-          <div className="flex flex-col">
+          <div className="flex min-w-0 flex-col gap-2">
             <DialogHeader>
-              <DialogTitle className="pr-6 font-display text-2xl font-extrabold uppercase leading-tight">
+              <DialogTitle className="pr-8 font-display text-xl font-extrabold uppercase leading-tight sm:text-2xl">
                 {product.name}
               </DialogTitle>
-              <DialogDescription className="pt-2 text-left text-sm leading-relaxed">
+              <DialogDescription className="pt-1 text-left text-sm leading-snug">
                 {product.description}
               </DialogDescription>
             </DialogHeader>
-            <div className="mt-4 flex gap-3 rounded-xl bg-muted p-3 text-sm">
+            <div className="mt-2 flex gap-2 rounded-xl bg-muted p-3 text-sm">
               <Ruler className="mt-0.5 size-5 shrink-0 text-primary" />
               <div>
                 <p className="font-bold">Tamanho / Dimensões</p>
@@ -157,11 +157,11 @@ export function ProductDetailsDialog({
               </div>
             </div>
             {product.maxPerCustomer > 0 && (
-              <p className="mt-3 w-fit rounded-md bg-muted px-2 py-1 text-xs font-bold text-muted-foreground">
+              <p className="mt-1 w-fit rounded-md bg-muted px-2 py-1 text-xs font-bold text-muted-foreground">
                 Limite: até {product.maxPerCustomer} un. por cliente
               </p>
             )}
-            <p className="mt-5 font-display text-3xl font-extrabold text-primary">
+            <p className="mt-2 font-display text-2xl font-extrabold text-primary sm:text-3xl">
               {formatBRL(product.price)}
               <span className="ml-1 font-sans text-sm font-medium text-muted-foreground">
                 /unidade
@@ -173,7 +173,7 @@ export function ProductDetailsDialog({
               </p>
             )}
             {cartQuantity > 0 ? (
-              <div className="mt-5">
+              <div className="mt-2">
                 <div className="flex h-12 w-full items-center justify-between rounded-md bg-primary px-2 text-primary-foreground">
                   <Button
                     type="button"
@@ -215,7 +215,7 @@ export function ProductDetailsDialog({
             ) : (
               <Button
                 variant="cta"
-                className="mt-5 h-12 w-full"
+                className="mt-2 h-11 w-full"
                 onClick={addProduct}
                 disabled={soldOut}
               >
