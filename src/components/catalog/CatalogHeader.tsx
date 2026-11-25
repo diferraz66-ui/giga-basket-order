@@ -33,7 +33,7 @@ export function CatalogHeader({
   return (
     <header className="relative z-50 border-b border-[#D4AF37]/30 bg-[#111827] text-white">
       <div className="mx-auto grid max-w-6xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-3 py-2 sm:gap-4 sm:px-5">
-        <Logo eager className="w-20 shrink-0 sm:w-28" />
+        <Logo eager className="w-24 shrink-0 sm:w-36" />
 
         <label className="relative block min-w-0">
           <span className="sr-only">Buscar produtos</span>
