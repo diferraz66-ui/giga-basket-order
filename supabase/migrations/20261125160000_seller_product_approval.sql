@@ -12,7 +12,7 @@ where status_aprovacao is null;
 alter table public.products
   alter column status_aprovacao set default 'aprovado',
   alter column status_aprovacao set not null;
-
+do $$
 do $
 begin
   if not exists (
@@ -25,7 +25,7 @@ begin
       check (status_aprovacao in ('aprovado', 'pendente'));
   end if;
 end $;
-
+end $$;
 create or replace function public.is_active_admin()
 returns boolean
 language sql
