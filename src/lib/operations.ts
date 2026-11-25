@@ -50,11 +50,17 @@ export function formatDateTime(value: string | null) {
 
 export function buildPixMessage(order: Order) {
   return [
-    `Olá, ${order.customer_name}! Aqui é ${order.seller_name ?? "o vendedor"} da GIGA SHOPPING.`,
+    `Olá, ${order.customer_name}! Aqui é Vendedor GIGA da GIGA SHOPPING.`,
     "",
     `Seu pedido ${formatOrderNumber(order.order_number)} está aguardando o Pix manual.`,
     `Valor total: ${formatBRL(Number(order.total))}.`,
-    "Vou enviar a chave Pix por esta conversa. Depois de pagar, envie o comprovante aqui para conferência.",
+    "",
+    "*PAGAMENTO SOMENTE VIA PIX*",
+    "*Chave Pix (CNPJ):* 68.616.873/0001-67",
+    "*Banco:* Itaú",
+    "*Favorecido:* BAHIA MEGA SHOPPING IMPORTADOS LTDA (GIGA SHOPPING)",
+    "",
+    "Depois de pagar, envie o comprovante aqui para conferência.",
     "O pagamento só será confirmado pelo Admin/Financeiro da loja.",
   ].join("\n");
 }
