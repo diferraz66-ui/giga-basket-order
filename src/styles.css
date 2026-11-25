@@ -77,6 +77,7 @@
   --color-ink-foreground: var(--ink-foreground);
   --color-highlight: var(--highlight);
   --color-highlight-foreground: var(--highlight-foreground);
+  --color-pix: var(--pix);
   --font-display: "Archivo", system-ui, sans-serif;
   --font-sans: "DM Sans", system-ui, sans-serif;
   --shadow-soft: var(--shadow-soft);
@@ -113,6 +114,8 @@
   --ink-foreground: oklch(1 0 0);
   --highlight: oklch(0.88 0.17 95);
   --highlight-foreground: oklch(0.17 0 0);
+  /* verde oficial do Pix (#32BCAD) */
+  --pix: oklch(0.72 0.116 184.2);
   --gradient-hero: linear-gradient(90deg, oklch(0.5 0.22 25 / 0.95) 0%, oklch(0.55 0.23 25 / 0.6) 45%, oklch(0.55 0.23 25 / 0) 70%);
   --gradient-warm: linear-gradient(135deg, var(--primary), var(--primary-glow));
   /* halo branco atras da logo: degrada para transparente antes da borda da caixa */

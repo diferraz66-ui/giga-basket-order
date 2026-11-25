@@ -28,6 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { TopBannerCarousel } from "@/components/catalog/TopBannerCarousel";
+import { MinimumOrderCapsule } from "@/components/catalog/MinimumOrderCapsule";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -237,11 +238,9 @@ function Catalog() {
       <footer className="mt-12 bg-[#111827] px-5 py-8 text-center text-xs text-white/70">
         <p className="font-display text-sm font-extrabold text-white">GIGA SHOPPING</p>
         <p className="mt-1">Catálogo digital · Pedidos pelo WhatsApp</p>
-        <img
-          src="/banner-pedido-minimo-pix.webp"
-          alt="Pedido mínimo: R$ 75,00 (10 itens). Pagamento somente via Pix."
-          className="mx-auto mt-4 block h-auto w-full max-w-xl object-contain"
-        />
+        <div className="mt-4 flex justify-center">
+          <MinimumOrderCapsule />
+        </div>
         <section className="mx-auto mt-8 max-w-6xl text-left">
           <h2 className="mb-3 text-center font-display text-lg font-extrabold uppercase text-white sm:text-xl">CLIENTES SATISFEITOS · AVALIAÇÕES REAIS</h2>
           {reviews.length > 0 ? (
@@ -284,12 +283,8 @@ function Catalog() {
 
 function MinimumOrderNotice() {
   return (
-    <div className="border-y border-[#D4AF37]/50 bg-[#111827] px-3 py-1.5">
-      <img
-        src="/banner-pedido-minimo-pix.webp"
-        alt="Pedido mínimo: R$ 75,00 (10 itens). Pagamento somente via Pix."
-        className="mx-auto block h-auto w-full max-w-4xl object-contain"
-      />
+    <div className="flex justify-center bg-ink px-3 py-1.5">
+      <MinimumOrderCapsule />
     </div>
   );
 }
