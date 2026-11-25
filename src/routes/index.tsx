@@ -143,7 +143,7 @@ function Catalog() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F7F7F8] bg-cover bg-fixed bg-center" style={{ backgroundImage: `url(${storeBackground})` }}>
+    <div className="flex min-h-screen flex-col bg-[#F7F7F8]/95 bg-cover bg-fixed bg-center" style={{ backgroundImage: `url(${storeBackground})` }}>
       <div className="sticky top-0 z-50">
         <CatalogHeader query={query} onQueryChange={setQuery} products={products} />
         <MinimumOrderNotice />
@@ -198,31 +198,7 @@ function Catalog() {
         ) : (
           <>
             <TopBannerCarousel />
-            <section className="mt-4 overflow-hidden rounded-2xl border border-[#D4AF37]/50 bg-[#111827] shadow-sm">
-              <div className="relative isolate min-h-56 overflow-hidden bg-[#111827] sm:min-h-72">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_30%,rgba(220,38,38,.35),transparent_45%),linear-gradient(110deg,#111827_0%,#1f2937_62%,#111827_100%)]" />
-                <div className="relative z-10 flex min-h-56 flex-col justify-center p-6 sm:min-h-72 sm:p-10">
-                  {firstName && <p className="mb-2 text-sm font-semibold text-white/80">Olá, {firstName}!</p>}
-                  <p className="text-xs font-extrabold uppercase tracking-[0.25em] text-[#D4AF37]">GIGA SHOPPING</p>
-                  <h1 className="mt-2 max-w-2xl font-display text-3xl font-black uppercase leading-tight text-white sm:text-5xl">
-                    Tudo por um preço só
-                  </h1>
-                  <div className="mt-4 inline-flex w-fit items-center rounded-lg border border-[#D4AF37]/70 bg-[#DC2626] px-4 py-2 text-lg font-black uppercase text-white shadow-lg sm:text-2xl">
-                    Preço único R$ 7,50
-                  </div>
-                  <p className="mt-3 max-w-2xl text-sm text-white/75">
-                    Taças diamond, jogos de talheres, facas de cozinha, quadros decorativos, papéis de parede e vasos de vidro para plantas.
-                  </p>
-                </div>
-                <div className="pointer-events-none absolute bottom-0 right-0 hidden w-[42%] grid-cols-3 gap-2 p-5 opacity-90 md:grid">
-                  {["🥂", "🍴", "🔪", "🖼️", "🌿", "🏺"].map((item) => (
-                    <div key={item} className="flex aspect-square items-center justify-center rounded-xl border border-[#D4AF37]/40 bg-white/10 text-4xl">{item}</div>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            <section aria-label="Atalhos da loja" className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <section aria-label="Atalhos da loja" className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <ShortcutCard icon={<MapPin className="size-6 text-[#DC2626]" />} title="Localização da Loja" action="Ver no mapa" onClick={() => window.open("https://www.google.com/maps/search/?api=1&query=Rua+Sete+de+Setembro+133+Centro+Santo+Antonio+de+Jesus+BA", "_blank", "noopener,noreferrer")} description="Rua Sete de Setembro, 133, Centro, Santo Antônio de Jesus - BA" />
               <ShortcutCard icon={<Trophy className="size-6 text-[#D4AF37]" />} title="Os 100 Mais Vendidos" action="Ver lista" onClick={() => setBestSellersOpen(true)} description="Ranking por vendas concluídas e seleção da equipe GIGA." />
               <ShortcutCard icon={<CreditCard className="size-6 text-[#111827]" />} title="Pagamento via Pix" action="Saiba mais" onClick={() => window.dispatchEvent(new CustomEvent("giga:show-pix-info"))} description="Pagamento exclusivo via Pix. Pedido mínimo de 10 itens ou R$ 75,00." />
