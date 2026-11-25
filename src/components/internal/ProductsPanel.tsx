@@ -539,6 +539,10 @@ export function ProductsPanel() {
   );
 }
 
+export function SellerProductForm({ sellerUserId, onClose, onSaved }: { sellerUserId: string; onClose: () => void; onSaved: () => Promise<void> }) {
+  return <ProductForm product={null} sellerMode sellerUserId={sellerUserId} onClose={onClose} onSaved={onSaved} />;
+}
+
 function ProductForm({
   product,
   onClose,
@@ -816,7 +820,7 @@ function ProductForm({
             <p className="text-xs text-muted-foreground">
               Vazio ou 0: sem limite. O histórico de pedidos não cancelados conta no limite.
             </p>
-          </div>
+          </div>}
           {!sellerMode && <div className="space-y-1.5">
             <Label htmlFor="product-status">Status</Label>
             <Select value={status} onValueChange={setStatus}>

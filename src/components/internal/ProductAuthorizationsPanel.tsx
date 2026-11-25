@@ -131,8 +131,5 @@ export function SellerProductPanel({ userId }: { userId: string }) {
 }
 
 function SellerProductForm({ userId, onClose, onSaved }: { userId: string; onClose: () => void; onSaved: () => Promise<void> }) {
-  return <SharedSellerProductForm userId={userId} onClose={onClose} onSaved={onSaved} />;
-}
-function SharedSellerProductForm({ userId, onClose, onSaved }: { userId: string; onClose: () => void; onSaved: () => Promise<void> }) {
   return <SharedSellerProductForm sellerUserId={userId} onClose={onClose} onSaved={onSaved} />;
 }
