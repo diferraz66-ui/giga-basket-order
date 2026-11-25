@@ -11,12 +11,12 @@ import { ReceiptDialog } from "./ReceiptDialog";
 
 type CatalogProduct = Pick<Tables<"products">, "id" | "name" | "price" | "status" | "max_per_customer">;
 
-export function OrdersPanel({ role }: { role: StaffRole }) {
+export function OrdersPanel({ role, targetOrder }: { role: StaffRole; targetOrder?: string | null }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [receipt, setReceipt] = useState<Order | null>(null);
-  const [proof, setProof] = useState<Order | null>(null);
+  const [proof, setProof] = useState<Order | null>(null);\n  const [highlightedOrderNumber, setHighlightedOrderNumber] = useState<number | null>(null);\n  const [targetHandled, setTargetHandled] = useState(false);
 
   const reload = useCallback(async () => {
     const [{ data, error }, { data: productRows, error: productError }] = await Promise.all([
@@ -34,7 +34,7 @@ export function OrdersPanel({ role }: { role: StaffRole }) {
     void reload();
   }, [reload]);
 
-  const active = useMemo(
+  useEffect(() => {\n    if (!targetOrder || loading || targetHandled) return;\n    const numericTarget = Number(targetOrder.replace(/^#/, ""));\n    const found = orders.find((order) => order.order_number === numericTarget || order.id === targetOrder);\n    if (found) {\n      setHighlightedOrderNumber(found.order_number);\n      setTargetHandled(true);\n      toast.success("Pedido localizado no painel");\n    } else if (orders.length > 0) {\n      setTargetHandled(true);\n      toast.warning("Pedido não encontrado");\n    }\n  }, [targetOrder, loading, targetHandled, orders]);\n\n  const active = useMemo(
     () =>
       orders.filter((order) => ["received", "in_progress", "awaiting_pix"].includes(order.status)),
     [orders],
