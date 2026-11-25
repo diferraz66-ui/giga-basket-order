@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { categoryLabel, type CategoryId } from "@/data/catalog";
 import { resolveProductImage } from "@/lib/products";
-import { SellerProductForm as SharedSellerProductForm } from "@/components/internal/ProductsPanel";
+import { SellerProductForm } from "@/components/internal/ProductsPanel";
 type Seller = Pick<Tables<"team_members">, "user_id" | "full_name" | "username" | "active" | "pode_cadastrar_produtos">;
 type PendingProduct = Tables<"products"> & { seller_name?: string };
 
@@ -123,13 +123,7 @@ export function SellerProductPanel({ userId }: { userId: string }) {
   if (!allowed) return <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">O cadastro de produtos não está autorizado para este usuário.</p>;
   return <section className="space-y-4">
     <div className="rounded-2xl border border-border bg-card p-4"><h2 className="text-lg font-extrabold uppercase">Incluir Produto</h2><p className="mt-1 text-sm text-muted-foreground">Cadastre um produto por vez. O preço é fixo em R$ 7,50 e cada envio passa pela validação do Admin.</p><Button variant="cta" className="mt-4" onClick={() => setOpen(true)}>Incluir Produto</Button></div>
-    {open && <SellerProductForm userId={userId} onClose={() => setOpen(false)} onSaved={async () => { setOpen(false); await refresh(); }} />}
+    {open && <SellerProductForm sellerUserId={userId} onClose={() => setOpen(false)} onSaved={async () => { setOpen(false); await refresh(); }} />}
   </section>;
 }
 
-function SellerProductForm({ userId, onClose, onSaved }: { userId: string; onClose: () => void; onSaved: () => Promise<void> }) {
-  return <SharedSellerProductForm userId={userId} onClose={onClose} onSaved={onSaved} />;
-}
-function SharedSellerProductForm({ userId, onClose, onSaved }: { userId: string; onClose: () => void; onSaved: () => Promise<void> }) {
-  return <SharedSellerProductForm sellerUserId={userId} onClose={onClose} onSaved={onSaved} />;
-}
