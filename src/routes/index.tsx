@@ -143,7 +143,7 @@ function Catalog() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-transparent bg-cover bg-fixed bg-center" style={{ backgroundImage: `url(${storeBackground})` }}>
+    <div className="relative isolate flex min-h-screen flex-col bg-transparent">\n      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-[-1] bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url("${storeBackground}")` }} />
       <div className="sticky top-0 z-50">
         <CatalogHeader query={query} onQueryChange={setQuery} products={products} />
         <MinimumOrderNotice />
