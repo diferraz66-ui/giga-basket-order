@@ -157,7 +157,13 @@ function StaffDashboard({ member, role }: { member: Tables<"team_members">; role
             typeof window !== "undefined" && new URLSearchParams(window.location.search).has("pedido")
               ? "orders"
               : typeof window !== "undefined"
-                ? window.sessionStorage.getItem("giga-internal-active-tab") ?? "orders"
+                ? (() => {
+                    const saved = window.sessionStorage.getItem("giga-internal-active-tab");
+                    const allowed = role === "admin"
+                      ? ["orders", "products", "quick-control", "customers", "reports", "banners", "reviews", "authorizations"]
+                      : ["orders", "seller-products"];
+                    return saved && allowed.includes(saved) ? saved : "orders";
+                  })()
                 : "orders"
           }
           onValueChange={(value) => {
