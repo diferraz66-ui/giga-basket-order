@@ -198,7 +198,7 @@ function Catalog() {
           <>
             <TopBannerCarousel />
             <section aria-label="Atalhos da loja" className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <ShortcutCard icon={<MapPin className="size-6 text-[#DC2626]" />} title="Localização da Loja" action="Ver no mapa" onClick={() => window.open("https://www.google.com/maps/search/?api=1&query=Rua+Sete+de+Setembro+133+Centro+Santo+Antonio+de+Jesus+BA", "_blank", "noopener,noreferrer")} description="Rua Sete de Setembro, 133, Centro, Santo Antônio de Jesus - BA" />
+              <ShortcutCard icon={<MapPin className="size-6 text-[#DC2626]" />} title="Localização da Loja" action="Ver no mapa" onClick={() => window.open("https://www.google.com/maps/search/?api=1&query=Rua+Sete+de+Setembro+141+Centro+Santo+Antonio+de+Jesus+BA", "_blank", "noopener,noreferrer")} description="Rua Sete de Setembro, 141, Centro, Santo Antônio de Jesus - BA" />
               <ShortcutCard icon={<Trophy className="size-6 text-[#D4AF37]" />} title="Os 100 Mais Vendidos" action="Ver lista" onClick={() => setBestSellersOpen(true)} description="Ranking por vendas concluídas e seleção da equipe GIGA." />
               <ShortcutCard icon={<CreditCard className="size-6 text-[#111827]" />} title="Pagamento via Pix" action="Saiba mais" onClick={() => window.dispatchEvent(new CustomEvent("giga:show-pix-info"))} description="Pagamento exclusivo via Pix. Pedido mínimo de 10 itens ou R$ 75,00." />
               <ShortcutCard icon={<Truck className="size-6 text-[#B91C1C]" />} title="Retirada ou Van Regional" action="Como funciona" onClick={() => window.dispatchEvent(new CustomEvent("giga:show-delivery-info"))} description="Retirada rápida no Centro de SAJ ou despacho pelas vans da região." />
@@ -237,10 +237,11 @@ function Catalog() {
       <footer className="mt-12 bg-[#111827] px-5 py-8 text-center text-xs text-white/70">
         <p className="font-display text-sm font-extrabold text-white">GIGA SHOPPING</p>
         <p className="mt-1">Catálogo digital · Pedidos pelo WhatsApp</p>
-        <p className="mx-auto mt-4 max-w-xl rounded-lg border border-[#D4AF37]/60 bg-white/5 px-3 py-2 font-bold text-white">
-          🛍️ PEDIDO MÍNIMO PARA COMPRAS ONLINE: R$ 75,00 (10 itens de R$ 7,50)
-        </p>
-        <p className="mx-auto mt-3 max-w-xl rounded-lg border border-white/20 bg-white/10 px-3 py-2 font-semibold text-white">💳 Pagamento somente via PIX</p>
+        <img
+          src="/banner-pedido-minimo-pix.png"
+          alt="Pedido mínimo: R$ 75,00 (10 itens). Pagamento somente via Pix."
+          className="mx-auto mt-4 block h-auto w-full max-w-xl object-contain"
+        />
         <section className="mx-auto mt-8 max-w-6xl text-left">
           <h2 className="mb-3 text-center font-display text-lg font-extrabold uppercase text-white sm:text-xl">CLIENTES SATISFEITOS · AVALIAÇÕES REAIS</h2>
           {reviews.length > 0 ? (
@@ -270,7 +271,7 @@ function Catalog() {
           )}
         </section>
         <div className="mx-auto mt-6 max-w-3xl text-center text-sm font-semibold text-white">
-          <p>Rua Sete de Setembro, nº 133 / 141 — Centro, Santo Antônio de Jesus, BA</p>
+          <p>Rua Sete de Setembro, nº 141 — Centro, Santo Antônio de Jesus, BA</p>
         </div>
         <a href="/area-restrita" className="mt-5 inline-block text-white/50 underline underline-offset-4 hover:text-white">Área Restrita</a>
       </footer>
@@ -283,8 +284,12 @@ function Catalog() {
 
 function MinimumOrderNotice() {
   return (
-    <div className="border-y border-[#D4AF37]/50 bg-[#111827] px-2 py-2 text-center text-[10px] font-extrabold leading-tight text-white sm:px-3 sm:py-2.5 sm:text-sm">
-      🛍️ PEDIDO MÍNIMO: R$ 75,00 (10 ITENS) &nbsp; • &nbsp; 💳 PAGAMENTO SOMENTE VIA PIX
+    <div className="border-y border-[#D4AF37]/50 bg-[#111827] px-3 py-1.5">
+      <img
+        src="/banner-pedido-minimo-pix.png"
+        alt="Pedido mínimo: R$ 75,00 (10 itens). Pagamento somente via Pix."
+        className="mx-auto block h-auto w-full max-w-4xl object-contain"
+      />
     </div>
   );
 }
