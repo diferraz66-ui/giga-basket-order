@@ -17,7 +17,7 @@ import { ReportsTeamPanel } from "@/components/internal/ReportsTeamPanel";
 import { BannersPanel } from "@/components/internal/BannersPanel";
 import { ReviewsPanel } from "@/components/internal/ReviewsPanel";
 import { ProductAuthorizationsPanel } from "@/components/internal/ProductAuthorizationsPanel";
-import { SellerProductPanel } from "@/components/internal/SellerProductPanel";
+import { SellerProductPanel } from "@/components/internal/ProductAuthorizationsPanel";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth";
