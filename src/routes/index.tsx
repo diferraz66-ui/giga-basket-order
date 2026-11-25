@@ -20,6 +20,13 @@ import { ProductCard } from "@/components/catalog/ProductCard";
 import { CartSheet } from "@/components/catalog/CartSheet";
 import { StoreWelcomeDialog } from "@/components/catalog/StoreWelcomeDialog";
 import { CatalogViewToggle, type CatalogView } from "@/components/catalog/CatalogViewToggle";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { TopBannerCarousel } from "@/components/catalog/TopBannerCarousel";
 
 export const Route = createFileRoute("/")({
