@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent, type ChangeEvent } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { categories, categoryLabel, type CategoryId } from "@/data/catalog";
 import { resolveProductImage } from "@/lib/products";
 import { optimizeProductImage } from "@/lib/product-image";
+import { formatBRL } from "@/lib/order";
 import { Check, Loader2, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
