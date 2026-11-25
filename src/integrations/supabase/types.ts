@@ -265,25 +265,25 @@ export type Database = {
           active: boolean
           created_at: string
           full_name: string
+          pode_cadastrar_produtos: boolean
           user_id: string
           username: string
-          pode_cadastrar_produtos: boolean
         }
         Insert: {
           active?: boolean
           created_at?: string
           full_name: string
+          pode_cadastrar_produtos?: boolean
           user_id: string
           username: string
-          pode_cadastrar_produtos?: boolean
         }
         Update: {
           active?: boolean
           created_at?: string
           full_name?: string
+          pode_cadastrar_produtos?: boolean
           user_id?: string
           username?: string
-          pode_cadastrar_produtos?: boolean
         }
         Relationships: []
       }
