@@ -224,6 +224,7 @@ export type Database = {
           name?: string
           price?: number
           status?: string
+          status_aprovacao?: string
           tags?: string[]
           updated_at?: string
         }
