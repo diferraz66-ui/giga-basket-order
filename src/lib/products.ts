@@ -90,6 +90,7 @@ export async function fetchAllProductRows() {
     const { data, error } = await supabase
       .from("products")
       .select("*")
+      .eq("status_aprovacao", "aprovado")
       .order("created_at", { ascending: true })
       .order("id", { ascending: true })
       .range(from, from + pageSize - 1);
