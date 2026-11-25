@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { categories } from "@/data/catalog";
+import { optimizeProductImage } from "@/lib/product-image";
+function safeFilename(filename: string) {
+  return filename.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "-");
+}
 import { Check, Loader2, Trash2, UserRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -128,61 +136,82 @@ export function SellerProductPanel({ userId }: { userId: string }) {
 }
 
 function SellerProductForm({ userId, onClose, onSaved }: { userId: string; onClose: () => void; onSaved: () => Promise<void> }) {
-  return <SellerProductFormDialog userId={userId} onClose={onClose} onSaved={onSaved} />;
-}
-
-function SellerProductFormDialog({ userId, onClose, onSaved }: { userId: string; onClose: () => void; onSaved: () => Promise<void> }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("cozinha");
-  const [dimensions, setDimensions] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const camera = useState<HTMLInputElement | null>(null);
-  return <SellerProductFormLegacy userId={userId} onClose={onClose} onSaved={onSaved} />;
-}
-
-function SellerProductFormLegacy({ userId, onClose, onSaved }: { userId: string; onClose: () => void; onSaved: () => Promise<void> }) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("cozinha");
-  const [dimensions, setDimensions] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
-  useEffect(() => () => { if(preview) URL.revokeObjectURL(preview); }, [preview]);
+
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if(!name.trim() || !description.trim() || !file) { toast.error("Preencha nome, descrição e selecione uma foto."); return; }
+    if (!name.trim() || !description.trim() || !file) {
+      toast.error("Preencha nome, descrição e selecione uma foto.");
+      return;
+    }
     setBusy(true);
     const id = `seller-${crypto.randomUUID()}`;
     const optimized = await optimizeProductImage(file).catch(() => null);
-    if(!optimized) { setBusy(false); toast.error("Não foi possível preparar a foto."); return; }
+    if (!optimized) { setBusy(false); toast.error("Não foi possível preparar a foto."); return; }
     const path = `${id}/${crypto.randomUUID()}-${safeFilename(optimized.name)}`;
     const { error: uploadError } = await supabase.storage.from("product-images").upload(path, optimized, { contentType: optimized.type });
-    if(uploadError) { setBusy(false); toast.error("Não foi possível enviar a foto."); return; }
-    const { error } = await supabase.from("products").insert({ id, name:name.trim(), description:description.trim(), category, price:7.5, dimensions:dimensions.trim(), status:"available", tags:[], max_per_customer:0, image_url:path, image_key:null, status_aprovacao:"pendente", cadastrado_por:userId });
+    if (uploadError) { setBusy(false); toast.error("Não foi possível enviar a foto."); return; }
+    const { error } = await supabase.from("products").insert({
+      id,
+      name: name.trim(),
+      description: description.trim(),
+      category,
+      price: 7.5,
+      dimensions: "",
+      status: "available",
+      tags: [],
+      max_per_customer: 0,
+      image_url: path,
+      image_key: null,
+      status_aprovacao: "pendente",
+      cadastrado_por: userId,
+    });
     setBusy(false);
-    if(error) { await supabase.storage.from("product-images").remove([path]); toast.error("Não foi possível enviar o produto para aprovação."); return; }
+    if (error) {
+      await supabase.storage.from("product-images").remove([path]);
+      toast.error("Não foi possível enviar o produto para aprovação.");
+      return;
+    }
     toast.success("Produto enviado com sucesso! Aguardando validação do Admin para aparecer na vitrine.");
     await onSaved();
   }
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3"><section className="max-h-[94vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-background p-5 shadow-xl">
-    <div className="mb-4 flex items-center justify-between"><h3 className="text-lg font-bold">Novo produto para aprovação</h3><Button variant="ghost" size="sm" onClick={onClose}>Fechar</Button></div>
-    <form onSubmit={(e)=>void submit(e)} className="space-y-4">
-      <div><label className="mb-1 block text-sm font-medium">Nome</label><input value={name} onChange={(e)=>setName(e.target.value)} required className="w-full rounded-md border bg-background px-3 py-2" /></div>
-      <div><label className="mb-1 block text-sm font-medium">Categoria</label><select value={category} onChange={(e)=>setCategory(e.target.value)} className="w-full rounded-md border bg-background px-3 py-2">{categories.map((c)=><option key={c.id} value={c.id}>{c.label}</option>)}</select></div>
-      <div><label className="mb-1 block text-sm font-medium">Descrição</label><textarea value={description} onChange={(e)=>setDescription(e.target.value)} required rows={3} className="w-full rounded-md border bg-background px-3 py-2" /></div>
-      <div><label className="mb-1 block text-sm font-medium">Preço</label><input value="R$ 7,50" readOnly className="w-full rounded-md border bg-muted px-3 py-2" /></div>
-      <div className="grid grid-cols-2 gap-2"><Button type="button" variant="outline" onClick={()=>cameraRef.current?.click()}>Tirar foto</Button><Button type="button" variant="outline" onClick={()=>galleryRef.current?.click()}>Escolher da galeria</Button></div>
-      <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e)=>{const f=e.target.files?.[0];if(f){setFile(f);setPreview(URL.createObjectURL(f));}}} />
-      <input ref={galleryRef} type="file" accept="image/*" className="sr-only" onChange={(e)=>{const f=e.target.files?.[0];if(f){setFile(f);setPreview(URL.createObjectURL(f));}}} />
-      {preview && <img src={preview} alt="Prévia do produto" className="mx-auto max-h-64 rounded-lg object-contain" />}
-      <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Produto enviado para aprovação. Ele não aparecerá na vitrine antes da validação do Admin.</p>
-      <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={onClose}>Cancelar</Button><Button type="submit" variant="cta" disabled={busy || !file}>{busy ? <Loader2 className="animate-spin" /> : null} Enviar para aprovação</Button></div>
-    </form>
-  </section></div>;
+
+  function selectPhoto(event: React.ChangeEvent<HTMLInputElement>) {
+    const selected = event.target.files?.[0];
+    event.target.value = "";
+    if (!selected) return;
+    if (!selected.type.startsWith("image/") || selected.size > 20 * 1024 * 1024) {
+      toast.error("Selecione uma imagem válida de até 20 MB.");
+      return;
+    }
+    setFile(selected);
+    setPreview(URL.createObjectURL(selected));
+  }
+
+  return <Dialog open onOpenChange={(open) => !open && onClose()}>
+    <DialogContent className="max-h-[94vh] max-w-xl overflow-y-auto">
+      <DialogHeader><DialogTitle>Novo produto para aprovação</DialogTitle></DialogHeader>
+      <form onSubmit={submit} className="space-y-4">
+        <div><Label htmlFor="seller-product-name">Nome</Label><Input id="seller-product-name" value={name} onChange={(event) => setName(event.target.value)} required /></div>
+        <div><Label htmlFor="seller-product-category">Categoria</Label><select id="seller-product-category" value={category} onChange={(event) => setCategory(event.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{categories.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></div>
+        <div><Label htmlFor="seller-product-description">Descrição</Label><textarea id="seller-product-description" value={description} onChange={(event) => setDescription(event.target.value)} required rows={3} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></div>
+        <div><Label htmlFor="seller-product-price">Preço (R$)</Label><Input id="seller-product-price" value="7,50" readOnly /></div>
+        <div className="grid grid-cols-2 gap-2"><Button type="button" variant="outline" onClick={() => cameraRef.current?.click()}>Tirar foto</Button><Button type="button" variant="outline" onClick={() => galleryRef.current?.click()}>Escolher da galeria</Button></div>
+        <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={selectPhoto} />
+        <input ref={galleryRef} type="file" accept="image/*" className="sr-only" onChange={selectPhoto} />
+        {preview && <img src={preview} alt="Prévia do produto" className="mx-auto max-h-64 rounded-lg object-contain" />}
+        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Produto enviado para aprovação. Ele não aparecerá na vitrine antes da validação do Admin.</p>
+        <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={onClose}>Cancelar</Button><Button type="submit" variant="cta" disabled={busy || !file}>{busy ? <Loader2 className="animate-spin" /> : null} Enviar para aprovação</Button></div>
+      </form>
+    </DialogContent>
+  </Dialog>;
 }
