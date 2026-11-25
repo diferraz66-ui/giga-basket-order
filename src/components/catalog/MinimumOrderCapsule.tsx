@@ -3,6 +3,10 @@ import { ShoppingCart } from "lucide-react";
 /**
  * Cápsula compacta de "Pedido mínimo / Pagamento via Pix".
  * Substitui o banner em imagem: é texto real, nítido em qualquer tela.
+ *
+ * Todo o espaçamento é em `em`, então a cápsula inteira escala com a fonte,
+ * que é definida por clamp() em função da largura da tela. Assim ela continua
+ * em uma única linha do celular ao desktop sem cortar o carrinho nem o "PIX".
  */
 function PixIcon({ className }: { className?: string }) {
   return (
@@ -14,7 +18,7 @@ function PixIcon({ className }: { className?: string }) {
 
 function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="whitespace-nowrap rounded-full bg-primary px-1.5 py-0.5 text-[8.5px] font-extrabold uppercase leading-tight text-primary-foreground sm:px-2.5 sm:text-xs">
+    <span className="whitespace-nowrap rounded-full bg-primary px-[0.55em] py-[0.22em] font-extrabold uppercase leading-tight tracking-tight text-primary-foreground sm:px-[0.8em]">
       {children}
     </span>
   );
@@ -22,7 +26,7 @@ function Badge({ children }: { children: React.ReactNode }) {
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <span className="whitespace-nowrap font-display text-[8.5px] font-extrabold uppercase leading-tight tracking-tight text-ink-foreground min-[390px]:text-[9.5px] sm:text-xs">
+    <span className="whitespace-nowrap font-display font-extrabold uppercase leading-tight tracking-tight text-ink-foreground">
       {children}
     </span>
   );
@@ -31,21 +35,21 @@ function Label({ children }: { children: React.ReactNode }) {
 export function MinimumOrderCapsule({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`inline-flex max-w-full flex-row flex-nowrap items-center justify-center gap-1 whitespace-nowrap rounded-full border border-primary/70 bg-ink/40 px-2 py-1 backdrop-blur-sm sm:min-h-9 sm:gap-2 sm:px-4 sm:py-1.5 lg:min-h-10 ${className}`}
+      className={`inline-flex max-w-full flex-row flex-nowrap items-center justify-center gap-[0.28em] whitespace-nowrap rounded-full border border-primary/70 bg-ink/40 px-[0.75em] py-[0.42em] leading-none tracking-[-0.02em] backdrop-blur-sm text-[length:clamp(6.6px,2.05vw,12px)] sm:min-h-9 sm:gap-[0.55em] sm:px-[1.2em] lg:min-h-10 ${className}`}
     >
-      <span className="flex shrink-0 items-center justify-center gap-1 whitespace-nowrap sm:gap-2">
-        <ShoppingCart className="size-3.5 shrink-0 text-ink-foreground sm:size-4" />
+      <span className="flex shrink-0 items-center justify-center gap-[0.28em] whitespace-nowrap sm:gap-[0.55em]">
+        <ShoppingCart className="size-[1.4em] shrink-0 text-ink-foreground" />
         <Label>Pedido mínimo:</Label>
         <Badge>R$ 75,00 (10 itens)</Badge>
       </span>
 
       <span
         aria-hidden
-        className="mx-1.5 h-3.5 w-px shrink-0 bg-white/30 sm:mx-3 sm:h-5"
+        className="mx-[0.4em] h-[1.4em] w-px shrink-0 bg-white/30 sm:mx-[0.9em] sm:h-[1.6em]"
       />
 
-      <span className="flex max-w-full items-center justify-center gap-1.5 whitespace-nowrap sm:gap-2">
-        <PixIcon className="size-3.5 shrink-0 text-pix sm:size-4" />
+      <span className="flex shrink-0 items-center justify-center gap-[0.28em] whitespace-nowrap sm:gap-[0.55em]">
+        <PixIcon className="size-[1.4em] shrink-0 text-pix" />
         <Label>Pagamento somente via</Label>
         <Badge>Pix</Badge>
       </span>
