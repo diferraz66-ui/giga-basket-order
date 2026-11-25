@@ -14,7 +14,7 @@ function PixIcon({ className }: { className?: string }) {
 
 function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-extrabold uppercase leading-tight text-primary-foreground sm:px-2.5 sm:text-xs">
+    <span className="whitespace-nowrap rounded-full bg-primary px-1.5 py-0.5 text-[8.5px] font-extrabold uppercase leading-tight text-primary-foreground sm:px-2.5 sm:text-xs">
       {children}
     </span>
   );
@@ -22,7 +22,7 @@ function Badge({ children }: { children: React.ReactNode }) {
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <span className="font-display text-[10px] font-extrabold uppercase leading-tight tracking-tight text-ink-foreground sm:text-xs">
+    <span className="whitespace-nowrap font-display text-[8.5px] font-extrabold uppercase leading-tight tracking-tight text-ink-foreground min-[390px]:text-[9.5px] sm:text-xs">
       {children}
     </span>
   );
@@ -31,9 +31,9 @@ function Label({ children }: { children: React.ReactNode }) {
 export function MinimumOrderCapsule({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`inline-flex max-w-full flex-col items-center justify-center gap-1 rounded-full border border-primary/70 bg-ink/40 px-3 py-1.5 backdrop-blur-sm sm:min-h-9 sm:flex-row sm:gap-2 sm:px-4 lg:min-h-10 ${className}`}
+      className={`inline-flex max-w-full flex-row flex-nowrap items-center justify-center gap-1 whitespace-nowrap rounded-full border border-primary/70 bg-ink/40 px-2 py-1 backdrop-blur-sm sm:min-h-9 sm:gap-2 sm:px-4 sm:py-1.5 lg:min-h-10 ${className}`}
     >
-      <span className="flex max-w-full items-center justify-center gap-1.5 whitespace-nowrap sm:gap-2">
+      <span className="flex shrink-0 items-center justify-center gap-1 whitespace-nowrap sm:gap-2">
         <ShoppingCart className="size-3.5 shrink-0 text-ink-foreground sm:size-4" />
         <Label>Pedido mínimo:</Label>
         <Badge>R$ 75,00 (10 itens)</Badge>
@@ -41,7 +41,7 @@ export function MinimumOrderCapsule({ className = "" }: { className?: string }) 
 
       <span
         aria-hidden
-        className="my-0.5 h-px w-8 shrink-0 bg-ink-foreground/30 sm:mx-3 sm:my-0 sm:h-5 sm:w-px"
+        className="mx-1.5 h-3.5 w-px shrink-0 bg-white/30 sm:mx-3 sm:h-5"
       />
 
       <span className="flex max-w-full items-center justify-center gap-1.5 whitespace-nowrap sm:gap-2">
