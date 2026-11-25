@@ -851,7 +851,7 @@ function ProductForm({
             <p className="text-xs text-muted-foreground">
               Reduzida para até 800 × 800 e comprimida automaticamente.
             </p>
-          </div>
+          </div>}
           {!sellerMode && <fieldset className="sm:col-span-2">
             <legend className="mb-2 text-sm font-medium">Seções da vitrine</legend>
             <div className="grid grid-cols-2 gap-3">
