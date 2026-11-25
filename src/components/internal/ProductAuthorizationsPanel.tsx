@@ -2,13 +2,14 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { categories } from "@/data/catalog";
+import { categories, categoryLabel, type CategoryId } from "@/data/catalog";
+import { resolveProductImage } from "@/lib/products";
 import { optimizeProductImage } from "@/lib/product-image";
-function safeFilename(filename: string) {
-  return filename.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "-");
-}
-import { Check, Loader2, Trash2, UserRound, X } from "lucide-react";
+import { Check, Loader2, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
