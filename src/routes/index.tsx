@@ -153,10 +153,10 @@ function Catalog() {
         {filtering ? (
           <section className="pt-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h1 className="text-xl uppercase text-gray-900">
+              <h1 className="text-xl uppercase text-white">
                 {category ? categoryLabel(category) : "Resultados"}
                 {query.trim() && (
-                  <span className="ml-2 font-sans text-sm font-normal normal-case text-gray-600">
+                  <span className="ml-2 font-sans text-sm font-normal normal-case text-white/70">
                     para "{query.trim()}"
                   </span>
                 )}
@@ -164,7 +164,7 @@ function Catalog() {
               <CatalogViewToggle value={view} onChange={setView} />
             </div>
             {results.length === 0 ? (
-              <p className="mt-10 text-center text-gray-600">
+              <p className="mt-10 text-center text-white">
                 Nenhum produto encontrado. Tente outra busca ou categoria.
               </p>
             ) : (
@@ -179,10 +179,10 @@ function Catalog() {
           <section className="pt-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-extrabold uppercase tracking-widest text-[#B91C1C]">Seleção GIGA</p>
-                <h1 className="text-2xl uppercase text-[#111827]">Os 100 Mais Vendidos</h1>
+                <p className="text-xs font-extrabold uppercase tracking-widest text-white/80">Seleção GIGA</p>
+                <h1 className="text-2xl uppercase text-white">Os 100 Mais Vendidos</h1>
               </div>
-              <button type="button" onClick={() => setBestSellersOpen(false)} className="rounded-full border border-gray-300 px-4 py-2 text-sm font-bold text-gray-800 hover:bg-white">Voltar à vitrine</button>
+              <button type="button" onClick={() => setBestSellersOpen(false)} className="rounded-full border border-white/60 px-4 py-2 text-sm font-bold text-white hover:bg-white hover:text-[#111827]">Voltar à vitrine</button>
             </div>
             {bestSellers.length ? (
               <div className={view === "grid" ? "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" : "grid gap-3"}>
@@ -217,10 +217,10 @@ function Catalog() {
                 <section key={item.id} className="mt-8">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <span className="h-7 w-1.5 rounded-full bg-[#DC2626]" />
-                      <h2 className="text-lg uppercase text-[#111827] sm:text-xl">{String(index + 1).padStart(2, "0")} {item.label}</h2>
+                      <span className="h-7 w-1.5 rounded-full bg-white" />
+                      <h2 className="text-lg uppercase text-white sm:text-xl">{String(index + 1).padStart(2, "0")} {item.label}</h2>
                     </div>
-                    <button type="button" onClick={() => setCategory(item.id)} className="shrink-0 text-sm font-extrabold text-[#B91C1C] hover:underline">Ver mais →</button>
+                    <button type="button" onClick={() => setCategory(item.id)} className="shrink-0 text-sm font-extrabold text-white hover:underline">Ver mais →</button>
                   </div>
                   <div className={view === "grid" ? "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" : "grid gap-3"}>
                     {categoryProducts.map((product) => (
