@@ -9,7 +9,7 @@ import {
   Truck,
 } from "lucide-react";
 import { categoryLabel, categories, searchProducts, type CategoryId } from "@/data/catalog";
-import storeBackground from "@/assets/fundo-vitrine-giga.webp";
+const storeBackground = "/bg-giga-red.png";
 import { useAuth } from "@/lib/auth";
 import { assignActiveProductNumbers, useCatalogProducts } from "@/lib/products";
 import { supabase } from "@/integrations/supabase/client";
@@ -143,7 +143,7 @@ function Catalog() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F7F7F8]/95 bg-cover bg-fixed bg-center" style={{ backgroundImage: `url(${storeBackground})` }}>
+    <div className="flex min-h-screen flex-col bg-transparent bg-cover bg-fixed bg-center" style={{ backgroundImage: `url(${storeBackground})` }}>
       <div className="sticky top-0 z-50">
         <CatalogHeader query={query} onQueryChange={setQuery} products={products} />
         <MinimumOrderNotice />
