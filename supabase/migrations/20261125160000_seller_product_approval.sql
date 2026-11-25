@@ -113,3 +113,7 @@ drop policy if exists "Anyone can insert products" on public.products;
 drop policy if exists "Authenticated users can insert products" on public.products;
 drop policy if exists "Authenticated users can delete products" on public.products;
 drop policy if exists "Admins manage products" on public.products;
+drop policy if exists "Anyone can update products" on public.products;
+drop policy if exists "Public can update products" on public.products;
+drop policy if exists "Public can insert products" on public.products;
+drop policy if exists "Public can delete products" on public.products;
