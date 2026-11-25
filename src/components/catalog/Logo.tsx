@@ -6,7 +6,7 @@ export function Logo({ className, eager }: { className?: string; eager?: boolean
     <span className={cn("relative inline-block", className)}>
       <span
         aria-hidden
-        className="bg-logo-glow pointer-events-none absolute -inset-x-6 -inset-y-3 -z-10"
+        className="pointer-events-none absolute -inset-x-6 -inset-y-3 -z-10 bg-transparent"
       />
       <img
         src={logoAsset.url}
