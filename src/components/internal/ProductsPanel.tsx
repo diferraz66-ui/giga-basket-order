@@ -539,14 +539,18 @@ function ProductForm({
   product,
   onClose,
   onSaved,
+  sellerMode = false,
+  sellerUserId,
 }: {
   product: Tables<"products"> | null;
   onClose: () => void;
   onSaved: () => Promise<void>;
+  sellerMode?: boolean;
+  sellerUserId?: string;
 }) {
   const [name, setName] = useState(product?.name ?? "");
   const [description, setDescription] = useState(product?.description ?? "");
-  const [price, setPrice] = useState(String(product?.price ?? UNIQUE_PRICE).replace(".", ","));
+  const [price, setPrice] = useState(sellerMode ? String(UNIQUE_PRICE).replace(".", ",") : String(product?.price ?? UNIQUE_PRICE).replace(".", ","));
   const [category, setCategory] = useState(product?.category ?? "cozinha");
   const [dimensions, setDimensions] = useState(product?.dimensions ?? "");
   const [maxPerCustomer, setMaxPerCustomer] = useState(
@@ -596,13 +600,13 @@ function ProductForm({
     setSmartPhoto(null);
     setFile(null);
     setSmartPreview(null);
-    setPhotoNotice(null);
+
     if (!product) setSmartPhotoConfirmed(false);
   }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const numericPrice = Number(price.replace(",", "."));
+    const numericPrice = sellerMode ? UNIQUE_PRICE : Number(price.replace(",", "."));
     const numericLimit = maxPerCustomer.trim() === "" ? 0 : Number(maxPerCustomer);
     if (!Number.isInteger(numericLimit) || numericLimit < 0) {
       toast.error("O limite por cliente deve ser um número inteiro igual ou maior que zero");
@@ -611,11 +615,12 @@ function ProductForm({
     if (
       !name.trim() ||
       !description.trim() ||
-      !dimensions.trim() ||
+      (!sellerMode && !dimensions.trim()) ||
       !Number.isFinite(numericPrice) ||
-      numericPrice < 0
+      numericPrice < 0 ||
+      (sellerMode && (!file || !sellerUserId))
     ) {
-      toast.error("Preencha nome, descrição, dimensões e um preço válido");
+      toast.error(sellerMode ? "Preencha nome, descrição, categoria e selecione uma foto." : "Preencha nome, descrição, dimensões e um preço válido");
       return;
     }
     if (file && (file.size > 5 * 1024 * 1024 || !file.type.startsWith("image/"))) {
@@ -647,23 +652,26 @@ function ProductForm({
       imagePath = path;
       imageKey = null;
     }
-    const { error } = await supabase.from("products").upsert({
+    const payload = {
       id,
       name: name.trim(),
       description: description.trim(),
       price: numericPrice,
       category,
       dimensions: dimensions.trim(),
-      status,
-      tags,
+      status: sellerMode ? "available" : status,
+      tags: sellerMode ? [] : tags,
       image_url: imagePath,
       image_key: imageKey,
-      max_per_customer: numericLimit,
-    });
+      max_per_customer: sellerMode ? 0 : numericLimit,
+    };
+    const { error } = sellerMode
+      ? await supabase.from("products").insert({ ...payload, status_aprovacao: "pendente", cadastrado_por: sellerUserId! })
+      : await supabase.from("products").upsert(payload);
     setBusy(false);
     if (error) toast.error("Não foi possível salvar o produto");
     else {
-      toast.success(product ? "Produto atualizado" : "Produto cadastrado");
+      toast.success(sellerMode ? "Produto enviado com sucesso! Aguardando validação do Admin para aparecer na vitrine." : product ? "Produto atualizado" : "Produto cadastrado");
       await onSaved();
     }
   }
@@ -672,13 +680,13 @@ function ProductForm({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[94vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{product ? "Editar produto" : "Novo produto"}</DialogTitle>
+          <DialogTitle>{sellerMode ? "Incluir Produto" : product ? "Editar produto" : "Novo produto"}</DialogTitle>
         </DialogHeader>
         <section className="space-y-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="font-display text-sm font-extrabold uppercase">Foto inteligente do produto</p>
-              <p className="text-xs text-muted-foreground">Tire uma foto ou escolha uma imagem da galeria. O tratamento acontece no próprio navegador.</p>
+              <p className="font-display text-sm font-extrabold uppercase">Foto do produto</p>
+              <p className="text-xs text-muted-foreground">Tire uma foto ou escolha uma imagem da galeria. A foto será otimizada antes do envio.</p>
             </div>
             <span className="rounded-full bg-background px-3 py-1 text-[10px] font-bold text-primary">800 × 800 · WebP/JPEG</span>
           </div>
@@ -709,7 +717,7 @@ function ProductForm({
           {smartPreview && (
             <div className="space-y-3 rounded-xl border border-border bg-background p-3">
               <div className="mx-auto aspect-square w-full max-w-[280px] overflow-hidden rounded-lg border border-border bg-white">
-                <img src={smartPreview} alt="Prévia da foto do produto tratada em fundo branco" className="size-full object-contain" />
+                <img src={smartPreview} alt="Prévia da foto do produto" className="size-full object-contain" />
               </div>
               {!smartPhotoConfirmed && !product ? (
                 <>
@@ -738,7 +746,7 @@ function ProductForm({
             <p className="text-center text-xs text-muted-foreground">Depois de confirmar a foto, o formulário de cadastro será liberado.</p>
           )}
         </section>
-        {(!product && !smartPhotoConfirmed) ? null : (
+        {(sellerMode || (!product && !smartPhotoConfirmed)) ? null : (
         <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="product-name">Nome</Label>
@@ -762,13 +770,7 @@ function ProductForm({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="product-price">Preço (R$)</Label>
-            <Input
-              id="product-price"
-              inputMode="decimal"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              required
-            />
+            <Input id="product-price" value={sellerMode ? "7,50" : price} onChange={(e) => setPrice(e.target.value)} readOnly={sellerMode} required />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="product-category">Categoria</Label>
@@ -785,7 +787,7 @@ function ProductForm({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5 sm:col-span-2">
+          {!sellerMode && <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="product-dimensions">Tamanho / Dimensões</Label>
             <Input
               id="product-dimensions"
@@ -794,8 +796,8 @@ function ProductForm({
               placeholder="Ex.: Aproximadamente 20 × 15 cm"
               required
             />
-          </div>
-          <div className="space-y-1.5">
+          </div>}
+          {!sellerMode && <div className="space-y-1.5">
             <Label htmlFor="product-limit">Limite máximo por cliente</Label>
             <Input
               id="product-limit"
@@ -823,8 +825,8 @@ function ProductForm({
                 <SelectItem value="hidden">Oculto (fora da vitrine)</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-          <div className="space-y-1.5">
+          </div>}
+          {!sellerMode && <div className="space-y-1.5">
             <Label htmlFor="product-photo">Nova foto (até 5 MB)</Label>
             <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input px-3 text-sm text-muted-foreground">
               <Upload className="size-4" />
@@ -846,7 +848,7 @@ function ProductForm({
               Reduzida para até 800 × 800 e comprimida automaticamente.
             </p>
           </div>
-          <fieldset className="sm:col-span-2">
+          {!sellerMode && <fieldset className="sm:col-span-2">
             <legend className="mb-2 text-sm font-medium">Seções da vitrine</legend>
             <div className="grid grid-cols-2 gap-3">
               {tagOptions.map((tag) => (
@@ -863,14 +865,15 @@ function ProductForm({
                 </label>
               ))}
             </div>
-          </fieldset>
+          </fieldset>}
+          {sellerMode && <p className="sm:col-span-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Este produto será enviado para aprovação do Admin e não aparecerá na vitrine até ser aprovado.</p>}
           <div className="flex justify-end gap-2 sm:col-span-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
             <Button type="submit" variant="cta" disabled={busy || processingSmartPhoto}>
               {busy && <Loader2 className="animate-spin" />}{" "}
-              {busy ? "Otimizando e salvando..." : "Salvar produto"}
+              {busy ? "Enviando..." : sellerMode ? "Enviar para aprovação" : "Salvar produto"}
             </Button>
           </div>
         </form>
