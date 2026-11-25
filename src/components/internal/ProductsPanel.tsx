@@ -35,7 +35,7 @@ import {
 } from "@/data/catalog";
 import { formatBRL } from "@/lib/order";
 import { assignActiveProductNumbers, fetchAllProductRows, resolveProductImage } from "@/lib/products";
-import { optimizeProductImage, processSmartProductImage } from "@/lib/product-image";
+import { optimizeProductImage } from "@/lib/product-image";
 import {
   bulkPhotoDefaults,
   parseProductCsv,
@@ -229,7 +229,7 @@ export function ProductsPanel() {
       processedNumbers.add(number);
       let uploadedPath: string | null = null;
       try {
-        const optimized = await processSmartProductImage(file);
+        const optimized = { file: await optimizeProductImage(file) };
         const path = `${product.id}/${crypto.randomUUID()}-${safeFilename(optimized.file.name)}`;
         const { error: uploadError } = await supabase.storage
           .from("product-images")
@@ -563,7 +563,6 @@ function ProductForm({
   const [smartPhotoConfirmed, setSmartPhotoConfirmed] = useState(Boolean(product));
   const [processingSmartPhoto, setProcessingSmartPhoto] = useState(false);
   const [photoProgress, setPhotoProgress] = useState("");
-  const [photoNotice, setPhotoNotice] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -575,24 +574,21 @@ function ProductForm({
     const selected = event.target.files?.[0];
     event.target.value = "";
     if (!selected) return;
-    setPhotoNotice(null);
+    if (!selected.type.startsWith("image/") || selected.size > 20 * 1024 * 1024) {
+      toast.error("Selecione uma imagem válida de até 20 MB.");
+      return;
+    }
     setProcessingSmartPhoto(true);
-    setPhotoProgress("Removendo fundo e ajustando enquadramento...");
     try {
-      const result = await processSmartProductImage(selected, setPhotoProgress);
-      setSmartPhoto(result.file);
-      setFile(product ? result.file : null);
-      setSmartPreview(URL.createObjectURL(result.file));
-      if (!product) setSmartPhotoConfirmed(false);
-      else setSmartPhotoConfirmed(true);
-      if (!result.backgroundRemoved) {
-        setPhotoNotice("A remoção de fundo não ficou disponível neste aparelho. A foto foi centralizada em fundo branco, mantendo o fundo original.");
-      }
+      const optimized = await optimizeProductImage(selected);
+      setSmartPhoto(optimized);
+      setFile(product ? optimized : null);
+      setSmartPreview(URL.createObjectURL(optimized));
+      setSmartPhotoConfirmed(true);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível processar a foto. Tente outra imagem.");
+      toast.error(error instanceof Error ? error.message : "Não foi possível preparar a foto.");
     } finally {
       setProcessingSmartPhoto(false);
-      setPhotoProgress("");
     }
   }
 
@@ -687,7 +683,7 @@ function ProductForm({
             <span className="rounded-full bg-background px-3 py-1 text-[10px] font-bold text-primary">800 × 800 · WebP/JPEG</span>
           </div>
           <Button type="button" variant="cta" className="h-11 w-full" onClick={() => galleryInput.current?.click()} disabled={processingSmartPhoto || busy}>
-            <Images className="size-4" /> 📸 Foto Inteligente (Câmera / Galeria)
+            <Images className="size-4" /> 📸 Foto do Produto (Câmera / Galeria)
           </Button>
           <div className="grid grid-cols-2 gap-2">
             <Button type="button" variant="outline" onClick={() => cameraInput.current?.click()} disabled={processingSmartPhoto || busy}>
@@ -703,14 +699,13 @@ function ProductForm({
             <div role="status" className="flex items-center gap-3 rounded-xl bg-background p-3 text-sm">
               <Loader2 className="size-5 shrink-0 animate-spin text-primary" />
               <div className="min-w-0 flex-1 space-y-2">
-                <span className="block">{photoProgress || "Removendo fundo e ajustando enquadramento..."}</span>
+                <span className="block">{photoProgress || "Otimizando imagem..."}</span>
                 <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                   <div className="h-full w-2/3 animate-pulse rounded-full bg-primary" />
                 </div>
               </div>
             </div>
           )}
-          {photoNotice && <p role="status" className="rounded-lg bg-background p-3 text-xs text-muted-foreground">{photoNotice}</p>}
           {smartPreview && (
             <div className="space-y-3 rounded-xl border border-border bg-background p-3">
               <div className="mx-auto aspect-square w-full max-w-[280px] overflow-hidden rounded-lg border border-border bg-white">
