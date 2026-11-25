@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Check, Loader2, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { categoryLabel, type CategoryId } from "@/data/catalog";
@@ -19,18 +20,20 @@ export function ProductAuthorizationsPanel() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: members, error: membersError }, { data: products, error: productsError }] = await Promise.all([
+    const [{ data: members, error: membersError }, { data: products, error: productsError }, { data: roles, error: rolesError }] = await Promise.all([
       supabase.from("team_members").select("user_id,full_name,username,active,pode_cadastrar_produtos").order("full_name"),
       supabase.from("products").select("*").eq("status_aprovacao", "pendente").order("created_at", { ascending: true }),
+      supabase.from("user_roles").select("user_id").eq("role", "vendedor"),
     ]);
-    if (membersError || productsError) {
+    if (membersError || productsError || rolesError) {
       toast.error("Não foi possível carregar as autorizações e os produtos pendentes.");
       setLoading(false);
       return;
     }
     const sellersList = members ?? [];
     const pendingList = (products ?? []) as PendingProduct[];
-    setSellers(sellersList.filter((member) => member.active));
+    const sellerUserIds = new Set((roles ?? []).map((item) => item.user_id));
+    setSellers(sellersList.filter((member) => sellerUserIds.has(member.user_id)));
     const sellerIds = [...new Set(pendingList.map((product) => product.cadastrado_por).filter(Boolean))] as string[];
     const { data: names } = sellerIds.length
       ? await supabase.from("team_members").select("user_id,full_name").in("user_id", sellerIds)
@@ -81,15 +84,13 @@ export function ProductAuthorizationsPanel() {
 
   if (loading) return <div className="flex justify-center py-16"><Loader2 className="animate-spin text-primary" /></div>;
   return <div className="space-y-8">
-    <section className="rounded-2xl border border-border bg-card p-4">
+    <section>
       <h2 className="text-lg font-extrabold uppercase">Permissões de cadastro</h2>
       <p className="mt-1 text-sm text-muted-foreground">Ative individualmente quem pode enviar produtos novos para aprovação.</p>
       <div className="mt-4 divide-y divide-border">
         {sellers.map((seller) => <div key={seller.user_id} className="flex items-center justify-between gap-3 py-3">
           <div className="min-w-0"><p className="font-bold">{seller.full_name}</p><p className="text-xs text-muted-foreground">Login: {seller.username}</p><p className="text-xs text-muted-foreground">Permitir incluir novos produtos</p></div>
-          <button type="button" role="switch" aria-checked={seller.pode_cadastrar_produtos} disabled={busyId === seller.user_id} onClick={() => void togglePermission(seller, !seller.pode_cadastrar_produtos)} className={`relative h-7 w-12 shrink-0 rounded-full transition ${seller.pode_cadastrar_produtos ? "bg-green-600" : "bg-muted"} disabled:opacity-50`} aria-label={`Permitir incluir novos produtos para ${seller.full_name}`}>
-            <span className={`absolute top-1 size-5 rounded-full bg-white shadow transition-all ${seller.pode_cadastrar_produtos ? "left-6" : "left-1"}`} />
-          </button>
+          <Switch checked={seller.pode_cadastrar_produtos} disabled={!seller.active || busyId === seller.user_id} onCheckedChange={(enabled) => void togglePermission(seller, enabled)} aria-label={`Permitir incluir novos produtos para ${seller.full_name}`} />
         </div>)}
         {!sellers.length && <p className="py-6 text-center text-sm text-muted-foreground">Nenhum vendedor ativo encontrado.</p>}
       </div>
@@ -98,7 +99,7 @@ export function ProductAuthorizationsPanel() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-extrabold uppercase">Produtos Aguardando Aprovação</h2><p className="text-sm text-muted-foreground">Confira os dados antes de liberar na vitrine.</p></div><span className="rounded-full bg-primary px-3 py-1 text-sm font-extrabold text-primary-foreground">{pending.length} pendente(s)</span></div>
       <div className="grid gap-3 md:grid-cols-2">
         {pending.map((product) => <article key={product.id} className="flex gap-3 rounded-2xl border border-border bg-card p-3">
-          <img src={images[product.id]} alt={product.name} className="size-24 shrink-0 rounded-xl bg-white object-contain p-1" />
+          <img src={images[product.id]} alt={product.name} className="size-24 shrink-0 rounded-xl bg-card object-contain p-1" />
           <div className="min-w-0 flex-1"><h3 className="font-bold">{product.name}</h3><p className="text-sm text-muted-foreground">{categoryLabel(product.category as CategoryId)}</p><p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><UserRound className="size-3" /> {product.seller_name}</p>
             <div className="mt-3 flex flex-wrap gap-2"><Button size="sm" variant="cta" disabled={busyId === product.id} onClick={() => void approve(product)}><Check className="size-4" /> Aprovar e Publicar</Button><Button size="sm" variant="outline" className="text-destructive" disabled={busyId === product.id} onClick={() => void reject(product)}><Trash2 className="size-4" /> Recusar / Excluir</Button></div>
           </div>

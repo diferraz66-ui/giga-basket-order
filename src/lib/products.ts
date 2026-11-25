@@ -16,7 +16,7 @@ import {
   type Product,
   type ProductTag,
 } from "@/data/catalog";
-import { getProductImageUrl } from "@/lib/products.functions";
+import { getPendingProductImageUrl, getProductImageUrl } from "@/lib/products.functions";
 
 export const productImages: Record<string, string> = {
   potes,
@@ -32,12 +32,13 @@ export const productImages: Record<string, string> = {
 const validTags: ProductTag[] = ["oferta", "mais-vendido", "novidade", "destaque"];
 
 export async function resolveProductImage(
-  row: Pick<Tables<"products">, "id" | "image_key" | "image_url">,
+  row: Pick<Tables<"products">, "id" | "image_key" | "image_url"> & { status_aprovacao?: string },
 ) {
   if (row.image_url) {
     if (/^https?:\/\//.test(row.image_url)) return row.image_url;
     try {
-      const { imageUrl } = await getProductImageUrl({ data: { productId: row.id } });
+      const fetchImage = row.status_aprovacao === "pendente" ? getPendingProductImageUrl : getProductImageUrl;
+      const { imageUrl } = await fetchImage({ data: { productId: row.id } });
       if (imageUrl) return imageUrl;
     } catch {
       // Keep the bundled fallback when a private photo is unavailable.

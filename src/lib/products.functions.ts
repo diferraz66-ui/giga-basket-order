@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const productImageSchema = z.object({
   productId: z.string().trim().min(1).max(120),
@@ -28,6 +29,7 @@ export const getProductImageUrl = createServerFn({ method: "POST" })
       .from("products")
       .select("image_url")
       .eq("id", data.productId)
+      .eq("status_aprovacao", "aprovado")
       .maybeSingle();
 
     if (error) throw new Error("Não foi possível carregar a foto do produto");
@@ -51,4 +53,23 @@ export const getProductImageUrl = createServerFn({ method: "POST" })
         : signed.signedUrl;
 
     return { imageUrl };
+  });
+
+export const getPendingProductImageUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => productImageSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: product, error } = await context.supabase.from("products")
+      .select("image_url,status_aprovacao").eq("id", data.productId).maybeSingle();
+    if (error || !product?.image_url) return { imageUrl: null };
+    if (/^https?:\/\//.test(product.image_url)) return { imageUrl: product.image_url };
+    // The authenticated row read above authorizes access before privileged signing.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: signed, error: signError } = await supabaseAdmin.storage.from("product-images")
+      .createSignedUrl(product.image_url, 3600);
+    if (signError || !signed?.signedUrl) return { imageUrl: null };
+    const publicUrl = process.env["VITE_SUPABASE_URL"]?.replace(/\/+$/, "");
+    const serverUrl = process.env["SUPABASE_URL"]?.replace(/\/+$/, "");
+    return { imageUrl: publicUrl && serverUrl && signed.signedUrl.startsWith(`${serverUrl}/`)
+      ? `${publicUrl}${signed.signedUrl.slice(serverUrl.length)}` : signed.signedUrl };
   });

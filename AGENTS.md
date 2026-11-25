@@ -37,3 +37,6 @@ use the editor.
 - Orders are stored in `public.orders` with an identity `order_number` displayed as `#000001`; the WhatsApp message is built by `buildOrderMessage` in `src/lib/order.ts` — keep its tests in sync.
 - Payment proofs are analyzed server-side in `src/lib/orders.functions.ts` and kept in the private `payment-proofs` bucket; order item edits, cancellation, and finalization use protected database functions so totals and proof requirements cannot be bypassed by the browser.
 - The catalog and cart are public; customer signup/login appears only during checkout. Product reads and temporary image URLs are public, while orders and all mutations remain protected.
+- Seller submissions reuse the unitary admin product form; RLS enforces pending-only inserts and owner-prefixed photo uploads so browser changes cannot bypass approval.
+- Public photo signing reads only approved products; pending photo signing uses authenticated row visibility so unpublished photos remain private.
+- Product image gestures use react-zoom-pan-pinch in a dedicated component remounted for each dialog opening to reset the transform and keep controls synchronized.

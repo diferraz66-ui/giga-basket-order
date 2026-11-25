@@ -36,6 +36,7 @@ import {
 import { formatBRL } from "@/lib/order";
 import { assignActiveProductNumbers, fetchAllProductRows, resolveProductImage } from "@/lib/products";
 import { optimizeProductImage } from "@/lib/product-image";
+import { sellerSubmissionFields } from "@/lib/product-submission";
 import {
   bulkPhotoDefaults,
   parseProductCsv,
@@ -106,10 +107,10 @@ export function ProductsPanel() {
     void reload();
   }, [reload]);
 
-  const numberedRecords = assignActiveProductNumbers(records.map(({ product, image }) => ({ ...product, image }))).map((numbered) => ({
-    product: records.find((record) => record.product.id === numbered.id)!.product,
-    image: numbered.image,
-    sequence: numbered.sequence,
+  const numberedRecords = assignActiveProductNumbers(records.map(({ product, image }) => ({ ...product, image }))).map(({ image, sequence, ...product }) => ({
+    product,
+    image,
+    sequence,
   }));
   const visibleRecords = numberedRecords.filter(({ product, sequence }) => {
     const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -570,7 +571,6 @@ function ProductForm({
   const [smartPreview, setSmartPreview] = useState<string | null>(null);
   const [smartPhotoConfirmed, setSmartPhotoConfirmed] = useState(Boolean(product));
   const [processingSmartPhoto, setProcessingSmartPhoto] = useState(false);
-  const [photoProgress, setPhotoProgress] = useState("");
 
   useEffect(() => {
     return () => {
@@ -590,7 +590,7 @@ function ProductForm({
     try {
       const optimized = await optimizeProductImage(selected);
       setSmartPhoto(optimized);
-      setFile(product ? optimized : null);
+      setFile(optimized);
       setSmartPreview(URL.createObjectURL(optimized));
       setSmartPhotoConfirmed(true);
     } catch (error) {
@@ -632,6 +632,11 @@ function ProductForm({
       return;
     }
     setBusy(true);
+    if (sellerMode && (!sellerUserId || product)) {
+      setBusy(false);
+      toast.error("O vendedor pode cadastrar somente produtos novos.");
+      return;
+    }
     const id = product?.id ?? (sellerMode ? `seller-${crypto.randomUUID()}` : productIdFromName(name));
     let imagePath = product?.image_url ?? null;
     let imageKey = product?.image_key ?? null;
@@ -644,7 +649,7 @@ function ProductForm({
         toast.error("Não foi possível otimizar a foto. Escolha outra imagem.");
         return;
       }
-      const path = `${id}/${crypto.randomUUID()}-${safeFilename(optimized.name)}`;
+      const path = `${sellerMode ? `${sellerUserId}/` : ""}${id}/${crypto.randomUUID()}-${safeFilename(optimized.name)}`;
       const { error } = await supabase.storage
         .from("product-images")
         .upload(path, optimized, { contentType: optimized.type });
@@ -670,10 +675,13 @@ function ProductForm({
       max_per_customer: sellerMode ? 0 : numericLimit,
     };
     const { error } = sellerMode && sellerUserId
-      ? await supabase.from("products").insert({ ...payload, status_aprovacao: "pendente", cadastrado_por: sellerUserId })
+      ? await supabase.from("products").insert({ ...payload, ...sellerSubmissionFields(sellerUserId) })
       : await supabase.from("products").upsert(payload);
     setBusy(false);
-    if (error) toast.error("Não foi possível salvar o produto");
+    if (error) {
+      if (imagePath && imagePath !== product?.image_url) await supabase.storage.from("product-images").remove([imagePath]);
+      toast.error("Não foi possível salvar o produto. Confira se sua autorização continua ativa.");
+    }
     else {
       toast.success(sellerMode ? "Produto enviado com sucesso! Aguardando validação do Admin para aparecer na vitrine." : product ? "Produto atualizado" : "Produto cadastrado");
       await onSaved();
@@ -711,7 +719,7 @@ function ProductForm({
             <div role="status" className="flex items-center gap-3 rounded-xl bg-background p-3 text-sm">
               <Loader2 className="size-5 shrink-0 animate-spin text-primary" />
               <div className="min-w-0 flex-1 space-y-2">
-                <span className="block">{photoProgress || "Otimizando imagem..."}</span>
+                <span className="block">Otimizando imagem...</span>
                 <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                   <div className="h-full w-2/3 animate-pulse rounded-full bg-primary" />
                 </div>
@@ -720,7 +728,7 @@ function ProductForm({
           )}
           {smartPreview && (
             <div className="space-y-3 rounded-xl border border-border bg-background p-3">
-              <div className="mx-auto aspect-square w-full max-w-[280px] overflow-hidden rounded-lg border border-border bg-white">
+              <div className="mx-auto aspect-square w-full max-w-[280px] overflow-hidden rounded-lg border border-border bg-card">
                 <img src={smartPreview} alt="Prévia da foto do produto" className="size-full object-contain" />
               </div>
               {!smartPhotoConfirmed && !product ? (
@@ -742,7 +750,7 @@ function ProductForm({
                   </div>
                 </>
               ) : (
-                <p className="text-center text-sm font-semibold text-green-700">Foto selecionada para este produto</p>
+                <p className="text-center text-sm font-semibold text-foreground">Foto selecionada para este produto</p>
               )}
             </div>
           )}
@@ -791,16 +799,16 @@ function ProductForm({
               </SelectContent>
             </Select>
           </div>
-          {!sellerMode && <div className="space-y-1.5 sm:col-span-2">
+          <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="product-dimensions">Tamanho / Dimensões</Label>
             <Input
               id="product-dimensions"
               value={dimensions}
               onChange={(e) => setDimensions(e.target.value)}
               placeholder="Ex.: Aproximadamente 20 × 15 cm"
-              required
+              required={!sellerMode}
             />
-          </div>}
+          </div>
           {!sellerMode && <div className="space-y-1.5">
             <Label htmlFor="product-limit">Limite máximo por cliente</Label>
             <Input
@@ -869,7 +877,7 @@ function ProductForm({
               ))}
             </div>
           </fieldset>}
-          {sellerMode && <p className="sm:col-span-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Este produto será enviado para aprovação do Admin e não aparecerá na vitrine até ser aprovado.</p>}
+          {sellerMode && <p className="sm:col-span-2 rounded-lg bg-muted p-3 text-sm text-muted-foreground">Aguardando aprovação do Admin antes da publicação na vitrine.</p>}
           <div className="flex justify-end gap-2 sm:col-span-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar

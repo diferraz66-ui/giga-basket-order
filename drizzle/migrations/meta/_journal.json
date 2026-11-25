@@ -92,6 +92,20 @@
       "when": 1795641645766,
       "tag": "0012_seller_product_approval_from_main",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1795643355938,
+      "tag": "0013_secure_seller_submissions_and_pending_visibility",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795643459232,
+      "tag": "0014_qualify_unsubmitted_product_photo_cleanup",
+      "breakpoints": true
     }
   ]
 }

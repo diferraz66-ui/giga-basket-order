@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth";
 import { staffAuthPassword, staffLoginEmail, staffLoginSchema, type StaffRole } from "@/lib/staff";
+import { canShowSellerForm } from "@/lib/product-submission";
 
 export const Route = createFileRoute("/area-restrita")({
   head: () => ({
@@ -132,16 +133,27 @@ function StaffLogin({ hasCustomerSession }: { hasCustomerSession: boolean }) {
   );
 }
 
-function SellerProductTab({ userId }: { userId: string }) {
-  const [enabled, setEnabled] = useState(false);
-  useEffect(() => { let active = true; void supabase.from("team_members").select("pode_cadastrar_produtos").eq("user_id", userId).maybeSingle().then(({data}) => { if(active) setEnabled(Boolean(data?.pode_cadastrar_produtos)); }); return () => { active = false; }; }, [userId]);
-  return enabled ? <TabsTrigger value="seller-products" className="shrink-0 px-4 py-2.5">Incluir Produto</TabsTrigger> : null;
-}
-
 function StaffDashboard({ member, role }: { member: Tables<"team_members">; role: StaffRole }) {
   const { signOut } = useAuth();
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("orders");
+  const [sellerAllowed, setSellerAllowed] = useState(false);
+  useEffect(() => {
+    let active = true;
+    async function refresh() {
+      const { data } = await supabase.from("team_members").select("active,pode_cadastrar_produtos").eq("user_id", member.user_id).maybeSingle();
+      if (active) setSellerAllowed(canShowSellerForm(role, Boolean(data?.active), Boolean(data?.pode_cadastrar_produtos)));
+    }
+    void refresh();
+    window.addEventListener("focus", refresh);
+    return () => { active = false; window.removeEventListener("focus", refresh); };
+  }, [member.user_id, role]);
+  useEffect(() => {
+    const saved = window.sessionStorage.getItem(`giga-internal-active-tab:${member.user_id}`) ?? window.sessionStorage.getItem("giga-internal-active-tab");
+    const allowed = role === "admin" ? ["orders", "products", "quick-control", "customers", "reports", "banners", "reviews", "authorizations"] : ["orders", ...(sellerAllowed ? ["seller-products"] : [])];
+    setActiveTab(!new URLSearchParams(window.location.search).has("pedido") && saved && allowed.includes(saved) ? saved : "orders");
+  }, [member.user_id, role, sellerAllowed]);
   async function logout() { await signOut(); toast.success("Você saiu da área restrita"); }
   return (
     <div className="min-h-screen bg-background">
@@ -153,21 +165,10 @@ function StaffDashboard({ member, role }: { member: Tables<"team_members">; role
       </header>
       <main className="mx-auto max-w-7xl px-3 py-6 sm:px-5">
         <Tabs
-          defaultValue={
-            typeof window !== "undefined" && new URLSearchParams(window.location.search).has("pedido")
-              ? "orders"
-              : typeof window !== "undefined"
-                ? (() => {
-                    const saved = window.sessionStorage.getItem("giga-internal-active-tab");
-                    const allowed = role === "admin"
-                      ? ["orders", "products", "quick-control", "customers", "reports", "banners", "reviews", "authorizations"]
-                      : ["orders", "seller-products"];
-                    return saved && allowed.includes(saved) ? saved : "orders";
-                  })()
-                : "orders"
-          }
+          value={activeTab}
           onValueChange={(value) => {
-            window.sessionStorage.setItem("giga-internal-active-tab", value);
+            setActiveTab(value);
+            window.sessionStorage.setItem(`giga-internal-active-tab:${member.user_id}`, value);
           }}
         >
           <TabsList className="no-scrollbar mb-5 flex h-auto w-full justify-start gap-1 overflow-x-auto bg-muted p-1">
@@ -179,7 +180,7 @@ function StaffDashboard({ member, role }: { member: Tables<"team_members">; role
             {role === "admin" && <TabsTrigger value="banners" className="shrink-0 px-4 py-2.5">Banners Topo</TabsTrigger>}
             {role === "admin" && <TabsTrigger value="reviews" className="shrink-0 px-4 py-2.5">Avaliações</TabsTrigger>}
             {role === "admin" && <TabsTrigger value="authorizations" className="shrink-0 px-4 py-2.5">Autorizações</TabsTrigger>}
-            {role === "vendedor" && <SellerProductTab userId={member.user_id} />}
+            {role === "vendedor" && sellerAllowed && <TabsTrigger value="seller-products" className="shrink-0 px-4 py-2.5">Incluir Produto</TabsTrigger>}
           </TabsList>
           <TabsContent value="orders"><OrdersPanel role={role} targetOrder={typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("pedido") : null} /></TabsContent>
           {role === "admin" && <TabsContent value="products"><ProductsPanel /></TabsContent>}
@@ -189,7 +190,7 @@ function StaffDashboard({ member, role }: { member: Tables<"team_members">; role
           {role === "admin" && <TabsContent value="banners"><BannersPanel /></TabsContent>}
           {role === "admin" && <TabsContent value="reviews"><ReviewsPanel /></TabsContent>}
           {role === "admin" && <TabsContent value="authorizations"><ProductAuthorizationsPanel /></TabsContent>}
-          {role === "vendedor" && <TabsContent value="seller-products"><SellerProductPanel userId={member.user_id} /></TabsContent>}
+          {role === "vendedor" && sellerAllowed && <TabsContent value="seller-products"><SellerProductPanel userId={member.user_id} /></TabsContent>}
         </Tabs>
       </main>
       <PasswordChangeDialog open={passwordOpen} onOpenChange={setPasswordOpen} />

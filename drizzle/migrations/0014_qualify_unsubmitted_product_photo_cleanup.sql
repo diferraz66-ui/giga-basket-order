@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS "Authorized sellers remove their unsubmitted photos" ON storage.objects;
+CREATE POLICY "Authorized sellers remove their unsubmitted photos" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'product-images' AND owner_id = auth.uid()::text AND (storage.foldername(name))[1] = auth.uid()::text AND NOT EXISTS (SELECT 1 FROM public.products p WHERE p.image_url = storage.objects.name));

@@ -43,3 +43,7 @@
 - [x] Reauditar todos os produtos nos modos grade/lista e nas duas larguras
 - [x] Conferir a main disponível localmente, aplicar a última atualização SQL de aprovação de produtos e recarregar a prévia
 - [ ] Confirmar o último commit remoto do GitHub — depende de Re-check em Project settings → Git; sincronização remota não disponível ao agente
+- [x] Completar autorizações de vendedores e aprovação protegida dos novos produtos
+- [x] Remover a IA de fundo dos formulários preservando câmera, galeria e prévia
+- [x] Completar zoom por toque, pinça e arraste com controles sincronizados
+- [x] Verificar cadastro, aprovação e zoom na prévia e executar testes
