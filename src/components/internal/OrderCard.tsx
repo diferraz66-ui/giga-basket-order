@@ -62,6 +62,7 @@ export function OrderCard({
   onReceipt,
   onProof,
   role,
+  highlighted = false,
 }: {
   order: Order;
   products: CatalogProduct[];
@@ -69,6 +70,7 @@ export function OrderCard({
   onReceipt: (order: Order) => void;
   onProof: (order: Order) => void;
   role: StaffRole;
+  highlighted?: boolean;
 }) {
   const active = ["received", "in_progress", "awaiting_pix"].includes(order.status);
   const [items, setItems] = useState<OrderItem[]>(order.items);
@@ -81,7 +83,13 @@ export function OrderCard({
   const [validationDetails, setValidationDetails] = useState<{ transaction_id: string | null; transaction_date: string | null; paid_amount: number | null; recipient_cnpj: string | null; recipient_name: string | null; recipient_bank: string | null } | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);\n  const cardRef = useRef<HTMLElement>(null);\n  useEffect(() => { if (highlighted) cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); }, [highlighted]);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const cardRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (highlighted) {
+      cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlighted]);
   const uploadProof = useServerFn(uploadPaymentProof);
   const manualRelease = useServerFn(manualReleasePaymentProof);
 
