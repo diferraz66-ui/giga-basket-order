@@ -750,7 +750,7 @@ function ProductForm({
             <p className="text-center text-xs text-muted-foreground">Depois de confirmar a foto, o formulário de cadastro será liberado.</p>
           )}
         </section>
-        {(sellerMode || (!product && !smartPhotoConfirmed)) ? null : (
+        {((sellerMode && !smartPhotoConfirmed) || (!sellerMode && !product && !smartPhotoConfirmed)) ? null : (
         <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="product-name">Nome</Label>
