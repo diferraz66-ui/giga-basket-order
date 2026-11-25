@@ -142,7 +142,7 @@ function Catalog() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-cover bg-center bg-fixed bg-no-repeat" style={{ backgroundImage: "url('/bg-giga-red.png')" }}>
+    <div className="flex min-h-screen flex-col bg-cover bg-center bg-fixed bg-no-repeat" style={{ backgroundImage: "url('/bg-giga-red.webp')" }}>
       <div className="sticky top-0 z-50">
         <CatalogHeader query={query} onQueryChange={setQuery} products={products} />
         <MinimumOrderNotice />
