@@ -178,6 +178,7 @@ export type Database = {
       }
       products: {
         Row: {
+          cadastrado_por: string | null
           category: string
           created_at: string
           description: string
@@ -189,10 +190,12 @@ export type Database = {
           name: string
           price: number
           status: string
+          status_aprovacao: string
           tags: string[]
           updated_at: string
         }
         Insert: {
+          cadastrado_por?: string | null
           category: string
           created_at?: string
           description: string
@@ -204,10 +207,12 @@ export type Database = {
           name: string
           price?: number
           status?: string
+          status_aprovacao?: string
           tags?: string[]
           updated_at?: string
         }
         Update: {
+          cadastrado_por?: string | null
           category?: string
           created_at?: string
           description?: string
@@ -219,6 +224,7 @@ export type Database = {
           name?: string
           price?: number
           status?: string
+          status_aprovacao?: string
           tags?: string[]
           updated_at?: string
         }
@@ -259,6 +265,7 @@ export type Database = {
           active: boolean
           created_at: string
           full_name: string
+          pode_cadastrar_produtos: boolean
           user_id: string
           username: string
         }
@@ -266,6 +273,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           full_name: string
+          pode_cadastrar_produtos?: boolean
           user_id: string
           username: string
         }
@@ -273,6 +281,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           full_name?: string
+          pode_cadastrar_produtos?: boolean
           user_id?: string
           username?: string
         }

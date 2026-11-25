@@ -539,10 +539,6 @@ export function ProductsPanel() {
   );
 }
 
-export function SellerProductForm({ sellerUserId, onClose, onSaved }: { sellerUserId: string; onClose: () => void; onSaved: () => Promise<void> }) {
-  return <ProductForm product={null} sellerMode sellerUserId={sellerUserId} onClose={onClose} onSaved={onSaved} />;
-}
-
 function ProductForm({
   product,
   onClose,
@@ -673,8 +669,8 @@ function ProductForm({
       image_key: imageKey,
       max_per_customer: sellerMode ? 0 : numericLimit,
     };
-    const { error } = sellerMode
-      ? await supabase.from("products").insert({ ...payload, status_aprovacao: "pendente", cadastrado_por: sellerUserId! })
+    const { error } = sellerMode && sellerUserId
+      ? await supabase.from("products").insert({ ...payload, status_aprovacao: "pendente", cadastrado_por: sellerUserId })
       : await supabase.from("products").upsert(payload);
     setBusy(false);
     if (error) toast.error("Não foi possível salvar o produto");
@@ -848,7 +844,6 @@ function ProductForm({
                   setFile(e.target.files?.[0] ?? null);
                   setSmartPhoto(null);
                   setSmartPreview(null);
-                  setPhotoNotice(null);
                 }}
               />
             </label>
