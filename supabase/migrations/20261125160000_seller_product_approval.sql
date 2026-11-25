@@ -6,8 +6,9 @@ alter table public.products
   add column if not exists status_aprovacao text not null default 'aprovado',
   add column if not exists cadastrado_por text;
 
-update public.products set status_aprovacao = 'aprovado'
-where status_aprovacao is null;
+update public.products
+set status_aprovacao = 'aprovado'
+where status_aprovacao is distinct from 'aprovado';
 
 alter table public.products
   alter column status_aprovacao set default 'aprovado',
@@ -70,6 +71,8 @@ drop policy if exists "Admins manage product approval status" on public.products
 drop policy if exists "Only admins update products" on public.products;
 drop policy if exists "Authenticated users can update products" on public.products;
 drop policy if exists "Admins can update products" on public.products;
+drop policy if exists "Anyone can update products" on public.products;
+drop policy if exists "Public can update products" on public.products;
 create policy "Only admins update products"
 on public.products for update to authenticated
 using (public.is_active_admin())
@@ -106,12 +109,10 @@ using (public.is_active_admin());
 alter table public.products enable row level security;
 alter table public.team_members enable row level security;
 
--- Evita acesso de escrita em produtos por políticas permissivas antigas.
+-- Remove políticas de escrita legadas comuns que poderiam liberar operações extras.
 drop policy if exists "Anyone can insert products" on public.products;
 drop policy if exists "Authenticated users can insert products" on public.products;
-drop policy if exists "Authenticated users can delete products" on public.products;
-drop policy if exists "Admins manage products" on public.products;
-drop policy if exists "Anyone can update products" on public.products;
-drop policy if exists "Public can update products" on public.products;
 drop policy if exists "Public can insert products" on public.products;
+drop policy if exists "Authenticated users can delete products" on public.products;
 drop policy if exists "Public can delete products" on public.products;
+drop policy if exists "Admins manage products" on public.products;
