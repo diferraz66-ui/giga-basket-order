@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Minus, Plus, Ruler, ShoppingCart, ZoomIn } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -28,8 +28,65 @@ export function ProductDetailsDialog({
   const { add, setQuantity, items, purchasedQuantities } = useCart();
   const [zoom, setZoom] = useState(1);
   const imageViewport = useRef<HTMLDivElement>(null);
-  const dragState = useRef<{ x: number; y: number; left: number; top: number; moved: boolean } | null>(null);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const gesture = useRef<{
+    mode: "idle" | "pan" | "pinch";
+    startDistance: number;
+    startZoom: number;
+    startMidpoint: { x: number; y: number };
+    startScroll: { left: number; top: number };
+    lastPoint: { x: number; y: number };
+    moved: boolean;
+  }>({
+    mode: "idle",
+    startDistance: 0,
+    startZoom: 1,
+    startMidpoint: { x: 0, y: 0 },
+    startScroll: { left: 0, top: 0 },
+    lastPoint: { x: 0, y: 0 },
+    moved: false,
+  });
   const suppressImageClick = useRef(false);
+  const lastTap = useRef(0);
+  const lastTapPoint = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setZoom(1);
+      pointers.current.clear();
+      gesture.current.mode = "idle";
+      if (imageViewport.current) {
+        imageViewport.current.scrollLeft = 0;
+        imageViewport.current.scrollTop = 0;
+      }
+    }
+  }, [product.id, open]);
+
+  function distance(a: { x: number; y: number }, b: { x: number; y: number }) {
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+
+  function midpoint(a: { x: number; y: number }, b: { x: number; y: number }) {
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  }
+
+  function applyTapZoom(clientX: number, clientY: number) {
+    const viewport = imageViewport.current;
+    if (!viewport) return;
+    const rect = viewport.getBoundingClientRect();
+    const nextZoom = zoom >= 1.9 ? 1 : 2;
+    const relativeX = Math.max(0, Math.min(rect.width, clientX - rect.left));
+    const relativeY = Math.max(0, Math.min(rect.height, clientY - rect.top));
+    const normalizedX = rect.width ? relativeX / rect.width : 0.5;
+    const normalizedY = rect.height ? relativeY / rect.height : 0.5;
+    setZoom(nextZoom);
+    requestAnimationFrame(() => {
+      const current = imageViewport.current;
+      if (!current) return;
+      current.scrollLeft = Math.max(0, normalizedX * current.scrollWidth - relativeX);
+      current.scrollTop = Math.max(0, normalizedY * current.scrollHeight - relativeY);
+    });
+  }
   const soldOut = product.status === "out_of_stock";
   const cartQuantity = items.find((item) => item.id === product.id)?.quantity ?? 0;
   const totalQuantity = cartQuantity + (purchasedQuantities[product.id] ?? 0);
@@ -60,44 +117,112 @@ export function ProductDetailsDialog({
             <div
               ref={imageViewport}
               className={`relative h-48 overflow-auto rounded-2xl border border-border bg-card sm:h-64 ${zoom > 1 ? "cursor-grab active:cursor-grabbing" : "cursor-zoom-in"}`}
-              style={{ touchAction: "none" }}
+              style={{ touchAction: zoom > 1 ? "none" : "pan-y" }}
               onPointerDown={(event) => {
                 const viewport = imageViewport.current;
-                if (!viewport || zoom <= 1) return;
-                dragState.current = {
-                  x: event.clientX,
-                  y: event.clientY,
-                  left: viewport.scrollLeft,
-                  top: viewport.scrollTop,
-                  moved: false,
-                };
-                viewport.setPointerCapture(event.pointerId);
+                if (!viewport) return;
+                event.currentTarget.setPointerCapture(event.pointerId);
+                const point = { x: event.clientX, y: event.clientY };
+                pointers.current.set(event.pointerId, point);
+                suppressImageClick.current = false;
+
+                if (pointers.current.size >= 2) {
+                  const [first, second] = [...pointers.current.values()];
+                  const center = midpoint(first, second);
+                  gesture.current = {
+                    ...gesture.current,
+                    mode: "pinch",
+                    startDistance: Math.max(1, distance(first, second)),
+                    startZoom: zoom,
+                    startMidpoint: center,
+                    startScroll: { left: viewport.scrollLeft, top: viewport.scrollTop },
+                    lastPoint: point,
+                    moved: false,
+                  };
+                } else if (zoom > 1) {
+                  gesture.current = {
+                    ...gesture.current,
+                    mode: "pan",
+                    startDistance: 0,
+                    startZoom: zoom,
+                    startMidpoint: point,
+                    startScroll: { left: viewport.scrollLeft, top: viewport.scrollTop },
+                    lastPoint: point,
+                    moved: false,
+                  };
+                } else {
+                  gesture.current = { ...gesture.current, mode: "idle", lastPoint: point, moved: false };
+                }
               }}
               onPointerMove={(event) => {
                 const viewport = imageViewport.current;
-                const drag = dragState.current;
-                if (!viewport || !drag) return;
-                const dx = event.clientX - drag.x;
-                const dy = event.clientY - drag.y;
-                if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
-                  drag.moved = true;
+                if (!viewport || !pointers.current.has(event.pointerId)) return;
+                const point = { x: event.clientX, y: event.clientY };
+                pointers.current.set(event.pointerId, point);
+
+                if (pointers.current.size >= 2) {
+                  const [first, second] = [...pointers.current.values()];
+                  const center = midpoint(first, second);
+                  const nextZoom = Math.max(1, Math.min(3, gesture.current.startZoom * (distance(first, second) / Math.max(1, gesture.current.startDistance))));
+                  const rect = viewport.getBoundingClientRect();
+                  const localX = center.x - rect.left;
+                  const localY = center.y - rect.top;
+                  const scaleRatio = nextZoom / Math.max(1, gesture.current.startZoom);
+                  viewport.scrollLeft = Math.max(0, (gesture.current.startScroll.left + gesture.current.startMidpoint.x - rect.left) * scaleRatio - localX);
+                  viewport.scrollTop = Math.max(0, (gesture.current.startScroll.top + gesture.current.startMidpoint.y - rect.top) * scaleRatio - localY);
+                  if (Math.abs(nextZoom - zoom) > 0.01) setZoom(nextZoom);
+                  gesture.current.moved = true;
                   suppressImageClick.current = true;
+                  return;
                 }
-                viewport.scrollLeft = drag.left - dx;
-                viewport.scrollTop = drag.top - dy;
+
+                if (gesture.current.mode === "pan" && zoom > 1) {
+                  const dx = point.x - gesture.current.lastPoint.x;
+                  const dy = point.y - gesture.current.lastPoint.y;
+                  if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+                    viewport.scrollLeft -= dx;
+                    viewport.scrollTop -= dy;
+                    gesture.current.moved = true;
+                    suppressImageClick.current = true;
+                  }
+                  gesture.current.lastPoint = point;
+                }
               }}
-              onPointerUp={() => {
-                dragState.current = null;
+              onPointerUp={(event) => {
+                pointers.current.delete(event.pointerId);
+                if (pointers.current.size === 1 && zoom > 1) {
+                  const remaining = [...pointers.current.values()][0];
+                  gesture.current.mode = "pan";
+                  gesture.current.lastPoint = remaining;
+                  const viewport = imageViewport.current;
+                  if (viewport) gesture.current.startScroll = { left: viewport.scrollLeft, top: viewport.scrollTop };
+                } else if (pointers.current.size === 0) {
+                  gesture.current.mode = "idle";
+                }
               }}
-              onPointerCancel={() => {
-                dragState.current = null;
+              onPointerCancel={(event) => {
+                pointers.current.delete(event.pointerId);
+                gesture.current.mode = pointers.current.size ? "pan" : "idle";
               }}
-              onClick={() => {
+              onClick={(event) => {
                 if (suppressImageClick.current) {
                   suppressImageClick.current = false;
                   return;
                 }
-                setZoom((value) => (value >= 2.5 ? 1 : Math.min(2.5, value + 0.5)));
+                const now = Date.now();
+                const previous = lastTap.current;
+                const previousPoint = lastTapPoint.current;
+                const isDoubleTap = now - previous < 320 && previousPoint !== null &&
+                  distance(previousPoint, { x: event.clientX, y: event.clientY }) < 32;
+                lastTap.current = now;
+                lastTapPoint.current = { x: event.clientX, y: event.clientY };
+                if (isDoubleTap || zoom > 1) {
+                  applyTapZoom(event.clientX, event.clientY);
+                  lastTap.current = 0;
+                  lastTapPoint.current = null;
+                } else {
+                  applyTapZoom(event.clientX, event.clientY);
+                }
               }}
             >
               <img
@@ -130,8 +255,8 @@ export function ProductDetailsDialog({
                 variant="outline"
                 size="icon"
                 aria-label="Aumentar zoom"
-                disabled={zoom >= 2.5}
-                onClick={() => setZoom((value) => Math.min(2.5, value + 0.5))}
+                disabled={zoom >= 3}
+                onClick={() => setZoom((value) => Math.min(3, value + 0.5))}
               >
                 <Plus />
               </Button>
