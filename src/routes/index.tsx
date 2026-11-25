@@ -238,7 +238,7 @@ function Catalog() {
         <p className="font-display text-sm font-extrabold text-white">GIGA SHOPPING</p>
         <p className="mt-1">Catálogo digital · Pedidos pelo WhatsApp</p>
         <img
-          src="/banner-pedido-minimo-pix.png"
+          src="/banner-pedido-minimo-pix.webp"
           alt="Pedido mínimo: R$ 75,00 (10 itens). Pagamento somente via Pix."
           className="mx-auto mt-4 block h-auto w-full max-w-xl object-contain"
         />
@@ -286,7 +286,7 @@ function MinimumOrderNotice() {
   return (
     <div className="border-y border-[#D4AF37]/50 bg-[#111827] px-3 py-1.5">
       <img
-        src="/banner-pedido-minimo-pix.png"
+        src="/banner-pedido-minimo-pix.webp"
         alt="Pedido mínimo: R$ 75,00 (10 itens). Pagamento somente via Pix."
         className="mx-auto block h-auto w-full max-w-4xl object-contain"
       />
