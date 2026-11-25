@@ -1,15 +1,12 @@
-import { useCallback, useEffect, useState, type FormEvent,  } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { categories, categoryLabel, type CategoryId } from "@/data/catalog";
-import { resolveProductImage } from "@/lib/products";
-import { SellerProductForm as SharedSellerProductForm } from "@/components/internal/ProductsPanel";
+import { useCallback, useEffect, useState } from "react";
 import { Check, Loader2, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { categoryLabel, type CategoryId } from "@/data/catalog";
+import { resolveProductImage } from "@/lib/products";
+import { SellerProductForm as SharedSellerProductForm } from "@/components/internal/ProductsPanel";
 type Seller = Pick<Tables<"team_members">, "user_id" | "full_name" | "username" | "active" | "pode_cadastrar_produtos">;
 type PendingProduct = Tables<"products"> & { seller_name?: string };
 
