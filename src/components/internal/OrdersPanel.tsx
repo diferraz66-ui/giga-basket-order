@@ -16,7 +16,9 @@ export function OrdersPanel({ role, targetOrder }: { role: StaffRole; targetOrde
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [receipt, setReceipt] = useState<Order | null>(null);
-  const [proof, setProof] = useState<Order | null>(null);\n  const [highlightedOrderNumber, setHighlightedOrderNumber] = useState<number | null>(null);\n  const [targetHandled, setTargetHandled] = useState(false);
+  const [proof, setProof] = useState<Order | null>(null);
+  const [highlightedOrderNumber, setHighlightedOrderNumber] = useState<number | null>(null);
+  const [targetHandled, setTargetHandled] = useState(false);
 
   const reload = useCallback(async () => {
     const [{ data, error }, { data: productRows, error: productError }] = await Promise.all([
@@ -34,7 +36,21 @@ export function OrdersPanel({ role, targetOrder }: { role: StaffRole; targetOrde
     void reload();
   }, [reload]);
 
-  useEffect(() => {\n    if (!targetOrder || loading || targetHandled) return;\n    const numericTarget = Number(targetOrder.replace(/^#/, ""));\n    const found = orders.find((order) => order.order_number === numericTarget || order.id === targetOrder);\n    if (found) {\n      setHighlightedOrderNumber(found.order_number);\n      setTargetHandled(true);\n      toast.success("Pedido localizado no painel");\n    } else if (orders.length > 0) {\n      setTargetHandled(true);\n      toast.warning("Pedido não encontrado");\n    }\n  }, [targetOrder, loading, targetHandled, orders]);\n\n  const active = useMemo(
+  useEffect(() => {
+    if (!targetOrder || loading || targetHandled) return;
+    const numericTarget = Number(targetOrder.replace(/^#/, ""));
+    const found = orders.find((order) => order.order_number === numericTarget || order.id === targetOrder);
+    if (found) {
+      setHighlightedOrderNumber(found.order_number);
+      setTargetHandled(true);
+      toast.success("Pedido localizado no painel");
+    } else if (orders.length > 0) {
+      setTargetHandled(true);
+      toast.warning("Pedido não encontrado");
+    }
+  }, [targetOrder, loading, targetHandled, orders]);
+
+  const active = useMemo(
     () =>
       orders.filter((order) => ["received", "in_progress", "awaiting_pix"].includes(order.status)),
     [orders],
