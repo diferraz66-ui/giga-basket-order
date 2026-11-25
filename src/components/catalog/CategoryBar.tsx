@@ -8,8 +8,8 @@ export function CategoryBar({
   onChange: (id: CategoryId | null) => void;
 }) {
   return (
-    <nav aria-label="Categorias" className="sticky top-0 z-40 bg-ink">
-      <div className="no-scrollbar mx-auto flex max-w-6xl gap-2 overflow-x-auto px-3 py-2.5 sm:px-5 lg:flex-wrap lg:overflow-visible">
+    <nav aria-label="Categorias" className="relative z-40 border-b border-[#D4AF37]/25 bg-[#111827]">
+      <div className="no-scrollbar mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-2.5 lg:flex-wrap lg:overflow-visible">
         <button
           onClick={() => onChange(null)}
           className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold uppercase transition-colors ${
