@@ -13,9 +13,18 @@ alter table public.products
   alter column status_aprovacao set default 'aprovado',
   alter column status_aprovacao set not null;
 
-alter table public.products
-  add constraint products_status_aprovacao_check
-  check (status_aprovacao in ('aprovado', 'pendente'));
+do $
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'products_status_aprovacao_check'
+      and conrelid = 'public.products'::regclass
+  ) then
+    alter table public.products
+      add constraint products_status_aprovacao_check
+      check (status_aprovacao in ('aprovado', 'pendente'));
+  end if;
+end $;
 
 create or replace function public.is_active_admin()
 returns boolean
@@ -57,8 +66,13 @@ revoke all on function public.can_submit_product() from public;
 grant execute on function public.is_active_admin() to authenticated;
 grant execute on function public.can_submit_product() to authenticated;
 
+-- A tabela pode ter políticas legadas permissivas; substituímos as políticas
+-- de escrita para garantir que vendedores não ganhem UPDATE/DELETE por outra regra.
 drop policy if exists "Admins manage product approval status" on public.products;
-create policy "Admins manage product approval status"
+drop policy if exists "Only admins update products" on public.products;
+drop policy if exists "Authenticated users can update products" on public.products;
+drop policy if exists "Admins can update products" on public.products;
+create policy "Only admins update products"
 on public.products for update to authenticated
 using (public.is_active_admin())
 with check (public.is_active_admin());
@@ -74,19 +88,17 @@ with check (
   and status = 'available'
 );
 
+-- Restringe a escrita em team_members ao Admin, inclusive os campos de permissão.
 drop policy if exists "Admins manage seller product permission" on public.team_members;
-create policy "Admins manage seller product permission"
+drop policy if exists "Only admins update team members" on public.team_members;
+drop policy if exists "Admins can update team members" on public.team_members;
+create policy "Only admins update team members"
 on public.team_members for update to authenticated
 using (public.is_active_admin())
 with check (public.is_active_admin());
 
--- Impede que vendedores alterem ou apaguem qualquer produto após o envio.
-drop policy if exists "Only admins update products" on public.products;
-create policy "Only admins update products"
-on public.products for update to authenticated
-using (public.is_active_admin())
-with check (public.is_active_admin());
-
+-- Escrita em produtos fica disponível somente para Admin, exceto o INSERT
+-- pendente e limitado aos vendedores autorizados definido acima.
 drop policy if exists "Only admins delete products" on public.products;
 create policy "Only admins delete products"
 on public.products for delete to authenticated
@@ -95,3 +107,9 @@ using (public.is_active_admin());
 -- RLS das duas tabelas deve estar ativa para que as políticas sejam aplicadas.
 alter table public.products enable row level security;
 alter table public.team_members enable row level security;
+
+-- Evita acesso de escrita em produtos por políticas permissivas antigas.
+drop policy if exists "Anyone can insert products" on public.products;
+drop policy if exists "Authenticated users can insert products" on public.products;
+drop policy if exists "Authenticated users can delete products" on public.products;
+drop policy if exists "Admins manage products" on public.products;
