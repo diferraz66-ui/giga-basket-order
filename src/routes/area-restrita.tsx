@@ -146,9 +146,11 @@ function StaffDashboard({ member, role }: { member: Tables<"team_members">; role
       <main className="mx-auto max-w-7xl px-3 py-6 sm:px-5">
         <Tabs
           defaultValue={
-            typeof window !== "undefined"
-              ? window.sessionStorage.getItem("giga-internal-active-tab") ?? "orders"
-              : "orders"
+            typeof window !== "undefined" && new URLSearchParams(window.location.search).has("pedido")
+              ? "orders"
+              : typeof window !== "undefined"
+                ? window.sessionStorage.getItem("giga-internal-active-tab") ?? "orders"
+                : "orders"
           }
           onValueChange={(value) => {
             window.sessionStorage.setItem("giga-internal-active-tab", value);
@@ -163,7 +165,7 @@ function StaffDashboard({ member, role }: { member: Tables<"team_members">; role
             {role === "admin" && <TabsTrigger value="banners" className="shrink-0 px-4 py-2.5">Banners Topo</TabsTrigger>}
             {role === "admin" && <TabsTrigger value="reviews" className="shrink-0 px-4 py-2.5">Avaliações</TabsTrigger>}
           </TabsList>
-          <TabsContent value="orders"><OrdersPanel role={role} /></TabsContent>
+          <TabsContent value="orders"><OrdersPanel role={role} targetOrder={typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("pedido") : null} /></TabsContent>
           {role === "admin" && <TabsContent value="products"><ProductsPanel /></TabsContent>}
           {role === "admin" && <TabsContent value="quick-control"><QuickControlPanel /></TabsContent>}
           {role === "admin" && <TabsContent value="customers"><CustomersPanel /></TabsContent>}
