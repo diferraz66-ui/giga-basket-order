@@ -198,7 +198,7 @@ function Catalog() {
         ) : (
           <>
             <TopBannerCarousel />
-            <section aria-label="Atalhos da loja" className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <section aria-label="Atalhos da loja" className="mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 no-scrollbar md:grid md:grid-cols-4 md:overflow-visible md:pb-0">
               <ShortcutCard icon={<MapPin className="size-6 text-[#DC2626]" />} title="Localização da Loja" action="Ver no mapa" onClick={() => window.open("https://www.google.com/maps/search/?api=1&query=Rua+Sete+de+Setembro+141+Centro+Santo+Antonio+de+Jesus+BA", "_blank", "noopener,noreferrer")} description="Rua Sete de Setembro, 141, Centro, Santo Antônio de Jesus - BA" />
               <ShortcutCard icon={<Trophy className="size-6 text-[#D4AF37]" />} title="Os 100 Mais Vendidos" action="Ver lista" onClick={() => setBestSellersOpen(true)} description="Ranking por vendas concluídas e seleção da equipe GIGA." />
               <ShortcutCard icon={<CreditCard className="size-6 text-[#111827]" />} title="Pagamento via Pix" action="Saiba mais" onClick={() => window.dispatchEvent(new CustomEvent("giga:show-pix-info"))} description="Pagamento exclusivo via Pix. Pedido mínimo de 10 itens ou R$ 75,00." />
@@ -297,7 +297,7 @@ function ShortcutCard({ icon, title, description, action, onClick }: {
   onClick: () => void;
 }) {
   return (
-    <article className="flex min-h-40 flex-col rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+    <article className="flex min-h-36 min-w-[230px] max-w-[250px] shrink-0 snap-start flex-col rounded-xl border border-gray-100 bg-white p-3.5 shadow-sm md:min-w-0 md:max-w-none md:p-4">
       <div className="flex items-center gap-2">{icon}<h3 className="text-sm font-extrabold text-[#111827]">{title}</h3></div>
       <p className="mt-2 flex-1 text-xs leading-relaxed text-gray-600">{description}</p>
       <button type="button" onClick={onClick} className="mt-3 w-fit rounded-lg bg-[#DC2626] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#B91C1C]">{action}</button>
