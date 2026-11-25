@@ -80,6 +80,7 @@ export function OrdersPanel({ role, targetOrder }: { role: StaffRole; targetOrde
               onReceipt={setReceipt}
               onProof={setProof}
               role={role}
+              highlighted={highlightedOrderNumber === order.order_number}
             />
           ))}
         </OrderColumn>
