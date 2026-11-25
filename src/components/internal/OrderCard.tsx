@@ -81,7 +81,7 @@ export function OrderCard({
   const [validationDetails, setValidationDetails] = useState<{ transaction_id: string | null; transaction_date: string | null; paid_amount: number | null; recipient_cnpj: string | null; recipient_name: string | null; recipient_bank: string | null } | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);\n  const cardRef = useRef<HTMLElement>(null);\n  useEffect(() => { if (highlighted) cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); }, [highlighted]);
   const uploadProof = useServerFn(uploadPaymentProof);
   const manualRelease = useServerFn(manualReleasePaymentProof);
 
@@ -321,7 +321,7 @@ export function OrderCard({
   }
 
   return (
-    <article className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+    <article ref={cardRef} className={`rounded-2xl border bg-card p-4 shadow-sm transition-all ${highlighted ? "border-primary ring-2 ring-primary/40" : "border-border"}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
