@@ -12,7 +12,7 @@ where status_aprovacao is null;
 alter table public.products
   alter column status_aprovacao set default 'aprovado',
   alter column status_aprovacao set not null;
-do $
+do $$
 begin
   if not exists (
     select 1 from pg_constraint
@@ -23,7 +23,6 @@ begin
       add constraint products_status_aprovacao_check
       check (status_aprovacao in ('aprovado', 'pendente'));
   end if;
-end $$;
 end $$;
 create or replace function public.is_active_admin()
 returns boolean
