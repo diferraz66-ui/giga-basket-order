@@ -310,6 +310,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_submit_product: { Args: never; Returns: boolean }
       cancel_order: {
         Args: { p_order_id: string; p_reason: string }
         Returns: {
@@ -401,6 +402,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_active_admin: { Args: never; Returns: boolean }
       update_order_items: {
         Args: { p_items: Json; p_order_id: string }
         Returns: {

@@ -41,3 +41,5 @@
 - [x] Visualização da vitrine em grade ou lista
 - [x] Testar os novos fluxos no celular, computador e Admin
 - [x] Reauditar todos os produtos nos modos grade/lista e nas duas larguras
+- [x] Conferir a main disponível localmente, aplicar a última atualização SQL de aprovação de produtos e recarregar a prévia
+- [ ] Confirmar o último commit remoto do GitHub — depende de Re-check em Project settings → Git; sincronização remota não disponível ao agente
