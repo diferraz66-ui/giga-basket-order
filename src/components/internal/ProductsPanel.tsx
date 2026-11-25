@@ -72,6 +72,10 @@ function safeFilename(filename: string) {
     .replace(/[^a-zA-Z0-9._-]/g, "-");
 }
 
+export function SellerProductForm({ sellerUserId, onClose, onSaved }: { sellerUserId: string; onClose: () => void; onSaved: () => Promise<void> }) {
+  return <ProductForm key={sellerUserId} product={null} onClose={onClose} onSaved={onSaved} sellerMode sellerUserId={sellerUserId} />;
+}
+
 export function ProductsPanel() {
   const [records, setRecords] = useState<RecordWithImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -628,7 +632,7 @@ function ProductForm({
       return;
     }
     setBusy(true);
-    const id = product?.id ?? productIdFromName(name);
+    const id = product?.id ?? (sellerMode ? `seller-${crypto.randomUUID()}` : productIdFromName(name));
     let imagePath = product?.image_url ?? null;
     let imageKey = product?.image_key ?? null;
     if (file) {
@@ -813,7 +817,7 @@ function ProductForm({
               Vazio ou 0: sem limite. O histórico de pedidos não cancelados conta no limite.
             </p>
           </div>
-          <div className="space-y-1.5">
+          {!sellerMode && <div className="space-y-1.5">
             <Label htmlFor="product-status">Status</Label>
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger id="product-status">
