@@ -97,7 +97,7 @@ export function CartSheet({ products }: { products: Product[] }) {
       if (error?.message.includes("Limite maximo")) {
         toast.error("Um produto atingiu o limite por cliente ao somar seus pedidos anteriores.");
       } else if (error?.message.includes("pedido minimo")) {
-        toast.error(`O pedido mínimo para compras online é de ${minimumItems} itens.`);
+        toast.error(`O pedido mínimo configurado é de ${minimumItems} itens. O banco de dados ainda precisa receber a validação dinâmica.`);
       } else {
         toast.error("Não foi possível registrar o pedido. Revise os dados e tente novamente.");
       }
