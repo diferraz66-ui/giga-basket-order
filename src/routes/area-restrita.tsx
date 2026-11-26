@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, KeyRound, Loader2, LockKeyhole, LogOut } from "lucide-react";
+import { ArrowLeft, KeyRound, Loader2, LockKeyhole, LogOut, Minus, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -139,6 +139,9 @@ function StaffDashboard({ member, role }: { member: Tables<"team_members">; role
   const [emailOpen, setEmailOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("orders");
   const [sellerAllowed, setSellerAllowed] = useState(false);
+  const [minimumItems, setMinimumItems] = useState(10);
+  const [savedMinimumItems, setSavedMinimumItems] = useState(10);
+  const [savingMinimum, setSavingMinimum] = useState(false);
   useEffect(() => {
     let active = true;
     async function refresh() {
@@ -154,6 +157,41 @@ function StaffDashboard({ member, role }: { member: Tables<"team_members">; role
     const allowed = role === "admin" ? ["orders", "products", "quick-control", "customers", "reports", "banners", "reviews", "authorizations"] : ["orders", ...(sellerAllowed ? ["seller-products"] : [])];
     setActiveTab(!new URLSearchParams(window.location.search).has("pedido") && saved && allowed.includes(saved) ? saved : "orders");
   }, [member.user_id, role, sellerAllowed]);
+  useEffect(() => {
+    if (role !== "admin") return;
+    let active = true;
+    async function loadMinimum() {
+      const { data, error } = await supabase.from("configuracoes_loja").select("limite_minimo_pedido").eq("id", 1).maybeSingle();
+      if (!active) return;
+      if (error) {
+        toast.error("Não foi possível carregar o pedido mínimo.");
+        return;
+      }
+      const value = Number(data?.limite_minimo_pedido ?? 10);
+      const safeValue = Number.isInteger(value) && value >= 1 ? value : 10;
+      setMinimumItems(safeValue);
+      setSavedMinimumItems(safeValue);
+    }
+    void loadMinimum();
+    return () => { active = false; };
+  }, [role]);
+
+  async function saveMinimumItems() {
+    if (!Number.isInteger(minimumItems) || minimumItems < 1 || minimumItems > 500) {
+      toast.error("Informe um mínimo entre 1 e 500 itens.");
+      return;
+    }
+    setSavingMinimum(true);
+    const { error } = await supabase.from("configuracoes_loja").upsert({ id: 1, limite_minimo_pedido: minimumItems });
+    setSavingMinimum(false);
+    if (error) {
+      toast.error("Não foi possível salvar o pedido mínimo.");
+      return;
+    }
+    setSavedMinimumItems(minimumItems);
+    toast.success(`Pedido mínimo atualizado para ${minimumItems} itens.`);
+  }
+
   async function logout() { await signOut(); toast.success("Você saiu da área restrita"); }
   return (
     <div className="min-h-screen bg-background">
@@ -171,6 +209,21 @@ function StaffDashboard({ member, role }: { member: Tables<"team_members">; role
             window.sessionStorage.setItem(`giga-internal-active-tab:${member.user_id}`, value);
           }}
         >
+          {role === "admin" && <section className="mb-5 rounded-2xl border border-border bg-card p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-display text-sm font-extrabold uppercase">Pedido mínimo da loja</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Defina quantas unidades o cliente precisa colocar no carrinho para liberar a finalização.</p>
+                <p className="mt-1 text-sm font-bold">Limite atual: {savedMinimumItems} itens</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" size="icon" aria-label="Diminuir pedido mínimo" disabled={minimumItems <= 1 || savingMinimum} onClick={() => setMinimumItems(value => Math.max(1, value - 1))}><Minus /></Button>
+                <Input className="w-20 text-center font-bold" type="number" min="1" max="500" value={minimumItems} onChange={event => setMinimumItems(Number(event.target.value))} aria-label="Quantidade mínima de itens" />
+                <Button type="button" variant="outline" size="icon" aria-label="Aumentar pedido mínimo" disabled={minimumItems >= 500 || savingMinimum} onClick={() => setMinimumItems(value => Math.min(500, value + 1))}><Plus /></Button>
+                <Button type="button" variant="cta" disabled={savingMinimum || minimumItems === savedMinimumItems} onClick={() => void saveMinimumItems()}>{savingMinimum ? <Loader2 className="animate-spin" /> : <Save />} Salvar</Button>
+              </div>
+            </div>
+          </section>}
           <TabsList className="no-scrollbar mb-5 flex h-auto w-full justify-start gap-1 overflow-x-auto bg-muted p-1">
             <TabsTrigger value="orders" className="shrink-0 px-4 py-2.5">Pedidos</TabsTrigger>
             {role === "admin" && <TabsTrigger value="products" className="shrink-0 px-4 py-2.5">Produtos e Estoque</TabsTrigger>}
