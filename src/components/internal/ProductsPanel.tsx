@@ -647,9 +647,9 @@ function ProductForm({
       const paths: Array<string | null> = [null, null, null];
       for (let slot = 0; slot < 3; slot += 1) {
         const index = photoOrder[slot];
-        if (removedExisting[index]) continue;
-        const existingPath = existingImages[index];
         const selectedFile = selectedFiles[index];
+        const existingPath = existingImages[index];
+        if (removedExisting[index] && !selectedFile) continue;
         if (selectedFile) {
           const path = `${sellerMode ? `${sellerUserId}/` : ""}${id}/${crypto.randomUUID()}-${safeFilename(selectedFile.name)}`;
           const { error } = await supabase.storage.from("product-images").upload(path, selectedFile, { contentType: selectedFile.type });
