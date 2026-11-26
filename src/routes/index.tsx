@@ -139,44 +139,27 @@ function Catalog() {
   );
   const sequenceById = useMemo(() => new Map(products.map((product, index) => [product.id, index + 1])), [products]);
   const firstName = profile?.full_name.split(" ")[0];
+  const [publishedToastQueue, setPublishedToastQueue] = useState<Array<{ id: string; name: string }>>([]);
 
   useEffect(() => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id || !profile) return;
     let active = true;
     const channel = supabase
       .channel(`giga-published-products-${session.user.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "products", filter: "status_aprovacao=eq.aprovado" }, payload => {
         const row = payload.new as { id?: string; name?: string; status_aprovacao?: string };
         if (!active || row.status_aprovacao !== "aprovado" || !row.id) return;
-        toast("Novo produto na GIGA!", {
-          description: row.name ? `${row.name} acabou de chegar na vitrine.` : "Confira a novidade na vitrine.",
-          duration: 6500,
-          action: { label: "Ver produto", onClick: () => {
-            const node = document.querySelector(`[data-product-id="${CSS.escape(row.id!)}"]`);
-            node?.scrollIntoView({ behavior: "smooth", block: "center" });
-            node?.classList.add("ring-4", "ring-primary");
-            window.setTimeout(() => node?.classList.remove("ring-4", "ring-primary"), 2200);
-          } },
-        });
+        setPublishedToastQueue(queue => queue.some(item => item.id === row.id) ? queue : [...queue, { id: row.id!, name: row.name ?? "Novo produto" }]);
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "products", filter: "status_aprovacao=eq.aprovado" }, payload => {
         const row = payload.new as { id?: string; name?: string; status_aprovacao?: string };
         const old = payload.old as { status_aprovacao?: string };
         if (!active || row.status_aprovacao !== "aprovado" || old.status_aprovacao === "aprovado" || !row.id) return;
-        toast("Novo produto aprovado!", {
-          description: row.name ? `${row.name} agora está disponível na vitrine.` : "Um produto novo foi liberado.",
-          duration: 6500,
-          action: { label: "Ver produto", onClick: () => {
-            const node = document.querySelector(`[data-product-id="${CSS.escape(row.id!)}"]`);
-            node?.scrollIntoView({ behavior: "smooth", block: "center" });
-            node?.classList.add("ring-4", "ring-primary");
-            window.setTimeout(() => node?.classList.remove("ring-4", "ring-primary"), 2200);
-          } },
-        });
+        setPublishedToastQueue(queue => queue.some(item => item.id === row.id) ? queue : [...queue, { id: row.id!, name: row.name ?? "Produto aprovado" }]);
       })
       .subscribe();
     return () => { active = false; void supabase.removeChannel(channel); };
-  }, [session?.user?.id]);
+  }, [session?.user?.id, profile]);
 
   const bestSellers = useMemo(() => {
     const tagged = products.filter((product) => product.tags.includes("mais-vendido"));
@@ -330,6 +313,27 @@ function Catalog() {
         </div>
         <a href="/area-restrita" className="mt-5 inline-block text-white/50 underline underline-offset-4 hover:text-white">Área Restrita</a>
       </footer>
+      {publishedToastQueue.length > 0 && (
+        <div className="fixed bottom-24 right-4 z-[70] flex w-[min(92vw,360px)] flex-col gap-2" aria-live="polite">
+          {publishedToastQueue.slice(0, 2).map(item => (
+            <div key={item.id} className="flex items-center gap-3 rounded-2xl border border-primary/30 bg-card p-3 shadow-xl">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xl">🛍️</div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-extrabold uppercase">Novidade na GIGA</p>
+                <p className="truncate text-sm text-muted-foreground">{item.name}</p>
+              </div>
+              <button type="button" className="shrink-0 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground" onClick={() => {
+                const node = document.querySelector(`[data-product-id="${CSS.escape(item.id)}"]`);
+                node?.scrollIntoView({ behavior: "smooth", block: "center" });
+                node?.classList.add("ring-4", "ring-primary");
+                window.setTimeout(() => node?.classList.remove("ring-4", "ring-primary"), 2200);
+                setPublishedToastQueue(queue => queue.filter(entry => entry.id !== item.id));
+              }}>Ver produto</button>
+              <button type="button" aria-label="Fechar notificação" className="text-muted-foreground" onClick={() => setPublishedToastQueue(queue => queue.filter(entry => entry.id !== item.id))}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
       <CartSheet products={products} />
       <StoreWelcomeDialog />
       <StoreInfoDialogs />
@@ -340,7 +344,7 @@ function Catalog() {
 function MinimumOrderNotice() {
   return (
     <div className="flex justify-center bg-ink px-3 py-1.5">
-      <MinimumOrderCapsule />
+      <MinimumOrderCapsule minimumItems={10} />
     </div>
   );
 }
