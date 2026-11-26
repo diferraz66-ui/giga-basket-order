@@ -34,24 +34,28 @@ const validTags: ProductTag[] = ["oferta", "mais-vendido", "novidade", "destaque
 export async function resolveProductImage(
   row: Pick<Tables<"products">, "id" | "image_key" | "image_url" | "imagens"> & { status_aprovacao?: string },
 ) {
-  if (row.image_url) {
-    if (/^https?:\/\//.test(row.image_url)) return row.image_url;
+  const paths = [row.image_url, ...(row.imagens ?? [])].filter((value): value is string => Boolean(value)).slice(0, 3);
+  if (paths.length) {
     try {
       const fetchImage = row.status_aprovacao === "pendente" ? getPendingProductImageUrl : getProductImageUrl;
-      const { imageUrl } = await fetchImage({ data: { productId: row.id } });
-      if (imageUrl) return imageUrl;
+      const signed = await Promise.all(paths.map(async path => {
+        if (/^https?:\/\//.test(path)) return path;
+        const { imageUrl } = await fetchImage({ data: { productId: row.id } });
+        return imageUrl;
+      }));
+      const valid = signed.filter((value): value is string => Boolean(value));
+      if (valid.length) return valid;
     } catch {
       // Keep the bundled fallback when a private photo is unavailable.
     }
   }
-  return (
-    (row.image_key && productImages[row.image_key]) ||
-    fallbackProducts.find((product) => product.id === row.id)?.image ||
-    logoAsset.url
-  );
+  const fallback = (row.image_key && productImages[row.image_key]) ||
+    fallbackProducts.find((product) => product.id === row.id)?.image || logoAsset.url;
+  return [fallback];
 }
 
-export function mapProduct(row: Tables<"products">, image: string): Product {
+export function mapProduct(row: Tables<"products">, images: string[]): Product {
+  const [image, ...gallery] = images.length ? images : [logoAsset.url];
   return {
     id: row.id,
     name: row.name,
@@ -60,7 +64,7 @@ export function mapProduct(row: Tables<"products">, image: string): Product {
     image,
     imageKey: row.image_key,
     imagePath: row.image_url,
-    images: row.imagens ?? [],
+    images: gallery,
     dimensions: row.dimensions,
     status:
       row.status === "out_of_stock" || row.status === "hidden"
