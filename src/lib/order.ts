@@ -1,6 +1,3 @@
-export const MINIMUM_ORDER_TOTAL = 75;
-export const REFERENCE_UNIT_PRICE = 7.5;
-
 export type CartItem = {
   id: string;
   name: string;
@@ -31,7 +28,7 @@ export function cartTotal(items: CartItem[]) {
   return Math.round(items.reduce((sum, i) => sum + i.price * i.quantity, 0) * 100) / 100;
 }
 
-export function minimumOrderProgress(total: number, itemCount: number, minimumItems = 10) {
+export function minimumOrderProgress(_total: number, itemCount: number, minimumItems = 10) {
   const remaining = Math.max(0, minimumItems - itemCount);
   return {
     reached: itemCount >= minimumItems,
