@@ -31,6 +31,7 @@ export function CartSheet({ products }: { products: Product[] }) {
     items,
     add,
     purchasedQuantities,
+    count,
     total,
     open,
     setOpen,
