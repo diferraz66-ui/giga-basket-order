@@ -32,7 +32,7 @@ export const productImages: Record<string, string> = {
 const validTags: ProductTag[] = ["oferta", "mais-vendido", "novidade", "destaque"];
 
 export async function resolveProductImage(
-  row: Pick<Tables<"products">, "id" | "image_key" | "image_url"> & { status_aprovacao?: string },
+  row: Pick<Tables<"products">, "id" | "image_key" | "image_url" | "imagens"> & { status_aprovacao?: string },
 ) {
   if (row.image_url) {
     if (/^https?:\/\//.test(row.image_url)) return row.image_url;
@@ -60,6 +60,7 @@ export function mapProduct(row: Tables<"products">, image: string): Product {
     image,
     imageKey: row.image_key,
     imagePath: row.image_url,
+    images: row.imagens ?? [],
     dimensions: row.dimensions,
     status:
       row.status === "out_of_stock" || row.status === "hidden"
