@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { TopBannerCarousel } from "@/components/catalog/TopBannerCarousel";
 import { MinimumOrderCapsule } from "@/components/catalog/MinimumOrderCapsule";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -56,7 +57,7 @@ function Index() {
 }
 
 function Catalog() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const { products } = useCatalogProducts();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<CategoryId | null>(null);
@@ -64,6 +65,23 @@ function Catalog() {
   const [view, setView] = useState<CatalogView>("grid");
   const [reviews, setReviews] = useState<Tables<"product_reviews">[]>([]);
   const [salesByProduct, setSalesByProduct] = useState<Record<string, number>>({});
+  const [minimumItems, setMinimumItems] = useState(10);
+
+  useEffect(() => {
+    let active = true;
+    async function loadMinimum() {
+      const { data } = await supabase.from("configuracoes_loja").select("limite_minimo_pedido").eq("id", 1).maybeSingle();
+      const value = Number(data?.limite_minimo_pedido ?? 10);
+      if (active && Number.isInteger(value) && value >= 1) setMinimumItems(value);
+    }
+    void loadMinimum();
+    const channel = supabase.channel("giga-catalog-minimum")
+      .on("postgres_changes", { event: "*", schema: "public", table: "configuracoes_loja", filter: "id=eq.1" }, payload => {
+        const value = Number((payload.new as { limite_minimo_pedido?: number })?.limite_minimo_pedido);
+        if (Number.isInteger(value) && value >= 1) setMinimumItems(value);
+      }).subscribe();
+    return () => { active = false; void supabase.removeChannel(channel); };
+  }, []);
 
   useEffect(() => {
     let current = true;
@@ -121,6 +139,44 @@ function Catalog() {
   );
   const sequenceById = useMemo(() => new Map(products.map((product, index) => [product.id, index + 1])), [products]);
   const firstName = profile?.full_name.split(" ")[0];
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    let active = true;
+    const channel = supabase
+      .channel(`giga-published-products-${session.user.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "products", filter: "status_aprovacao=eq.aprovado" }, payload => {
+        const row = payload.new as { id?: string; name?: string; status_aprovacao?: string };
+        if (!active || row.status_aprovacao !== "aprovado" || !row.id) return;
+        toast("Novo produto na GIGA!", {
+          description: row.name ? `${row.name} acabou de chegar na vitrine.` : "Confira a novidade na vitrine.",
+          duration: 6500,
+          action: { label: "Ver produto", onClick: () => {
+            const node = document.querySelector(`[data-product-id="${CSS.escape(row.id!)}"]`);
+            node?.scrollIntoView({ behavior: "smooth", block: "center" });
+            node?.classList.add("ring-4", "ring-primary");
+            window.setTimeout(() => node?.classList.remove("ring-4", "ring-primary"), 2200);
+          } },
+        });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "products", filter: "status_aprovacao=eq.aprovado" }, payload => {
+        const row = payload.new as { id?: string; name?: string; status_aprovacao?: string };
+        const old = payload.old as { status_aprovacao?: string };
+        if (!active || row.status_aprovacao !== "aprovado" || old.status_aprovacao === "aprovado" || !row.id) return;
+        toast("Novo produto aprovado!", {
+          description: row.name ? `${row.name} agora está disponível na vitrine.` : "Um produto novo foi liberado.",
+          duration: 6500,
+          action: { label: "Ver produto", onClick: () => {
+            const node = document.querySelector(`[data-product-id="${CSS.escape(row.id!)}"]`);
+            node?.scrollIntoView({ behavior: "smooth", block: "center" });
+            node?.classList.add("ring-4", "ring-primary");
+            window.setTimeout(() => node?.classList.remove("ring-4", "ring-primary"), 2200);
+          } },
+        });
+      })
+      .subscribe();
+    return () => { active = false; void supabase.removeChannel(channel); };
+  }, [session?.user?.id]);
 
   const bestSellers = useMemo(() => {
     const tagged = products.filter((product) => product.tags.includes("mais-vendido"));
@@ -239,7 +295,7 @@ function Catalog() {
         <p className="font-display text-sm font-extrabold text-white">GIGA SHOPPING</p>
         <p className="mt-1">Catálogo digital · Pedidos pelo WhatsApp</p>
         <div className="mt-4 flex justify-center">
-          <MinimumOrderCapsule />
+          <MinimumOrderCapsule minimumItems={minimumItems} />
         </div>
         <section className="mx-auto mt-8 max-w-6xl text-left">
           <h2 className="mb-3 text-center font-display text-lg font-extrabold uppercase text-white sm:text-xl">CLIENTES SATISFEITOS · AVALIAÇÕES REAIS</h2>
