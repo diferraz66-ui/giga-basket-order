@@ -38,7 +38,8 @@ export async function resolveProductImage(
   if (paths.length) {
     try {
       const fetchImage = row.status_aprovacao === "pendente" ? getPendingProductImageUrl : getProductImageUrl;
-      const { imageUrl } = await fetchImage({ data: { productId: row.id } });
+      const { imageUrl, imageUrls } = await fetchImage({ data: { productId: row.id } });
+      if (imageUrls?.length) return imageUrls;
       if (imageUrl) return [imageUrl];
     } catch {
       // Keep the bundled fallback when a private photo is unavailable.
