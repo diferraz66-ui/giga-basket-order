@@ -39,7 +39,6 @@ export function CartSheet({ products }: { products: Product[] }) {
     remove,
     clear,
     refreshPurchased,
-    count,
     minimumItems,
   } = useCart();
   const { session, profile } = useAuth();
