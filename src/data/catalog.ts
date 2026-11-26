@@ -38,6 +38,7 @@ export type Product = {
   image: string;
   imageKey?: string | null;
   imagePath?: string | null;
+  images?: string[];
   dimensions: string;
   status: "available" | "out_of_stock" | "hidden";
   maxPerCustomer: number;
