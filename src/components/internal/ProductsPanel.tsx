@@ -563,6 +563,7 @@ function ProductForm({
   const [selectedFiles, setSelectedFiles] = useState<Array<File | null>>([null, null, null]);
   const [removedExisting, setRemovedExisting] = useState<boolean[]>([false, false, false]);
   const [previews, setPreviews] = useState<Array<string | null>>([null, null, null]);
+  const [photoOrder, setPhotoOrder] = useState<number[]>([0, 1, 2]);
   const [busy, setBusy] = useState(false);
   const [processingIndex, setProcessingIndex] = useState<number | null>(null);
   const cameraRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
@@ -608,23 +609,11 @@ function ProductForm({
 
   function makeMainImage(index: number) {
     if (index === 0) return;
-    setSelectedFiles(current => {
+    setPhotoOrder(current => {
       const next = [...current];
       const [selected] = next.splice(index, 1);
       next.unshift(selected);
-      return [...next, null, null].slice(0, 3);
-    });
-    setPreviews(current => {
-      const next = [...current];
-      const [selected] = next.splice(index, 1);
-      next.unshift(selected);
-      return [...next, null, null].slice(0, 3);
-    });
-    setRemovedExisting(current => {
-      const next = [...current];
-      const [selected] = next.splice(index, 1);
-      next.unshift(selected);
-      return [...next, false, false].slice(0, 3);
+      return next;
     });
   }
 
@@ -656,7 +645,8 @@ function ProductForm({
     const uploadedPaths: string[] = [];
     try {
       const paths: Array<string | null> = [null, null, null];
-      for (let index = 0; index < 3; index += 1) {
+      for (let slot = 0; slot < 3; slot += 1) {
+        const index = photoOrder[slot];
         if (removedExisting[index]) continue;
         const existingPath = existingImages[index];
         const selectedFile = selectedFiles[index];
@@ -665,9 +655,9 @@ function ProductForm({
           const { error } = await supabase.storage.from("product-images").upload(path, selectedFile, { contentType: selectedFile.type });
           if (error) throw error;
           uploadedPaths.push(path);
-          paths[index] = path;
+          paths[slot] = path;
         } else if (existingPath) {
-          paths[index] = existingPath;
+          paths[slot] = existingPath;
         }
       }
       const normalizedPaths = paths.filter((value): value is string => Boolean(value)).slice(0, 3);
@@ -712,11 +702,12 @@ function ProductForm({
             <p className="text-xs text-muted-foreground">Adicione até 3 fotos. A primeira é a principal. Use a câmera ou a galeria. As imagens são otimizadas sem remoção de fundo por IA.</p>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {[0, 1, 2].map(index => {
+            {[0, 1, 2].map(slot => {
+              const index = photoOrder[slot];
               const preview = previews[index];
-              const path = existingImages[index];
+              const path = removedExisting[index] ? null : existingImages[index];
               return <div key={index} className="space-y-2 rounded-xl border border-border bg-background p-2">
-                <p className="text-xs font-bold">{index === 0 ? "Foto principal" : `Foto adicional ${index + 1}`}</p>
+                <p className="text-xs font-bold">{slot === 0 ? "Foto principal" : `Foto adicional ${slot + 1}`}</p>
                 <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg border border-dashed bg-card">
                   {preview ? <img src={preview} alt={`Prévia da foto ${index + 1}`} className="size-full object-contain" />
                     : path && /^https?:\/\//.test(path) ? <img src={path} alt={`Foto atual ${index + 1}`} className="size-full object-contain" />
@@ -728,7 +719,7 @@ function ProductForm({
                   <Button type="button" size="sm" variant="outline" onClick={() => cameraRefs[index].current?.click()} disabled={busy || processingIndex !== null}><Camera /> Câmera</Button>
                   <Button type="button" size="sm" variant="outline" onClick={() => galleryRefs[index].current?.click()} disabled={busy || processingIndex !== null}><Images /> Galeria</Button>
                 </div>
-                {index > 0 && (path || preview) && <Button type="button" size="sm" variant="ghost" className="w-full" onClick={() => makeMainImage(index)} disabled={busy}>Tornar principal</Button>}
+                {slot > 0 && (path || preview) && <Button type="button" size="sm" variant="ghost" className="w-full" onClick={() => makeMainImage(slot)} disabled={busy}>Tornar principal</Button>}
                 <Button type="button" size="sm" variant="ghost" className="w-full" onClick={() => removeSelectedImage(index)} disabled={(!preview && !path) || busy}>Remover foto</Button>
                 {processingIndex === index && <p className="text-center text-xs text-muted-foreground">Otimizando...</p>}
               </div>;
