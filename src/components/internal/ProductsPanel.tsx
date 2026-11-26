@@ -9,7 +9,6 @@ import {
   Pencil,
   Plus,
   Trash2,
-  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -807,7 +806,7 @@ function ProductForm({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" variant="cta" disabled={busy || processingSmartPhoto}>
+            <Button type="submit" variant="cta" disabled={busy || processingIndex !== null}>
               {busy && <Loader2 className="animate-spin" />}{" "}
               {busy ? "Enviando..." : sellerMode ? "Enviar para aprovação" : "Salvar produto"}
             </Button>
