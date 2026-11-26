@@ -49,7 +49,7 @@ export function ProductCard({
 
   if (layout === "list") {
     return (
-      <article className="grid grid-cols-[80px_minmax(0,1fr)_104px] items-center gap-2 rounded-2xl border border-border bg-card p-3 shadow-sm sm:grid-cols-[144px_minmax(0,1fr)_180px] sm:gap-4">
+      <article data-product-id={product.id} className="grid grid-cols-[80px_minmax(0,1fr)_104px] items-center gap-2 rounded-2xl border border-border bg-card p-3 shadow-sm transition-shadow sm:grid-cols-[144px_minmax(0,1fr)_180px] sm:gap-4">
         <button
           type="button"
           onClick={() => setDetailsOpen(true)}
@@ -138,7 +138,7 @@ export function ProductCard({
   }
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+    <article data-product-id={product.id} className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow">
       <button
         type="button"
         onClick={() => setDetailsOpen(true)}
