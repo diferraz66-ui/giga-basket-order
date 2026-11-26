@@ -655,15 +655,20 @@ function ProductForm({
     const id = product?.id ?? (sellerMode ? `seller-${crypto.randomUUID()}` : productIdFromName(name));
     const uploadedPaths: string[] = [];
     try {
-      const paths = existingImages.map((path, index) => removedExisting[index] ? null : path);
-      for (let index = 0; index < selectedFiles.length; index += 1) {
-        const file = selectedFiles[index];
-        if (!file) continue;
-        const path = `${sellerMode ? `${sellerUserId}/` : ""}${id}/${crypto.randomUUID()}-${safeFilename(file.name)}`;
-        const { error } = await supabase.storage.from("product-images").upload(path, file, { contentType: file.type });
-        if (error) throw error;
-        uploadedPaths.push(path);
-        paths[index] = path;
+      const paths: Array<string | null> = [null, null, null];
+      for (let index = 0; index < 3; index += 1) {
+        if (removedExisting[index]) continue;
+        const existingPath = existingImages[index];
+        const selectedFile = selectedFiles[index];
+        if (selectedFile) {
+          const path = `${sellerMode ? `${sellerUserId}/` : ""}${id}/${crypto.randomUUID()}-${safeFilename(selectedFile.name)}`;
+          const { error } = await supabase.storage.from("product-images").upload(path, selectedFile, { contentType: selectedFile.type });
+          if (error) throw error;
+          uploadedPaths.push(path);
+          paths[index] = path;
+        } else if (existingPath) {
+          paths[index] = existingPath;
+        }
       }
       const normalizedPaths = paths.filter((value): value is string => Boolean(value)).slice(0, 3);
       const imagePath = normalizedPaths[0] ?? null;
