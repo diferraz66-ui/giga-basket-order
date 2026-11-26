@@ -199,7 +199,7 @@ function Catalog() {
     <div className="flex min-h-screen flex-col bg-cover bg-center bg-fixed bg-no-repeat" style={{ backgroundImage: "url('/bg-giga-red.webp')" }}>
       <div className="sticky top-0 z-50">
         <CatalogHeader query={query} onQueryChange={setQuery} products={products} />
-        <MinimumOrderNotice />
+        <MinimumOrderNotice minimumItems={minimumItems} />
         <CategoryBar active={category} onChange={(value) => { setCategory(value); setBestSellersOpen(false); }} />
       </div>
 
@@ -355,7 +355,7 @@ function Catalog() {
   );
 }
 
-function MinimumOrderNotice() {
+function MinimumOrderNotice({ minimumItems }: { minimumItems: number }) {
   return (
     <div className="flex justify-center bg-ink px-3 py-1.5">
       <MinimumOrderCapsule minimumItems={minimumItems} />
