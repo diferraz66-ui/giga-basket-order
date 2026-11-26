@@ -120,6 +120,13 @@
       "when": 1795735978717,
       "tag": "0016_restrict_store_settings_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795737060711,
+      "tag": "0017_order_minimum_quantity_and_products_full_identity",
+      "breakpoints": true
     }
   ]
 }

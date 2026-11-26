@@ -50,3 +50,5 @@
 - [x] Criar estrutura de configurações com mínimo padrão 10 e leitura pública/edição Admin, sem alterar a interface
 - [x] Adicionar até três imagens por produto e ativar Realtime preservando as permissões existentes
 - [x] Verificar as novas regras diretamente no banco
+- [x] Validar novos pedidos pela quantidade mínima configurável, sem trava monetária fixa, preservando a interface
+- [x] Configurar REPLICA IDENTITY FULL em produtos e verificar as duas alterações no banco real
