@@ -143,7 +143,16 @@ function Catalog() {
   useEffect(() => {
     if (!session?.user?.id || !profile) return;
     let active = true;
-    const channel = supabase
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    async function subscribeForCustomers() {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id);
+      if (!active || roles?.some(item => item.role === "admin" || item.role === "vendedor")) return;
+
+      channel = supabase
       .channel(`giga-published-products-${session.user.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "products", filter: "status_aprovacao=eq.aprovado" }, payload => {
         const row = payload.new as { id?: string; name?: string; status_aprovacao?: string };
@@ -153,11 +162,17 @@ function Catalog() {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "products", filter: "status_aprovacao=eq.aprovado" }, payload => {
         const row = payload.new as { id?: string; name?: string; status_aprovacao?: string };
         const old = payload.old as { status_aprovacao?: string };
-        if (!active || row.status_aprovacao !== "aprovado" || old.status_aprovacao === "aprovado" || !row.id) return;
+        if (!active || row.status_aprovacao !== "aprovado" || !old.status_aprovacao || old.status_aprovacao === "aprovado" || !row.id) return;
         setPublishedToastQueue(queue => queue.some(item => item.id === row.id) ? queue : [...queue, { id: row.id!, name: row.name ?? "Produto aprovado" }]);
       })
       .subscribe();
-    return () => { active = false; void supabase.removeChannel(channel); };
+    }
+
+    void subscribeForCustomers();
+    return () => {
+      active = false;
+      if (channel) void supabase.removeChannel(channel);
+    };
   }, [session?.user?.id, profile]);
 
   const bestSellers = useMemo(() => {
