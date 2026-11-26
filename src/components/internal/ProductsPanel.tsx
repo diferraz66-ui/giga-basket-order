@@ -558,27 +558,21 @@ function ProductForm({
   const [price, setPrice] = useState(sellerMode ? String(UNIQUE_PRICE).replace(".", ",") : String(product?.price ?? UNIQUE_PRICE).replace(".", ","));
   const [category, setCategory] = useState(product?.category ?? "cozinha");
   const [dimensions, setDimensions] = useState(product?.dimensions ?? "");
-  const [maxPerCustomer, setMaxPerCustomer] = useState(
-    product?.max_per_customer ? String(product.max_per_customer) : "",
-  );
+  const [maxPerCustomer, setMaxPerCustomer] = useState(product?.max_per_customer ? String(product.max_per_customer) : "");
   const [status, setStatus] = useState(product?.status ?? "available");
   const [tags, setTags] = useState<ProductTag[]>((product?.tags ?? []) as ProductTag[]);
-  const [file, setFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<Array<File | null>>([null, null, null]);
+  const [previews, setPreviews] = useState<Array<string | null>>([null, null, null]);
   const [busy, setBusy] = useState(false);
-  const cameraInput = useRef<HTMLInputElement>(null);
-  const galleryInput = useRef<HTMLInputElement>(null);
-  const [smartPhoto, setSmartPhoto] = useState<File | null>(null);
-  const [smartPreview, setSmartPreview] = useState<string | null>(null);
-  const [smartPhotoConfirmed, setSmartPhotoConfirmed] = useState(Boolean(product));
-  const [processingSmartPhoto, setProcessingSmartPhoto] = useState(false);
+  const [processingIndex, setProcessingIndex] = useState<number | null>(null);
+  const inputRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+  const existingImages = [product?.image_url ?? null, ...(product?.imagens ?? [])].filter((value): value is string => Boolean(value)).slice(0, 3);
 
   useEffect(() => {
-    return () => {
-      if (smartPreview) URL.revokeObjectURL(smartPreview);
-    };
-  }, [smartPreview]);
+    return () => previews.forEach(preview => { if (preview) URL.revokeObjectURL(preview); });
+  }, [previews]);
 
-  async function selectSmartPhoto(event: ChangeEvent<HTMLInputElement>) {
+  async function selectImage(index: number, event: ChangeEvent<HTMLInputElement>) {
     const selected = event.target.files?.[0];
     event.target.value = "";
     if (!selected) return;
@@ -586,26 +580,27 @@ function ProductForm({
       toast.error("Selecione uma imagem válida de até 20 MB.");
       return;
     }
-    setProcessingSmartPhoto(true);
+    setProcessingIndex(index);
     try {
       const optimized = await optimizeProductImage(selected);
-      setSmartPhoto(optimized);
-      setFile(optimized);
-      setSmartPreview(URL.createObjectURL(optimized));
-      setSmartPhotoConfirmed(true);
+      setSelectedFiles(current => current.map((file, i) => i === index ? optimized : file));
+      setPreviews(current => {
+        if (current[index]) URL.revokeObjectURL(current[index]!);
+        return current.map((preview, i) => i === index ? URL.createObjectURL(optimized) : preview);
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível preparar a foto.");
     } finally {
-      setProcessingSmartPhoto(false);
+      setProcessingIndex(null);
     }
   }
 
-  function discardSmartPhoto() {
-    setSmartPhoto(null);
-    setFile(null);
-    setSmartPreview(null);
-
-    if (!product) setSmartPhotoConfirmed(false);
+  function removeSelectedImage(index: number) {
+    setSelectedFiles(current => current.map((file, i) => i === index ? null : file));
+    setPreviews(current => {
+      if (current[index]) URL.revokeObjectURL(current[index]!);
+      return current.map((preview, i) => i === index ? null : preview);
+    });
   }
 
   async function submit(event: FormEvent) {
@@ -616,19 +611,14 @@ function ProductForm({
       toast.error("O limite por cliente deve ser um número inteiro igual ou maior que zero");
       return;
     }
-    if (
-      !name.trim() ||
-      !description.trim() ||
-      (!sellerMode && !dimensions.trim()) ||
-      !Number.isFinite(numericPrice) ||
-      numericPrice < 0 ||
-      (sellerMode && (!file || !sellerUserId))
-    ) {
-      toast.error(sellerMode ? "Preencha nome, descrição, categoria e selecione uma foto." : "Preencha nome, descrição, dimensões e um preço válido");
+    if (!name.trim() || !description.trim() || (!sellerMode && !dimensions.trim()) ||
+      !Number.isFinite(numericPrice) || numericPrice < 0 ||
+      (sellerMode && (!sellerUserId || (!existingImages.length && !selectedFiles.some(Boolean))))) {
+      toast.error(sellerMode ? "Preencha nome, descrição, categoria e selecione ao menos uma foto." : "Preencha nome, descrição, dimensões e um preço válido");
       return;
     }
-    if (file && (file.size > 5 * 1024 * 1024 || !file.type.startsWith("image/"))) {
-      toast.error("Escolha uma imagem de até 5 MB");
+    if (selectedFiles.some(file => file && file.size > 5 * 1024 * 1024)) {
+      toast.error("Cada imagem deve ter até 5 MB.");
       return;
     }
     setBusy(true);
@@ -638,53 +628,45 @@ function ProductForm({
       return;
     }
     const id = product?.id ?? (sellerMode ? `seller-${crypto.randomUUID()}` : productIdFromName(name));
-    let imagePath = product?.image_url ?? null;
-    let imageKey = product?.image_key ?? null;
-    if (file) {
-      let optimized: File;
-      try {
-        optimized = smartPhoto === file ? file : await optimizeProductImage(file);
-      } catch {
-        setBusy(false);
-        toast.error("Não foi possível otimizar a foto. Escolha outra imagem.");
-        return;
+    const uploadedPaths: string[] = [];
+    try {
+      const paths = [...existingImages];
+      for (let index = 0; index < selectedFiles.length; index += 1) {
+        const file = selectedFiles[index];
+        if (!file) continue;
+        const path = `${sellerMode ? `${sellerUserId}/` : ""}${id}/${crypto.randomUUID()}-${safeFilename(file.name)}`;
+        const { error } = await supabase.storage.from("product-images").upload(path, file, { contentType: file.type });
+        if (error) throw error;
+        uploadedPaths.push(path);
+        paths[index] = path;
       }
-      const path = `${sellerMode ? `${sellerUserId}/` : ""}${id}/${crypto.randomUUID()}-${safeFilename(optimized.name)}`;
-      const { error } = await supabase.storage
-        .from("product-images")
-        .upload(path, optimized, { contentType: optimized.type });
-      if (error) {
-        setBusy(false);
-        toast.error("Não foi possível enviar a foto");
-        return;
-      }
-      imagePath = path;
-      imageKey = null;
-    }
-    const payload = {
-      id,
-      name: name.trim(),
-      description: description.trim(),
-      price: numericPrice,
-      category,
-      dimensions: dimensions.trim(),
-      status: sellerMode ? "available" : status,
-      tags: sellerMode ? [] : tags,
-      image_url: imagePath,
-      image_key: imageKey,
-      max_per_customer: sellerMode ? 0 : numericLimit,
-    };
-    const { error } = sellerMode && sellerUserId
-      ? await supabase.from("products").insert({ ...payload, ...sellerSubmissionFields(sellerUserId) })
-      : await supabase.from("products").upsert(payload);
-    setBusy(false);
-    if (error) {
-      if (imagePath && imagePath !== product?.image_url) await supabase.storage.from("product-images").remove([imagePath]);
-      toast.error("Não foi possível salvar o produto. Confira se sua autorização continua ativa.");
-    }
-    else {
+      const normalizedPaths = paths.filter((value): value is string => Boolean(value)).slice(0, 3);
+      const imagePath = normalizedPaths[0] ?? null;
+      const payload = {
+        id,
+        name: name.trim(),
+        description: description.trim(),
+        price: numericPrice,
+        category,
+        dimensions: dimensions.trim(),
+        status: sellerMode ? "available" : status,
+        tags: sellerMode ? [] : tags,
+        image_url: imagePath,
+        image_key: null,
+        imagens: normalizedPaths.slice(1),
+        max_per_customer: sellerMode ? 0 : numericLimit,
+      };
+      const { error } = sellerMode && sellerUserId
+        ? await supabase.from("products").insert({ ...payload, ...sellerSubmissionFields(sellerUserId) })
+        : await supabase.from("products").upsert(payload);
+      if (error) throw error;
       toast.success(sellerMode ? "Produto enviado com sucesso! Aguardando validação do Admin para aparecer na vitrine." : product ? "Produto atualizado" : "Produto cadastrado");
       await onSaved();
+    } catch (error) {
+      if (uploadedPaths.length) await supabase.storage.from("product-images").remove(uploadedPaths);
+      toast.error(error instanceof Error ? error.message : "Não foi possível salvar o produto. Confira se sua autorização continua ativa.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -695,70 +677,34 @@ function ProductForm({
           <DialogTitle>{sellerMode ? "Incluir Produto" : product ? "Editar produto" : "Novo produto"}</DialogTitle>
         </DialogHeader>
         <section className="space-y-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <p className="font-display text-sm font-extrabold uppercase">Foto do produto</p>
-              <p className="text-xs text-muted-foreground">Tire uma foto ou escolha uma imagem da galeria. A foto será otimizada antes do envio.</p>
-            </div>
-            <span className="rounded-full bg-background px-3 py-1 text-[10px] font-bold text-primary">800 × 800 · WebP/JPEG</span>
+          <div>
+            <p className="font-display text-sm font-extrabold uppercase">Fotos do produto</p>
+            <p className="text-xs text-muted-foreground">Adicione até 3 fotos. A primeira é a principal. Use a câmera ou a galeria. As imagens são otimizadas sem remoção de fundo por IA.</p>
           </div>
-          <Button type="button" variant="cta" className="h-11 w-full" onClick={() => galleryInput.current?.click()} disabled={processingSmartPhoto || busy}>
-            <Images className="size-4" /> 📸 Foto do Produto (Câmera / Galeria)
-          </Button>
-          <div className="grid grid-cols-2 gap-2">
-            <Button type="button" variant="outline" onClick={() => cameraInput.current?.click()} disabled={processingSmartPhoto || busy}>
-              <Camera className="size-4" /> Tirar foto
-            </Button>
-            <Button type="button" variant="outline" onClick={() => galleryInput.current?.click()} disabled={processingSmartPhoto || busy}>
-              <Images className="size-4" /> Escolher da galeria
-            </Button>
-          </div>
-          <input ref={cameraInput} type="file" accept="image/*" capture="environment" className="sr-only" onChange={(event) => void selectSmartPhoto(event)} aria-label="Tirar foto do produto com a câmera traseira" />
-          <input ref={galleryInput} type="file" accept="image/*" className="sr-only" onChange={(event) => void selectSmartPhoto(event)} aria-label="Escolher foto do produto na galeria" />
-          {processingSmartPhoto && (
-            <div role="status" className="flex items-center gap-3 rounded-xl bg-background p-3 text-sm">
-              <Loader2 className="size-5 shrink-0 animate-spin text-primary" />
-              <div className="min-w-0 flex-1 space-y-2">
-                <span className="block">Otimizando imagem...</span>
-                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                  <div className="h-full w-2/3 animate-pulse rounded-full bg-primary" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {[0, 1, 2].map(index => {
+              const preview = previews[index];
+              const path = existingImages[index];
+              return <div key={index} className="space-y-2 rounded-xl border border-border bg-background p-2">
+                <p className="text-xs font-bold">{index === 0 ? "Foto principal" : `Foto adicional ${index + 1}`}</p>
+                <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg border border-dashed bg-card">
+                  {preview ? <img src={preview} alt={`Prévia da foto ${index + 1}`} className="size-full object-contain" />
+                    : path && /^https?:\/\//.test(path) ? <img src={path} alt={`Foto atual ${index + 1}`} className="size-full object-contain" />
+                    : <span className="px-2 text-center text-xs text-muted-foreground">{path ? "Foto armazenada" : "Sem foto"}</span>}
                 </div>
-              </div>
-            </div>
-          )}
-          {smartPreview && (
-            <div className="space-y-3 rounded-xl border border-border bg-background p-3">
-              <div className="mx-auto aspect-square w-full max-w-[280px] overflow-hidden rounded-lg border border-border bg-card">
-                <img src={smartPreview} alt="Prévia da foto do produto" className="size-full object-contain" />
-              </div>
-              {!smartPhotoConfirmed && !product ? (
-                <>
-                  <p className="text-center text-sm font-bold">A foto e o recorte ficaram corretos?</p>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <Button type="button" className="bg-green-600 text-white hover:bg-green-700" onClick={() => {
-                      if (smartPhoto) {
-                        setFile(smartPhoto);
-                        setSmartPhotoConfirmed(true);
-                        toast.success("Foto selecionada. Agora preencha os dados do produto.");
-                      }
-                    }}>
-                      SIM, USAR ESTA FOTO
-                    </Button>
-                    <Button type="button" variant="destructive" onClick={discardSmartPhoto}>
-                      NÃO, NOVA FOTO / GALERIA
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <p className="text-center text-sm font-semibold text-foreground">Foto selecionada para este produto</p>
-              )}
-            </div>
-          )}
-          {!product && !smartPhotoConfirmed && !smartPreview && !processingSmartPhoto && (
-            <p className="text-center text-xs text-muted-foreground">Depois de confirmar a foto, o formulário de cadastro será liberado.</p>
-          )}
+                <input ref={inputRefs[index]} type="file" accept="image/*" capture={index === 0 ? "environment" : undefined} className="sr-only" onChange={event => void selectImage(index, event)} aria-label={`Escolher foto ${index + 1}`} />
+                <div className="grid grid-cols-2 gap-1">
+                  <Button type="button" size="sm" variant="outline" onClick={() => inputRefs[index].current?.click()} disabled={busy || processingIndex !== null}>
+                    {index === 0 ? <Camera /> : <Images />} {path || preview ? "Substituir" : "Adicionar"}
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => removeSelectedImage(index)} disabled={!preview || busy}>Remover</Button>
+                </div>
+                {processingIndex === index && <p className="text-center text-xs text-muted-foreground">Otimizando...</p>}
+              </div>;
+            })}
+          </div>
+          <p className="text-xs text-muted-foreground">Até 800 × 800 pixels, WebP/JPEG. Máximo de 5 MB por imagem.</p>
         </section>
-        {((sellerMode && !smartPhotoConfirmed) || (!sellerMode && !product && !smartPhotoConfirmed)) ? null : (
         <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="product-name">Nome</Label>
@@ -888,7 +834,6 @@ function ProductForm({
             </Button>
           </div>
         </form>
-        )}
       </DialogContent>
     </Dialog>
   );
