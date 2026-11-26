@@ -38,13 +38,15 @@ export function CartSheet({ products }: { products: Product[] }) {
     remove,
     clear,
     refreshPurchased,
+    count,
+    minimumItems,
   } = useCart();
   const { session, profile } = useAuth();
   const [busy, setBusy] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [done, setDone] = useState<{ number: number; link: string; message: string } | null>(null);
-  const progress = minimumOrderProgress(total);
+  const progress = minimumOrderProgress(total, count, minimumItems);
 
   const identity: CheckoutIdentity | null =
     session && profile
@@ -95,7 +97,7 @@ export function CartSheet({ products }: { products: Product[] }) {
       if (error?.message.includes("Limite maximo")) {
         toast.error("Um produto atingiu o limite por cliente ao somar seus pedidos anteriores.");
       } else if (error?.message.includes("pedido minimo")) {
-        toast.error("O pedido mínimo para compras online é R$ 75,00.");
+        toast.error(`O pedido mínimo para compras online é de ${minimumItems} itens.`);
       } else {
         toast.error("Não foi possível registrar o pedido. Revise os dados e tente novamente.");
       }
@@ -271,7 +273,7 @@ export function CartSheet({ products }: { products: Product[] }) {
                   className={`rounded-xl p-3 ${progress.reached ? "bg-whatsapp/10" : "bg-card"}`}
                 >
                   <div className="mb-2 flex items-center justify-between gap-2 text-xs font-bold">
-                    <span>Pedido mínimo: {formatBRL(75)}</span>
+                    <span>Pedido mínimo: {minimumItems} itens</span>
                     <span>{Math.round(progress.percent)}%</span>
                   </div>
                   <Progress
@@ -284,7 +286,7 @@ export function CartSheet({ products }: { products: Product[] }) {
                   >
                     {progress.reached
                       ? "✅ Pedido mínimo atingido! Você já pode finalizar sua compra."
-                      : `Faltam ${formatBRL(progress.remaining)} — escolha mais ${progress.itemsRemaining} ${progress.itemsRemaining === 1 ? "item" : "itens"} para atingir o pedido mínimo!`}
+                      : `Faltam ${progress.itemsRemaining} ${progress.itemsRemaining === 1 ? "item" : "itens"} para atingir o pedido mínimo!`}
                   </p>
                 </div>
                 <div className="flex items-baseline justify-between">
