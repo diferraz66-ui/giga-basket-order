@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { categoryLabel, type CategoryId } from "@/data/catalog";
-import { resolveProductImage } from "@/lib/products";
+import { resolvePrimaryProductImage } from "@/lib/products";
 import { SellerProductForm } from "@/components/internal/ProductsPanel";
 type Seller = Pick<Tables<"team_members">, "user_id" | "full_name" | "username" | "active" | "pode_cadastrar_produtos">;
 type PendingProduct = Tables<"products"> & { seller_name?: string };
@@ -41,7 +41,7 @@ export function ProductAuthorizationsPanel() {
     const nameById = new Map((names ?? []).map((item) => [item.user_id, item.full_name]));
     const withNames = pendingList.map((product) => ({ ...product, seller_name: product.cadastrado_por ? nameById.get(product.cadastrado_por) ?? "Vendedor não identificado" : "Admin" }));
     setPending(withNames);
-    const imageEntries = await Promise.all(withNames.map(async (product) => [product.id, await resolveProductImage(product)] as const));
+    const imageEntries = await Promise.all(withNames.map(async (product) => [product.id, await resolvePrimaryProductImage(product)] as const));
     setImages(Object.fromEntries(imageEntries));
     setLoading(false);
   }, []);

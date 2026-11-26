@@ -33,7 +33,7 @@ import {
   type ProductTag,
 } from "@/data/catalog";
 import { formatBRL } from "@/lib/order";
-import { assignActiveProductNumbers, fetchAllProductRows, resolveProductImage } from "@/lib/products";
+import { assignActiveProductNumbers, fetchAllProductRows, resolvePrimaryProductImage } from "@/lib/products";
 import { optimizeProductImage } from "@/lib/product-image";
 import { sellerSubmissionFields } from "@/lib/product-submission";
 import {
@@ -94,7 +94,7 @@ export function ProductsPanel() {
   const reload = useCallback(async () => {
     try {
       const data = await fetchAllProductRows();
-      setRecords(await Promise.all(data.map(async (product) => ({ product, image: await resolveProductImage(product) }))));
+      setRecords(await Promise.all(data.map(async (product) => ({ product, image: await resolvePrimaryProductImage(product) }))));
     } catch {
       toast.error("Não foi possível carregar os produtos");
     } finally {
@@ -588,7 +588,8 @@ function ProductForm({
       setSelectedFiles(current => current.map((file, i) => i === index ? optimized : file));
       setRemovedExisting(current => current.map((removed, i) => i === index ? false : removed));
       setPreviews(current => {
-        if (current[index]) URL.revokeObjectURL(current[index]!);
+        const previous = current[index];
+        if (previous) URL.revokeObjectURL(previous);
         return current.map((preview, i) => i === index ? URL.createObjectURL(optimized) : preview);
       });
     } catch (error) {
@@ -602,7 +603,8 @@ function ProductForm({
     setSelectedFiles(current => current.map((file, i) => i === index ? null : file));
     setRemovedExisting(current => current.map((removed, i) => i === index ? true : removed));
     setPreviews(current => {
-      if (current[index]) URL.revokeObjectURL(current[index]!);
+      const previous = current[index];
+      if (previous) URL.revokeObjectURL(previous);
       return current.map((preview, i) => i === index ? null : preview);
     });
   }
@@ -611,7 +613,9 @@ function ProductForm({
     if (index === 0) return;
     setPhotoOrder(current => {
       const next = [...current];
+      if (next[index] === undefined) return current;
       const [selected] = next.splice(index, 1);
+      if (selected === undefined) return current;
       next.unshift(selected);
       return next;
     });
@@ -647,6 +651,7 @@ function ProductForm({
       const paths: Array<string | null> = [null, null, null];
       for (let slot = 0; slot < 3; slot += 1) {
         const index = photoOrder[slot];
+        if (index === undefined) continue;
         const selectedFile = selectedFiles[index];
         const existingPath = existingImages[index];
         if (removedExisting[index] && !selectedFile) continue;
@@ -704,6 +709,7 @@ function ProductForm({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {[0, 1, 2].map(slot => {
               const index = photoOrder[slot];
+              if (index === undefined) return null;
               const preview = previews[index];
               const path = removedExisting[index] ? null : existingImages[index];
               return <div key={index} className="space-y-2 rounded-xl border border-border bg-background p-2">
@@ -716,8 +722,8 @@ function ProductForm({
                 <input ref={cameraRefs[index]} type="file" accept="image/*" capture="environment" className="sr-only" onChange={event => void selectImage(index, event)} aria-label={`Tirar foto ${index + 1}`} />
                 <input ref={galleryRefs[index]} type="file" accept="image/*" className="sr-only" onChange={event => void selectImage(index, event)} aria-label={`Escolher foto ${index + 1} da galeria`} />
                 <div className="grid grid-cols-2 gap-1">
-                  <Button type="button" size="sm" variant="outline" onClick={() => cameraRefs[index].current?.click()} disabled={busy || processingIndex !== null}><Camera /> Câmera</Button>
-                  <Button type="button" size="sm" variant="outline" onClick={() => galleryRefs[index].current?.click()} disabled={busy || processingIndex !== null}><Images /> Galeria</Button>
+                  <Button type="button" size="sm" variant="outline" onClick={() => cameraRefs[index]?.current?.click()} disabled={busy || processingIndex !== null}><Camera /> Câmera</Button>
+                  <Button type="button" size="sm" variant="outline" onClick={() => galleryRefs[index]?.current?.click()} disabled={busy || processingIndex !== null}><Images /> Galeria</Button>
                 </div>
                 {slot > 0 && (path || preview) && <Button type="button" size="sm" variant="ghost" className="w-full" onClick={() => makeMainImage(slot)} disabled={busy}>Tornar principal</Button>}
                 <Button type="button" size="sm" variant="ghost" className="w-full" onClick={() => removeSelectedImage(index)} disabled={(!preview && !path) || busy}>Remover foto</Button>

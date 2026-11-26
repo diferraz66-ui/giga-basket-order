@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { categories, categoryLabel, type CategoryId } from "@/data/catalog";
 import { formatBRL } from "@/lib/order";
-import { assignActiveProductNumbers, fetchAllProductRows, resolveProductImage } from "@/lib/products";
+import { assignActiveProductNumbers, fetchAllProductRows, resolvePrimaryProductImage } from "@/lib/products";
 
 type ProductRowType = Tables<"products">;
 
@@ -26,7 +26,7 @@ export function QuickControlPanel() {
   const reload = useCallback(async () => {
     try {
       const data = await fetchAllProductRows();
-      setRecords(await Promise.all(data.map(async (product) => ({ product, image: images.current.get(product.id) ?? (await resolveProductImage(product)), saving: false }))));
+      setRecords(await Promise.all(data.map(async (product) => ({ product, image: images.current.get(product.id) ?? (await resolvePrimaryProductImage(product)), saving: false }))));
     } catch {
       toast.error("Não foi possível carregar os produtos");
     } finally {

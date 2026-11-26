@@ -141,34 +141,37 @@ function Catalog() {
   const [publishedToastQueue, setPublishedToastQueue] = useState<Array<{ id: string; name: string }>>([]);
 
   useEffect(() => {
-    if (!session?.user?.id || !profile) return;
+    const userId = session?.user?.id;
+    if (!userId || !profile) return;
     let active = true;
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    async function subscribeForCustomers() {
+    async function subscribeForCustomers(customerId: string) {
       const { data: roles } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", session.user.id);
+        .eq("user_id", customerId);
       if (!active || roles?.some(item => item.role === "admin" || item.role === "vendedor")) return;
 
       channel = supabase
-      .channel(`giga-published-products-${session.user.id}`)
+      .channel(`giga-published-products-${customerId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "products", filter: "status_aprovacao=eq.aprovado" }, payload => {
         const row = payload.new as { id?: string; name?: string; status_aprovacao?: string };
         if (!active || row.status_aprovacao !== "aprovado" || !row.id) return;
-        setPublishedToastQueue(queue => queue.some(item => item.id === row.id) ? queue : [...queue, { id: row.id!, name: row.name ?? "Novo produto" }]);
+        const id = row.id;
+        setPublishedToastQueue(queue => queue.some(item => item.id === id) ? queue : [...queue, { id, name: row.name ?? "Novo produto" }]);
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "products", filter: "status_aprovacao=eq.aprovado" }, payload => {
         const row = payload.new as { id?: string; name?: string; status_aprovacao?: string };
         const old = payload.old as { status_aprovacao?: string };
         if (!active || row.status_aprovacao !== "aprovado" || !old.status_aprovacao || old.status_aprovacao === "aprovado" || !row.id) return;
-        setPublishedToastQueue(queue => queue.some(item => item.id === row.id) ? queue : [...queue, { id: row.id!, name: row.name ?? "Produto aprovado" }]);
+        const id = row.id;
+        setPublishedToastQueue(queue => queue.some(item => item.id === id) ? queue : [...queue, { id, name: row.name ?? "Produto aprovado" }]);
       })
       .subscribe();
     }
 
-    void subscribeForCustomers();
+    void subscribeForCustomers(userId);
     return () => {
       active = false;
       if (channel) void supabase.removeChannel(channel);

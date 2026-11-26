@@ -50,8 +50,14 @@ export async function resolveProductImage(
   return [fallback];
 }
 
+export async function resolvePrimaryProductImage(row: Parameters<typeof resolveProductImage>[0]) {
+  const images = await resolveProductImage(row);
+  return images[0] ?? logoAsset.url;
+}
+
 export function mapProduct(row: Tables<"products">, images: string[]): Product {
-  const [image, ...gallery] = images.length ? images : [logoAsset.url];
+  const image = images[0] ?? logoAsset.url;
+  const gallery = images.slice(1);
   return {
     id: row.id,
     name: row.name,
