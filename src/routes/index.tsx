@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/dialog";
 import { TopBannerCarousel } from "@/components/catalog/TopBannerCarousel";
 import { MinimumOrderCapsule } from "@/components/catalog/MinimumOrderCapsule";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -344,7 +343,7 @@ function Catalog() {
 function MinimumOrderNotice() {
   return (
     <div className="flex justify-center bg-ink px-3 py-1.5">
-      <MinimumOrderCapsule minimumItems={10} />
+      <MinimumOrderCapsule minimumItems={minimumItems} />
     </div>
   );
 }
