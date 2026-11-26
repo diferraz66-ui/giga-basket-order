@@ -32,7 +32,7 @@ function Label({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function MinimumOrderCapsule({ className = "" }: { className?: string }) {
+export function MinimumOrderCapsule({ className = "", minimumItems = 10 }: { className?: string; minimumItems?: number }) {
   return (
     <div
       className={`inline-flex max-w-full flex-row flex-nowrap items-center justify-center gap-[0.28em] whitespace-nowrap rounded-full border border-primary/70 bg-ink/40 px-[0.75em] py-[0.42em] leading-none tracking-[-0.02em] backdrop-blur-sm text-[length:clamp(6.6px,2.05vw,12px)] sm:min-h-9 sm:gap-[0.55em] sm:px-[1.2em] lg:min-h-10 ${className}`}
@@ -40,7 +40,7 @@ export function MinimumOrderCapsule({ className = "" }: { className?: string }) 
       <span className="flex shrink-0 items-center justify-center gap-[0.28em] whitespace-nowrap sm:gap-[0.55em]">
         <ShoppingCart className="size-[1.4em] shrink-0 text-ink-foreground" />
         <Label>Pedido mínimo:</Label>
-        <Badge>R$ 75,00 (10 itens)</Badge>
+        <Badge>{minimumItems} itens</Badge>
       </span>
 
       <span
