@@ -29,6 +29,7 @@ type CartContextValue = {
   remove: (id: string) => void;
   clear: () => void;
   refreshPurchased: () => Promise<void>;
+  minimumItems: number;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -40,6 +41,34 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [purchasedQuantities, setPurchasedQuantities] = useState<Record<string, number>>({});
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [minimumItems, setMinimumItems] = useState(10);
+
+  useEffect(() => {
+    let active = true;
+    async function loadMinimum() {
+      const { data } = await supabase
+        .from("configuracoes_loja")
+        .select("limite_minimo_pedido")
+        .eq("id", 1)
+        .maybeSingle();
+      if (active && data) {
+        const value = Number(data.limite_minimo_pedido);
+        if (Number.isInteger(value) && value >= 1) setMinimumItems(value);
+      }
+    }
+    void loadMinimum();
+    const channel = supabase
+      .channel("giga-store-minimum")
+      .on("postgres_changes", { event: "*", schema: "public", table: "configuracoes_loja", filter: "id=eq.1" }, (payload) => {
+        const value = Number((payload.new as { limite_minimo_pedido?: number })?.limite_minimo_pedido);
+        if (Number.isInteger(value) && value >= 1) setMinimumItems(value);
+      })
+      .subscribe();
+    return () => {
+      active = false;
+      void supabase.removeChannel(channel);
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -87,6 +116,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     () => ({
       items,
       purchasedQuantities,
+      minimumItems,
       count: items.reduce((n, i) => n + i.quantity, 0),
       total: cartTotal(items),
       open,
@@ -142,7 +172,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       clear: () => setItems([]),
       refreshPurchased,
     }),
-    [items, open, purchasedQuantities, refreshPurchased],
+    [items, open, purchasedQuantities, refreshPurchased, minimumItems],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
