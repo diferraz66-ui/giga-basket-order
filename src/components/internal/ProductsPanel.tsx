@@ -784,27 +784,6 @@ function ProductForm({
               </SelectContent>
             </Select>
           </div>}
-          {!sellerMode && <div className="space-y-1.5">
-            <Label htmlFor="product-photo">Nova foto (até 5 MB)</Label>
-            <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input px-3 text-sm text-muted-foreground">
-              <Upload className="size-4" />
-              <span className="truncate">{file?.name ?? "Escolher imagem"}</span>
-              <input
-                id="product-photo"
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                onChange={(e) => {
-                  setFile(e.target.files?.[0] ?? null);
-                  setSmartPhoto(null);
-                  setSmartPreview(null);
-                }}
-              />
-            </label>
-            <p className="text-xs text-muted-foreground">
-              Reduzida para até 800 × 800 e comprimida automaticamente.
-            </p>
-          </div>}
           {!sellerMode && <fieldset className="sm:col-span-2">
             <legend className="mb-2 text-sm font-medium">Seções da vitrine</legend>
             <div className="grid grid-cols-2 gap-3">
