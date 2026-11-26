@@ -561,6 +561,7 @@ function ProductForm({
   const [status, setStatus] = useState(product?.status ?? "available");
   const [tags, setTags] = useState<ProductTag[]>((product?.tags ?? []) as ProductTag[]);
   const [selectedFiles, setSelectedFiles] = useState<Array<File | null>>([null, null, null]);
+  const [removedExisting, setRemovedExisting] = useState<boolean[]>([false, false, false]);
   const [previews, setPreviews] = useState<Array<string | null>>([null, null, null]);
   const [busy, setBusy] = useState(false);
   const [processingIndex, setProcessingIndex] = useState<number | null>(null);
@@ -584,6 +585,7 @@ function ProductForm({
     try {
       const optimized = await optimizeProductImage(selected);
       setSelectedFiles(current => current.map((file, i) => i === index ? optimized : file));
+      setRemovedExisting(current => current.map((removed, i) => i === index ? false : removed));
       setPreviews(current => {
         if (current[index]) URL.revokeObjectURL(current[index]!);
         return current.map((preview, i) => i === index ? URL.createObjectURL(optimized) : preview);
@@ -597,9 +599,32 @@ function ProductForm({
 
   function removeSelectedImage(index: number) {
     setSelectedFiles(current => current.map((file, i) => i === index ? null : file));
+    setRemovedExisting(current => current.map((removed, i) => i === index ? true : removed));
     setPreviews(current => {
       if (current[index]) URL.revokeObjectURL(current[index]!);
       return current.map((preview, i) => i === index ? null : preview);
+    });
+  }
+
+  function makeMainImage(index: number) {
+    if (index === 0) return;
+    setSelectedFiles(current => {
+      const next = [...current];
+      const [selected] = next.splice(index, 1);
+      next.unshift(selected);
+      return [...next, null, null].slice(0, 3);
+    });
+    setPreviews(current => {
+      const next = [...current];
+      const [selected] = next.splice(index, 1);
+      next.unshift(selected);
+      return [...next, null, null].slice(0, 3);
+    });
+    setRemovedExisting(current => {
+      const next = [...current];
+      const [selected] = next.splice(index, 1);
+      next.unshift(selected);
+      return [...next, false, false].slice(0, 3);
     });
   }
 
@@ -630,7 +655,7 @@ function ProductForm({
     const id = product?.id ?? (sellerMode ? `seller-${crypto.randomUUID()}` : productIdFromName(name));
     const uploadedPaths: string[] = [];
     try {
-      const paths = [...existingImages];
+      const paths = existingImages.map((path, index) => removedExisting[index] ? null : path);
       for (let index = 0; index < selectedFiles.length; index += 1) {
         const file = selectedFiles[index];
         if (!file) continue;
@@ -698,7 +723,8 @@ function ProductForm({
                   <Button type="button" size="sm" variant="outline" onClick={() => cameraRefs[index].current?.click()} disabled={busy || processingIndex !== null}><Camera /> Câmera</Button>
                   <Button type="button" size="sm" variant="outline" onClick={() => galleryRefs[index].current?.click()} disabled={busy || processingIndex !== null}><Images /> Galeria</Button>
                 </div>
-                <Button type="button" size="sm" variant="ghost" className="w-full" onClick={() => removeSelectedImage(index)} disabled={!preview || busy}>Remover foto escolhida</Button>
+                {index > 0 && (path || preview) && <Button type="button" size="sm" variant="ghost" className="w-full" onClick={() => makeMainImage(index)} disabled={busy}>Tornar principal</Button>}
+                <Button type="button" size="sm" variant="ghost" className="w-full" onClick={() => removeSelectedImage(index)} disabled={(!preview && !path) || busy}>Remover foto</Button>
                 {processingIndex === index && <p className="text-center text-xs text-muted-foreground">Otimizando...</p>}
               </div>;
             })}
