@@ -40,8 +40,10 @@ export async function resolveProductImage(
       const fetchImage = row.status_aprovacao === "pendente" ? getPendingProductImageUrl : getProductImageUrl;
       const signed = await Promise.all(paths.map(async path => {
         if (/^https?:\/\//.test(path)) return path;
-        const { imageUrl } = await fetchImage({ data: { productId: row.id } });
-        return imageUrl;
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data, error } = await supabase.storage.from("product-images").createSignedUrl(path, 3600);
+        if (error) return null;
+        return data?.signedUrl ?? null;
       }));
       const valid = signed.filter((value): value is string => Boolean(value));
       if (valid.length) return valid;
