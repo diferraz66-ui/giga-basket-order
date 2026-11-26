@@ -31,22 +31,27 @@ describe("pedido pelo WhatsApp", () => {
     expect(cartTotal(items)).toBe(57.3);
   });
 
-  it("calcula que faltam R$ 15 e dois itens de R$ 7,50 para o mínimo", () => {
-    expect(minimumOrderProgress(60)).toMatchObject({
+  it("calcula quantos itens faltam para atingir o mínimo dinâmico", () => {
+    expect(minimumOrderProgress(22.5, 7, 10)).toMatchObject({
       reached: false,
-      remaining: 15,
-      itemsRemaining: 2,
-      percent: 80,
+      remaining: 3,
+      itemsRemaining: 3,
+      percent: 70,
     });
   });
 
-  it("libera o pedido mínimo exatamente em R$ 75", () => {
-    expect(minimumOrderProgress(75)).toMatchObject({
+  it("libera a finalização quando a quantidade mínima dinâmica é atingida", () => {
+    expect(minimumOrderProgress(25, 10, 10)).toMatchObject({
       reached: true,
       remaining: 0,
       itemsRemaining: 0,
       percent: 100,
     });
+  });
+
+  it("respeita um mínimo configurado diferente de dez unidades", () => {
+    expect(minimumOrderProgress(40, 5, 5).reached).toBe(true);
+    expect(minimumOrderProgress(40, 4, 5).reached).toBe(false);
   });
 
   it("bloqueia a segunda unidade quando o histórico já consumiu o limite 1", () => {
