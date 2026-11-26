@@ -40,3 +40,4 @@ use the editor.
 - Seller submissions reuse the unitary admin product form; RLS enforces pending-only inserts and owner-prefixed photo uploads so browser changes cannot bypass approval.
 - Public photo signing reads only approved products; pending photo signing uses authenticated row visibility so unpublished photos remain private.
 - Product image gestures use react-zoom-pan-pinch in a dedicated component remounted for each dialog opening to reset the transform and keep controls synchronized.
+- Store settings use a singleton row in `public.configuracoes_loja`, with public reads and active-admin-only writes; product gallery paths use a database-constrained text array, and product Realtime retains existing RLS.

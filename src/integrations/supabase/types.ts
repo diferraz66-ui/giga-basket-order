@@ -14,6 +14,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      configuracoes_loja: {
+        Row: {
+          id: number
+          limite_minimo_pedido: number
+        }
+        Insert: {
+          id?: number
+          limite_minimo_pedido?: number
+        }
+        Update: {
+          id?: number
+          limite_minimo_pedido?: number
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           cancellation_reason: string | null
@@ -186,6 +201,7 @@ export type Database = {
           id: string
           image_key: string | null
           image_url: string | null
+          imagens: string[]
           max_per_customer: number
           name: string
           price: number
@@ -203,6 +219,7 @@ export type Database = {
           id: string
           image_key?: string | null
           image_url?: string | null
+          imagens?: string[]
           max_per_customer?: number
           name: string
           price?: number
@@ -220,6 +237,7 @@ export type Database = {
           id?: string
           image_key?: string | null
           image_url?: string | null
+          imagens?: string[]
           max_per_customer?: number
           name?: string
           price?: number

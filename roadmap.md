@@ -47,3 +47,6 @@
 - [x] Remover a IA de fundo dos formulários preservando câmera, galeria e prévia
 - [x] Completar zoom por toque, pinça e arraste com controles sincronizados
 - [x] Verificar cadastro, aprovação e zoom na prévia e executar testes
+- [x] Criar estrutura de configurações com mínimo padrão 10 e leitura pública/edição Admin, sem alterar a interface
+- [x] Adicionar até três imagens por produto e ativar Realtime preservando as permissões existentes
+- [x] Verificar as novas regras diretamente no banco
