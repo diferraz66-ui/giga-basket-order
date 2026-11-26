@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Minus, Plus, Ruler, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -26,6 +27,8 @@ export function ProductDetailsDialog({
   reviewSummary?: { average: number; count: number } | undefined;
 }) {
   const { add, setQuantity, items, purchasedQuantities } = useCart();
+  const [selectedImage, setSelectedImage] = useState(0);
+  const gallery = [product.image, ...(product.images ?? []).filter((image) => image && image !== product.image)].slice(0, 3);
   const soldOut = product.status === "out_of_stock";
   const cartQuantity = items.find((item) => item.id === product.id)?.quantity ?? 0;
   const totalQuantity = cartQuantity + (purchasedQuantities[product.id] ?? 0);
@@ -46,12 +49,20 @@ export function ProductDetailsDialog({
     <Dialog
       open={open}
       onOpenChange={(value) => {
+        if (value) setSelectedImage(0);
         onOpenChange(value);
       }}
     >
       <DialogContent className="mx-auto w-[92vw] max-w-md max-h-[82vh] overflow-y-auto rounded-2xl p-4 gap-3 sm:w-full sm:max-w-3xl sm:max-h-[90vh] sm:gap-5 sm:p-6">
         <div className="grid gap-5 sm:grid-cols-2">
-          {open && <ProductImageZoom key={product.id} src={product.image} name={product.name} />}
+          {open && <div className="space-y-2">
+            <ProductImageZoom key={`${product.id}-${selectedImage}`} src={gallery[selectedImage] ?? product.image} name={product.name} />
+            {gallery.length > 1 && <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Galeria de fotos do produto">
+              {gallery.map((image, index) => <button key={image} type="button" aria-label={`Ver foto ${index + 1}`} aria-pressed={selectedImage === index} onClick={() => setSelectedImage(index)} className={`size-16 shrink-0 overflow-hidden rounded-lg border-2 bg-card ${selectedImage === index ? "border-primary" : "border-border"}`}>
+                <img src={image} alt={`${product.name}, foto ${index + 1}`} className="size-full object-contain p-1" />
+              </button>)}
+            </div>}
+          </div>}
 
           <div className="flex min-w-0 flex-col gap-2">
             <DialogHeader>
