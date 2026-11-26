@@ -31,13 +31,13 @@ export function cartTotal(items: CartItem[]) {
   return Math.round(items.reduce((sum, i) => sum + i.price * i.quantity, 0) * 100) / 100;
 }
 
-export function minimumOrderProgress(total: number) {
-  const remaining = Math.max(0, Math.round((MINIMUM_ORDER_TOTAL - total) * 100) / 100);
+export function minimumOrderProgress(total: number, itemCount: number, minimumItems = 10) {
+  const remaining = Math.max(0, minimumItems - itemCount);
   return {
-    reached: total >= MINIMUM_ORDER_TOTAL,
+    reached: itemCount >= minimumItems,
     remaining,
-    itemsRemaining: Math.ceil(remaining / REFERENCE_UNIT_PRICE),
-    percent: Math.min(100, Math.max(0, (total / MINIMUM_ORDER_TOTAL) * 100)),
+    itemsRemaining: remaining,
+    percent: Math.min(100, Math.max(0, (itemCount / Math.max(1, minimumItems)) * 100)),
   };
 }
 
