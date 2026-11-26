@@ -564,7 +564,8 @@ function ProductForm({
   const [previews, setPreviews] = useState<Array<string | null>>([null, null, null]);
   const [busy, setBusy] = useState(false);
   const [processingIndex, setProcessingIndex] = useState<number | null>(null);
-  const inputRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+  const cameraRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+  const galleryRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
   const existingImages = [product?.image_url ?? null, ...(product?.imagens ?? [])].filter((value): value is string => Boolean(value)).slice(0, 3);
 
   useEffect(() => {
@@ -691,13 +692,13 @@ function ProductForm({
                     : path && /^https?:\/\//.test(path) ? <img src={path} alt={`Foto atual ${index + 1}`} className="size-full object-contain" />
                     : <span className="px-2 text-center text-xs text-muted-foreground">{path ? "Foto armazenada" : "Sem foto"}</span>}
                 </div>
-                <input ref={inputRefs[index]} type="file" accept="image/*" capture={index === 0 ? "environment" : undefined} className="sr-only" onChange={event => void selectImage(index, event)} aria-label={`Escolher foto ${index + 1}`} />
+                <input ref={cameraRefs[index]} type="file" accept="image/*" capture="environment" className="sr-only" onChange={event => void selectImage(index, event)} aria-label={`Tirar foto ${index + 1}`} />
+                <input ref={galleryRefs[index]} type="file" accept="image/*" className="sr-only" onChange={event => void selectImage(index, event)} aria-label={`Escolher foto ${index + 1} da galeria`} />
                 <div className="grid grid-cols-2 gap-1">
-                  <Button type="button" size="sm" variant="outline" onClick={() => inputRefs[index].current?.click()} disabled={busy || processingIndex !== null}>
-                    {index === 0 ? <Camera /> : <Images />} {path || preview ? "Substituir" : "Adicionar"}
-                  </Button>
-                  <Button type="button" size="sm" variant="ghost" onClick={() => removeSelectedImage(index)} disabled={!preview || busy}>Remover</Button>
+                  <Button type="button" size="sm" variant="outline" onClick={() => cameraRefs[index].current?.click()} disabled={busy || processingIndex !== null}><Camera /> Câmera</Button>
+                  <Button type="button" size="sm" variant="outline" onClick={() => galleryRefs[index].current?.click()} disabled={busy || processingIndex !== null}><Images /> Galeria</Button>
                 </div>
+                <Button type="button" size="sm" variant="ghost" className="w-full" onClick={() => removeSelectedImage(index)} disabled={!preview || busy}>Remover foto escolhida</Button>
                 {processingIndex === index && <p className="text-center text-xs text-muted-foreground">Otimizando...</p>}
               </div>;
             })}
