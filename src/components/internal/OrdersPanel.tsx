@@ -128,6 +128,7 @@ export function OrdersPanel({ role, targetOrder, permissions, currentUserId }: {
               onReceipt={setReceipt}
               onProof={setProof}
               role={role}
+              permissions={permissions}
               highlighted={highlightedOrderNumber === order.order_number}
             />
           ))}
@@ -142,6 +143,7 @@ export function OrdersPanel({ role, targetOrder, permissions, currentUserId }: {
               onReceipt={setReceipt}
               onProof={setProof}
               role={role}
+              permissions={permissions}
             />
           ))}
         </OrderColumn>
