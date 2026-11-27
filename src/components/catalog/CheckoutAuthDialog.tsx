@@ -32,7 +32,6 @@ export type CheckoutResult = {
 
 type AuthMode = "signup" | "signin" | "recovery";
 
-const STORE_WHATSAPP = import.meta.env.VITE_STORE_WHATSAPP as string | undefined;
 
 function maskWhatsapp(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -68,15 +67,6 @@ function getErrorMessage(error: unknown) {
   return "Não foi possível concluir. Confira os dados e tente novamente.";
 }
 
-function openStoreWhatsapp() {
-  const digits = (STORE_WHATSAPP ?? "").replace(/\D/g, "");
-  if (!digits) {
-    toast.error("O WhatsApp de atendimento da loja ainda não está configurado.");
-    return;
-  }
-  const message = encodeURIComponent("Olá! Tenho uma conta antiga na GIGA Shopping e preciso atualizar meu cadastro para recuperar o acesso.");
-  window.open(`https://wa.me/${digits}?text=${message}`, "_blank", "noopener,noreferrer");
-}
 
 export function CheckoutAuthDialog({
   open,
@@ -443,13 +433,9 @@ export function CheckoutAuthDialog({
               )}
 
               {isRecovery && (
-                <button
-                  type="button"
-                  className="text-left text-xs text-muted-foreground underline underline-offset-2"
-                  onClick={openStoreWhatsapp}
-                >
-                  Conta antiga sem data de nascimento? Falar com a loja no WhatsApp
-                </button>
+                <p className="text-xs text-muted-foreground">
+                  Conta antiga sem data de nascimento cadastrada? Solicite a atualização diretamente na loja física.
+                </p>
               )}
             </>
           )}
