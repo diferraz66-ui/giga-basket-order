@@ -9,9 +9,42 @@ import { OrderCard } from "./OrderCard";
 import { PaymentProofDialog } from "./PaymentProofDialog";
 import { ReceiptDialog } from "./ReceiptDialog";
 
+export type TeamMemberPermissions = {
+  active: boolean;
+  pode_ver_todos_pedidos: boolean;
+  pode_editar_pedidos: boolean;
+  pode_cancelar_pedidos: boolean;
+  pode_ignorar_pedido_minimo: boolean;
+  pode_anexar_pix: boolean;
+  pode_enviar_orientacoes_pix: boolean;
+  pode_cadastrar_produtos: boolean;
+  pode_alterar_status_produtos: boolean;
+  pode_ver_totais_financeiros: boolean;
+};
+
+const permissionDefaults: TeamMemberPermissions = {
+  active: true,
+  pode_ver_todos_pedidos: true,
+  pode_editar_pedidos: true,
+  pode_cancelar_pedidos: true,
+  pode_ignorar_pedido_minimo: true,
+  pode_anexar_pix: true,
+  pode_enviar_orientacoes_pix: true,
+  pode_cadastrar_produtos: true,
+  pode_alterar_status_produtos: true,
+  pode_ver_totais_financeiros: true,
+};
+
 type CatalogProduct = Pick<Tables<"products">, "id" | "name" | "price" | "status" | "max_per_customer">;
 
-export function OrdersPanel({ role, targetOrder }: { role: StaffRole; targetOrder?: string | null }) {
+export function OrdersPanel({ role, targetOrder, permissions, currentUserId }: {
+  role: StaffRole;
+  targetOrder?: string | null;
+  permissions?: TeamMemberPermissions;
+  currentUserId?: string;
+}) {
+  const effectivePermissions = { ...permissionDefaults, ...permissions };
+  const [resolvedUserId, setResolvedUserId] = useState<string | undefined>(currentUserId);
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,6 +52,16 @@ export function OrdersPanel({ role, targetOrder }: { role: StaffRole; targetOrde
   const [proof, setProof] = useState<Order | null>(null);
   const [highlightedOrderNumber, setHighlightedOrderNumber] = useState<number | null>(null);
   const [targetHandled, setTargetHandled] = useState(false);
+
+  useEffect(() => {
+    if (currentUserId) {
+      setResolvedUserId(currentUserId);
+      return;
+    }
+    if (role === "vendedor") {
+      void supabase.auth.getUser().then(({ data }) => setResolvedUserId(data.user?.id));
+    }
+  }, [currentUserId, role]);
 
   const reload = useCallback(async () => {
     const [{ data, error }, { data: productRows, error: productError }] = await Promise.all([
@@ -50,14 +93,19 @@ export function OrdersPanel({ role, targetOrder }: { role: StaffRole; targetOrde
     }
   }, [targetOrder, loading, targetHandled, orders]);
 
+  const visibleOrders = useMemo(() => {
+    if (role === "admin" || effectivePermissions.pode_ver_todos_pedidos) return orders;
+    if (!resolvedUserId) return [];
+    return orders.filter((order) => (order as Order & { seller_id?: string | null }).seller_id === resolvedUserId);
+  }, [orders, role, effectivePermissions.pode_ver_todos_pedidos, resolvedUserId]);
+
   const active = useMemo(
-    () =>
-      orders.filter((order) => ["received", "in_progress", "awaiting_pix"].includes(order.status)),
-    [orders],
+    () => visibleOrders.filter((order) => ["received", "in_progress", "awaiting_pix"].includes(order.status)),
+    [visibleOrders],
   );
   const finished = useMemo(
-    () => orders.filter((order) => order.status === "completed" || order.status === "cancelled"),
-    [orders],
+    () => visibleOrders.filter((order) => order.status === "completed" || order.status === "cancelled"),
+    [visibleOrders],
   );
 
   if (loading)
