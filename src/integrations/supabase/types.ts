@@ -307,7 +307,15 @@ export type Database = {
           active: boolean
           created_at: string
           full_name: string
+          pode_alterar_status_produtos: boolean
+          pode_anexar_pix: boolean
           pode_cadastrar_produtos: boolean
+          pode_cancelar_pedidos: boolean
+          pode_editar_pedidos: boolean
+          pode_enviar_orientacoes_pix: boolean
+          pode_ignorar_pedido_minimo: boolean
+          pode_ver_todos_pedidos: boolean
+          pode_ver_totais_financeiros: boolean
           user_id: string
           username: string
         }
@@ -315,7 +323,15 @@ export type Database = {
           active?: boolean
           created_at?: string
           full_name: string
+          pode_alterar_status_produtos?: boolean
+          pode_anexar_pix?: boolean
           pode_cadastrar_produtos?: boolean
+          pode_cancelar_pedidos?: boolean
+          pode_editar_pedidos?: boolean
+          pode_enviar_orientacoes_pix?: boolean
+          pode_ignorar_pedido_minimo?: boolean
+          pode_ver_todos_pedidos?: boolean
+          pode_ver_totais_financeiros?: boolean
           user_id: string
           username: string
         }
@@ -323,7 +339,15 @@ export type Database = {
           active?: boolean
           created_at?: string
           full_name?: string
+          pode_alterar_status_produtos?: boolean
+          pode_anexar_pix?: boolean
           pode_cadastrar_produtos?: boolean
+          pode_cancelar_pedidos?: boolean
+          pode_editar_pedidos?: boolean
+          pode_enviar_orientacoes_pix?: boolean
+          pode_ignorar_pedido_minimo?: boolean
+          pode_ver_todos_pedidos?: boolean
+          pode_ver_totais_financeiros?: boolean
           user_id?: string
           username?: string
         }
@@ -352,6 +376,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_update_team_permissions: {
+        Args: {
+          p_pode_alterar_status_produtos: boolean
+          p_pode_anexar_pix: boolean
+          p_pode_cadastrar_produtos: boolean
+          p_pode_cancelar_pedidos: boolean
+          p_pode_editar_pedidos: boolean
+          p_pode_enviar_orientacoes_pix: boolean
+          p_pode_ignorar_pedido_minimo: boolean
+          p_pode_ver_todos_pedidos: boolean
+          p_pode_ver_totais_financeiros: boolean
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       can_submit_product: { Args: never; Returns: boolean }
       cancel_order: {
         Args: { p_order_id: string; p_reason: string }
