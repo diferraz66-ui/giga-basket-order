@@ -53,7 +53,7 @@ import { manualReleasePaymentProof, uploadPaymentProof } from "@/lib/orders.func
 import { orderStatusLabels, type OrderStatus, type StaffRole } from "@/lib/staff";
 
 type CatalogProduct = Pick<Tables<"products">, "id" | "name" | "price" | "status" | "max_per_customer">;
-type BusyAction = "status" | "items" | "proof" | "finalize" | "cancel" | null;
+type BusyAction = "status" | "items" | "proof" | "finalize" | "cancel" | "delete" | null;
 type TeamMemberPermissions = { active:boolean; pode_ver_todos_pedidos:boolean; pode_editar_pedidos:boolean; pode_cancelar_pedidos:boolean; pode_ignorar_pedido_minimo:boolean; pode_anexar_pix:boolean; pode_enviar_orientacoes_pix:boolean; pode_cadastrar_produtos:boolean; pode_alterar_status_produtos:boolean; pode_ver_totais_financeiros:boolean; };
 const permissionDefaults: TeamMemberPermissions = { active:true, pode_ver_todos_pedidos:true, pode_editar_pedidos:true, pode_cancelar_pedidos:true, pode_ignorar_pedido_minimo:true, pode_anexar_pix:true, pode_enviar_orientacoes_pix:true, pode_cadastrar_produtos:true, pode_alterar_status_produtos:true, pode_ver_totais_financeiros:true };
 
@@ -322,6 +322,21 @@ export function OrderCard({
       return;
     }
     toast.success("Pagamento confirmado. Venda concluída!");
+    await onChanged();
+  }
+
+  async function deleteOrder() {
+    if (role !== "admin") return;
+    const orderLabel = formatOrderNumber(order.order_number);
+    if (!window.confirm(`O pedido ${orderLabel} será apagado definitivamente do banco de dados e não poderá ser recuperado. Deseja continuar?`)) return;
+    setBusy("delete");
+    const { error } = await supabase.from("orders").delete().eq("id", order.id);
+    setBusy(null);
+    if (error) {
+      toast.error(error.message || "Não foi possível excluir o pedido.");
+      return;
+    }
+    toast.success("Pedido excluído permanentemente.");
     await onChanged();
   }
 
@@ -683,6 +698,21 @@ export function OrderCard({
             )}
           </div>
         </>
+      )}
+
+      {role === "admin" && (
+        <div className="mt-4 flex justify-end border-t border-border pt-3">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="text-muted-foreground hover:text-destructive"
+            disabled={Boolean(busy)}
+            onClick={() => void deleteOrder()}
+          >
+            <Trash2 className="size-4" /> Excluir permanentemente
+          </Button>
+        </div>
       )}
 
       <Dialog open={manualReleaseOpen} onOpenChange={setManualReleaseOpen}>
