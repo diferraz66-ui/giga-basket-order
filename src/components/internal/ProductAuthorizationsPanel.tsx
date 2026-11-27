@@ -1,20 +1,23 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, Loader2, Trash2, UserRound } from "lucide-react";
+import { Check, Image as ImageIcon, Loader2, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { categoryLabel, type CategoryId } from "@/data/catalog";
-import { resolvePrimaryProductImage } from "@/lib/products";
-import { SellerProductForm } from "@/components/internal/ProductsPanel";
+import { resolveProductImage } from "@/lib/products";
+import { SellerProductForm, ProductAdminEditor } from "@/components/internal/ProductsPanel";
 type Seller = Pick<Tables<"team_members">, "user_id" | "full_name" | "username" | "active" | "pode_cadastrar_produtos">;
 type PendingProduct = Tables<"products"> & { seller_name?: string };
 
 export function ProductAuthorizationsPanel() {
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [pending, setPending] = useState<PendingProduct[]>([]);
-  const [images, setImages] = useState<Record<string, string>>({});
+  const [images, setImages] = useState<Record<string, string[]>>({});
+  const [lightbox, setLightbox] = useState<{ productName: string; url: string; index: number } | null>(null);
+  const [editingProduct, setEditingProduct] = useState<PendingProduct | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -41,7 +44,7 @@ export function ProductAuthorizationsPanel() {
     const nameById = new Map((names ?? []).map((item) => [item.user_id, item.full_name]));
     const withNames = pendingList.map((product) => ({ ...product, seller_name: product.cadastrado_por ? nameById.get(product.cadastrado_por) ?? "Vendedor não identificado" : "Admin" }));
     setPending(withNames);
-    const imageEntries = await Promise.all(withNames.map(async (product) => [product.id, await resolvePrimaryProductImage(product)] as const));
+    const imageEntries = await Promise.all(withNames.map(async (product) => [product.id, await resolveProductImage(product)] as const));
     setImages(Object.fromEntries(imageEntries));
     setLoading(false);
   }, []);
@@ -57,6 +60,11 @@ export function ProductAuthorizationsPanel() {
       toast.success(enabled ? `Cadastro liberado para ${seller.full_name}` : `Cadastro bloqueado para ${seller.full_name}`);
       setSellers((current) => current.map((item) => item.user_id === seller.user_id ? { ...item, pode_cadastrar_produtos: enabled } : item));
     }
+  }
+
+  async function savePendingEdits() {
+    setEditingProduct(null);
+    await load();
   }
 
   async function approve(product: PendingProduct) {
@@ -98,15 +106,28 @@ export function ProductAuthorizationsPanel() {
     <section>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-extrabold uppercase">Produtos Aguardando Aprovação</h2><p className="text-sm text-muted-foreground">Confira os dados antes de liberar na vitrine.</p></div><span className="rounded-full bg-primary px-3 py-1 text-sm font-extrabold text-primary-foreground">{pending.length} pendente(s)</span></div>
       <div className="grid gap-3 md:grid-cols-2">
-        {pending.map((product) => <article key={product.id} className="flex gap-3 rounded-2xl border border-border bg-card p-3">
-          <img src={images[product.id]} alt={product.name} className="size-24 shrink-0 rounded-xl bg-card object-contain p-1" />
-          <div className="min-w-0 flex-1"><h3 className="font-bold">{product.name}</h3><p className="text-sm text-muted-foreground">{categoryLabel(product.category as CategoryId)}</p><p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><UserRound className="size-3" /> {product.seller_name}</p>
-            <div className="mt-3 flex flex-wrap gap-2"><Button size="sm" variant="cta" disabled={busyId === product.id} onClick={() => void approve(product)}><Check className="size-4" /> Aprovar e Publicar</Button><Button size="sm" variant="outline" className="text-destructive" disabled={busyId === product.id} onClick={() => void reject(product)}><Trash2 className="size-4" /> Recusar / Excluir</Button></div>
+        {pending.map((product) => <article key={product.id} className="rounded-2xl border border-border bg-card p-3">
+          <div className="flex flex-wrap gap-2">
+            {(images[product.id] ?? []).map((url, index) => <button key={url} type="button" onClick={() => setLightbox({ productName: product.name, url, index })} className="group relative size-24 overflow-hidden rounded-xl border border-border bg-background" aria-label={`Ampliar Foto ${index + 1} de ${product.name}`}>
+              <img src={url} alt={`Foto ${index + 1} de ${product.name}`} className="size-full object-contain p-1 transition-transform group-hover:scale-105" />
+              <span className="absolute inset-x-0 bottom-0 bg-black/70 px-1 py-0.5 text-[10px] font-bold text-white">Foto {index + 1}</span>
+            </button>)}
+            {!(images[product.id]?.length) && <div className="flex size-24 items-center justify-center rounded-xl border border-dashed text-xs text-muted-foreground"><ImageIcon className="size-5" /></div>}
+          </div>
+          <div className="mt-3 min-w-0"><h3 className="font-bold">{product.name}</h3><p className="text-sm text-muted-foreground">{categoryLabel(product.category as CategoryId)}</p><p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><UserRound className="size-3" /> {product.seller_name}</p>
+            <div className="mt-3 flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={busyId === product.id} onClick={() => setEditingProduct(product)}>Editar fotos e dados</Button><Button size="sm" variant="cta" disabled={busyId === product.id || !(images[product.id]?.length)} onClick={() => void approve(product)}><Check className="size-4" /> Aprovar e Publicar</Button><Button size="sm" variant="outline" className="text-destructive" disabled={busyId === product.id} onClick={() => void reject(product)}><Trash2 className="size-4" /> Recusar / Excluir</Button></div>
           </div>
         </article>)}
         {!pending.length && <p className="col-span-full rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">Nenhum produto aguardando aprovação.</p>}
       </div>
     </section>
+    <Dialog open={lightbox !== null} onOpenChange={(open) => !open && setLightbox(null)}>
+      <DialogContent className="max-h-[92vh] max-w-3xl">
+        <DialogHeader><DialogTitle>{lightbox ? `${lightbox.productName} • Foto ${lightbox.index + 1}` : "Visualizar foto"}</DialogTitle></DialogHeader>
+        {lightbox && <div className="flex max-h-[75vh] items-center justify-center"><img src={lightbox.url} alt={`${lightbox.productName}, foto ${lightbox.index + 1}`} className="max-h-[72vh] max-w-full object-contain" /></div>}
+      </DialogContent>
+    </Dialog>
+    {editingProduct && <ProductAdminEditor product={editingProduct} onClose={() => setEditingProduct(null)} onSaved={savePendingEdits} />}
   </div>;
 }
 
