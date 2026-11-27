@@ -187,7 +187,7 @@ export function ProductsPanel() {
 
     setLinkPhotoProgress(0);
     setLinkPhotoSummary(null);
-    setBulkProgress("Consultando produtos ativos e sua numeração atual...");
+    setBulkProgress("Consultando produtos e sua numeração atual...");
 
     let databaseProducts: Tables<"products">[];
     try {
@@ -198,18 +198,13 @@ export function ProductsPanel() {
       return;
     }
 
-    // A numeração corresponde à lista do Admin: cadastro ascendente e somente produtos ativos.
-    const activeProducts = assignActiveProductNumbers(
-      databaseProducts.filter((product) => product.status !== "hidden"),
-    )
-      .filter((product) => product.sequence !== null)
-      .sort((a, b) => {
-        const dateOrder = a.created_at.localeCompare(b.created_at);
-        return dateOrder || a.id.localeCompare(b.id);
-      });
+    // A numeração é compartilhada com a lista do Admin e inclui produtos ocultos.
+    const numberedProducts = assignActiveProductNumbers(databaseProducts);
 
     const productByNumber = new Map<number, Tables<"products">>();
-    activeProducts.forEach((product, index) => productByNumber.set(index + 1, product));
+    numberedProducts.forEach((product) => {
+      if (product.sequence !== null) productByNumber.set(product.sequence, product);
+    });
 
     let linked = 0;
     const unmatched: string[] = [];
