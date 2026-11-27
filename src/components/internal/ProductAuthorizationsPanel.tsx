@@ -14,7 +14,7 @@ const defaultPermissions: TeamMemberPermissions = { pode_ver_todos_pedidos: true
 type Seller = Pick<Tables<"team_members">, "user_id" | "full_name" | "username" | "active" | "pode_cadastrar_produtos">;
 type PendingProduct = Tables<"products"> & { seller_name?: string };
 
-export function ProductAuthorizationsPanel({ permissions = defaultPermissions, role = "admin" }: { permissions?: TeamMemberPermissions; role?: "admin" | "vendedor" }) {\n  const canChangeStatus = role === "admin" || permissions.pode_alterar_status_produtos;\n  const canViewTotals = role === "admin" || permissions.pode_ver_totais_financeiros;
+export function ProductAuthorizationsPanel({ permissions = defaultPermissions, role = "admin" }: { permissions?: TeamMemberPermissions; role?: "admin" | "vendedor" }) {\n
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [pending, setPending] = useState<PendingProduct[]>([]);
   const [images, setImages] = useState<Record<string, string[]>>({});
