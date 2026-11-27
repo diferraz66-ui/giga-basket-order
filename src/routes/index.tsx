@@ -277,27 +277,27 @@ function Catalog() {
               </p>
             ) : (
               categorySections.map((item, index) => {
-              const categoryProducts = products
-                .filter((product) => product.category === item.id && product.status === "available")
-                .slice(0, 8);
-              if (!categoryProducts.length) return null;
-              return (
-                <section key={item.id} className="mt-8">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <span className="h-7 w-1.5 rounded-full bg-white" />
-                      <h2 className="text-lg uppercase text-white sm:text-xl">{String(index + 1).padStart(2, "0")} {item.label}</h2>
+                const categoryProducts = products
+                  .filter((product) => product.category === item.id && product.status === "available")
+                  .slice(0, 8);
+                if (!categoryProducts.length) return null;
+                return (
+                  <section key={item.id} className="mt-8">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span className="h-7 w-1.5 rounded-full bg-white" />
+                        <h2 className="text-lg uppercase text-white sm:text-xl">{String(index + 1).padStart(2, "0")} {item.label}</h2>
+                      </div>
+                      <button type="button" onClick={() => setCategory(item.id)} className="shrink-0 text-sm font-extrabold text-white hover:underline">Ver mais →</button>
                     </div>
-                    <button type="button" onClick={() => setCategory(item.id)} className="shrink-0 text-sm font-extrabold text-white hover:underline">Ver mais →</button>
-                  </div>
-                  <div className={view === "grid" ? "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" : "grid gap-3"}>
-                    {categoryProducts.map((product) => (
-                      <ProductCard key={product.id} product={product} layout={view} reviewSummary={reviewStats[product.id]} sequence={sequenceById.get(product.id)} />
-                    ))}
-                  </div>
-                </section>
-              );
-              })
+                    <div className={view === "grid" ? "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" : "grid gap-3"}>
+                      {categoryProducts.map((product) => (
+                        <ProductCard key={product.id} product={product} layout={view} reviewSummary={reviewStats[product.id]} sequence={sequenceById.get(product.id)} />
+                      ))}
+                    </div>
+                  </section>
+                );
+                })
             )}
           </>
         )}
