@@ -9,10 +9,12 @@ import type { Tables } from "@/integrations/supabase/types";
 import { categoryLabel, type CategoryId } from "@/data/catalog";
 import { resolveProductImage } from "@/lib/products";
 import { SellerProductForm, ProductAdminEditor } from "@/components/internal/ProductsPanel";
+export type TeamMemberPermissions = { pode_ver_todos_pedidos: boolean; pode_editar_pedidos: boolean; pode_cancelar_pedidos: boolean; pode_ignorar_pedido_minimo: boolean; pode_anexar_pix: boolean; pode_enviar_orientacoes_pix: boolean; pode_alterar_status_produtos: boolean; pode_ver_totais_financeiros: boolean; pode_cadastrar_produtos: boolean; };
+const defaultPermissions: TeamMemberPermissions = { pode_ver_todos_pedidos: true, pode_editar_pedidos: true, pode_cancelar_pedidos: true, pode_ignorar_pedido_minimo: true, pode_anexar_pix: true, pode_enviar_orientacoes_pix: true, pode_alterar_status_produtos: true, pode_ver_totais_financeiros: true, pode_cadastrar_produtos: true };
 type Seller = Pick<Tables<"team_members">, "user_id" | "full_name" | "username" | "active" | "pode_cadastrar_produtos">;
 type PendingProduct = Tables<"products"> & { seller_name?: string };
 
-export function ProductAuthorizationsPanel() {
+export function ProductAuthorizationsPanel({ permissions = defaultPermissions, role = "admin" }: { permissions?: TeamMemberPermissions; role?: "admin" | "vendedor" }) {\n  const canChangeStatus = role === "admin" || permissions.pode_alterar_status_produtos;\n  const canViewTotals = role === "admin" || permissions.pode_ver_totais_financeiros;
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [pending, setPending] = useState<PendingProduct[]>([]);
   const [images, setImages] = useState<Record<string, string[]>>({});
@@ -131,7 +133,7 @@ export function ProductAuthorizationsPanel() {
   </div>;
 }
 
-export function SellerProductPanel({ userId }: { userId: string }) {
+export function SellerProductPanel({ userId, permissions = defaultPermissions }: { userId: string; permissions?: TeamMemberPermissions }) {\n  const canSubmitProducts = permissions.pode_cadastrar_produtos;
   const [allowed, setAllowed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -142,7 +144,7 @@ export function SellerProductPanel({ userId }: { userId: string }) {
   }, [userId]);
   useEffect(() => { void refresh(); }, [refresh]);
   if (loading) return <div className="flex justify-center py-16"><Loader2 className="animate-spin text-primary" /></div>;
-  if (!allowed) return <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">O cadastro de produtos não está autorizado para este usuário.</p>;
+  if (!allowed || !canSubmitProducts) return <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">O cadastro de produtos não está autorizado para este usuário.</p>;
   return <section className="space-y-4">
     <div className="rounded-2xl border border-border bg-card p-4"><h2 className="text-lg font-extrabold uppercase">Incluir Produto</h2><p className="mt-1 text-sm text-muted-foreground">Cadastre um produto por vez. O preço é fixo em R$ 7,50 e cada envio passa pela validação do Admin.</p><Button variant="cta" className="mt-4" onClick={() => setOpen(true)}>Incluir Produto</Button></div>
     {open && <SellerProductForm sellerUserId={userId} onClose={() => setOpen(false)} onSaved={async () => { setOpen(false); await refresh(); }} />}
