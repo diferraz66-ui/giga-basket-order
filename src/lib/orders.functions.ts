@@ -244,7 +244,7 @@ export const uploadPaymentProof = createServerFn({ method: "POST" })
         .from("orders")
         .update({
           payment_proof_path: reviewPath,
-          payment_proof_name: file.name.slice(0, 160),
+          payment_proof_name: "A análise da IA não foi concluída. Verifique o comprovante manualmente.",
           payment_proof_type: file.type,
           payment_proof_amount: null,
           payment_proof_validated_at: null,
