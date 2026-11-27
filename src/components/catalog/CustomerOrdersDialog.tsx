@@ -18,6 +18,27 @@ import { ProductReviewForm } from "./ProductReviewForm";
 type OrderRow = { id: string; order_number: number; created_at: string; status: string; total: number; items: unknown };
 type OrderItem = { id: string; name: string; price: number; quantity: number };
 
+function birthDateToISO(value: string): string | null {
+  if (!/^\\d{2}\\/\\d{2}\\/\\d{4}$/.test(value)) return null;
+  const [day, month, year] = value.split("/").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day ||
+    year < 1900 ||
+    date.getTime() > Date.now()
+  ) return null;
+  return `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+}
+
+function maskBirthDate(value: string) {
+  const digits = value.replace(/\\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
 export function CustomerOrdersDialog({ open, onOpenChange, products }: { open: boolean; onOpenChange: (open: boolean) => void; products: Product[] }) {
   const { session } = useAuth();
   const { add, setOpen: openCart } = useCart();
@@ -52,15 +73,18 @@ export function CustomerOrdersDialog({ open, onOpenChange, products }: { open: b
   }
   async function recoverPassword() {
     const phone = normalizeWhatsapp(identifier);
-    const parts = birthDate.split("/");
-    if (!phone || fullName.trim().length < 3 || parts.length !== 3 || parts[0].length !== 2 || parts[1].length !== 2 || parts[2].length !== 4) { toast.error("Informe WhatsApp, nome completo e data DD/MM/AAAA."); return; }
-    if (newPassword.length < 6 || newPassword !== confirmPassword) { toast.error("Confira as senhas. Ambas devem coincidir e ter ao menos 6 caracteres."); return; }
+    const isoDate = birthDateToISO(birthDate);
+    if (!phone) { toast.error("Informe um WhatsApp válido com DDD."); return; }
+    if (fullName.trim().length < 3) { toast.error("Informe seu nome completo."); return; }
+    if (!isoDate) { toast.error("Informe uma data de nascimento válida no formato DD/MM/AAAA."); return; }
+    if (newPassword.length < 6) { toast.error("A nova senha precisa ter pelo menos 6 caracteres."); return; }
+    if (newPassword !== confirmPassword) { toast.error("As senhas não coincidem."); return; }
     setLoading(true);
     try {
-      const result = await resetCustomerPasswordFn({ data: { whatsapp: phone, full_name: fullName.trim(), birth_date: `${parts[2]}-${parts[1]}-${parts[0]}`, new_password: newPassword } });
+      const result = await resetCustomerPasswordFn({ data: { whatsapp: phone, full_name: fullName.trim(), birth_date: isoDate, new_password: newPassword } });
       if (!result.success) { toast.error(result.error ?? "Não foi possível redefinir a senha."); return; }
       const loginResult = await supabase.auth.signInWithPassword({ email: result.internal_email, password: newPassword });
-      if (loginResult.error) { toast.error("Senha redefinida. Entre com a nova senha."); return; }
+      if (loginResult.error) { toast.error("Sua senha foi redefinida, mas não foi possível entrar automaticamente."); return; }
       toast.success("Senha redefinida e acesso realizado."); setRecovery(false); await load(loginResult.data.user.id);
     } catch { toast.error("Não foi possível redefinir a senha."); }
     finally { setLoading(false); }
@@ -78,7 +102,7 @@ export function CustomerOrdersDialog({ open, onOpenChange, products }: { open: b
   }
   const statusLabel: Record<string,string> = { received: "Recebido", in_progress: "Em atendimento", awaiting_pix: "Aguardando Pix", completed: "Concluído", cancelled: "Cancelado" };
   return <><Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto"><DialogHeader><DialogTitle className="flex items-center gap-2"><Package className="size-5" /> Meus Pedidos</DialogTitle></DialogHeader>
-    {!session && !loaded && <div className="space-y-3"><p className="text-sm text-muted-foreground">{recovery ? "Confirme seus dados para redefinir a senha." : "Entre com seu WhatsApp e a senha cadastrada."}</p><div><Label htmlFor="orders-identifier">WhatsApp</Label><Input id="orders-identifier" type="tel" inputMode="tel" name="customer_whatsapp" autoComplete="tel" value={identifier} onChange={e=>setIdentifier(e.target.value.replace(/\D/g,"").slice(0,11).replace(/^(\d{2})(\d)/,"($1) $2").replace(/^(\(\d{2}\) \d{5})(\d)/,"$1-$2"))} placeholder="(00) 00000-0000" /></div>{recovery && <><div><Label htmlFor="orders-recovery-name">Nome completo</Label><Input id="orders-recovery-name" value={fullName} onChange={e=>setFullName(e.target.value)} /></div><div><Label htmlFor="orders-recovery-birth">Data de nascimento</Label><Input id="orders-recovery-birth" inputMode="numeric" placeholder="DD/MM/AAAA" value={birthDate} onChange={e=>setBirthDate(e.target.value.replace(/\D/g,"").slice(0,8).replace(/^(\d{2})(\d)/,"$1/$2").replace(/^(\d{2}\/\d{2})(\d)/,"$1/$2"))} /></div><div><Label htmlFor="orders-new-password">Nova senha</Label><Input id="orders-new-password" type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} /></div><div><Label htmlFor="orders-confirm-password">Confirmar senha</Label><Input id="orders-confirm-password" type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} /></div></>} {!recovery && <div><Label htmlFor="orders-password">Senha</Label><Input id="orders-password" type="password" value={password} onChange={e=>setPassword(e.target.value)} /></div>}<Button className="w-full" onClick={()=>void (recovery ? recoverPassword() : login())} disabled={loading}>{loading && <Loader2 className="animate-spin" />} {recovery ? "Redefinir senha e entrar" : "Consultar pedidos"}</Button><button type="button" className="text-sm font-medium text-primary underline" onClick={()=>setRecovery(v=>!v)}>{recovery ? "Voltar ao login" : "Esqueci minha senha"}</button>{recovery && <p className="text-xs text-muted-foreground">Conta antiga sem data de nascimento cadastrada? Solicite a atualização diretamente na loja física.</p>}</div>}
+    {!session && !loaded && <div className="space-y-3"><p className="text-sm text-muted-foreground">{recovery ? "Confirme seus dados para redefinir a senha." : "Entre com seu WhatsApp e a senha cadastrada."}</p><div><Label htmlFor="orders-identifier">WhatsApp</Label><Input id="orders-identifier" type="tel" inputMode="tel" name="customer_whatsapp" autoComplete="tel" value={identifier} onChange={e=>setIdentifier(e.target.value.replace(/\D/g,"").slice(0,11).replace(/^(\d{2})(\d)/,"($1) $2").replace(/^(\(\d{2}\) \d{5})(\d)/,"$1-$2"))} placeholder="(00) 00000-0000" /></div>{recovery && <><div><Label htmlFor="orders-recovery-name">Nome completo</Label><Input id="orders-recovery-name" value={fullName} onChange={e=>setFullName(e.target.value)} /></div><div><Label htmlFor="orders-recovery-birth">Data de nascimento</Label><Input id="orders-recovery-birth" inputMode="numeric" placeholder="DD/MM/AAAA" value={birthDate} onChange={e=>setBirthDate(e.target.value.replace(/\D/g,"").slice(0,8).replace(/^(\d{2})(\d)/,"$1/$2").replace(/^(\d{2}\/\d{2})(\d)/,"$1/$2"))} /></div><div><Label htmlFor="orders-new-password">Nova senha</Label><Input id="orders-new-password" type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} /></div><div><Label htmlFor="orders-confirm-password">Confirmar senha</Label><Input id="orders-confirm-password" type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} /></div></>} {!recovery && <div><Label htmlFor="orders-password">Senha</Label><Input id="orders-password" type="password" value={password} onChange={e=>setPassword(e.target.value)} /></div>}<Button className="w-full" onClick={()=>void (recovery ? recoverPassword() : login())} disabled={loading}>{loading && <Loader2 className="animate-spin" />} {recovery ? "Redefinir senha e entrar" : "Consultar pedidos"}</Button><button type="button" className="text-sm font-medium text-primary underline" onClick={()=>setRecovery(v=>!v)}>{recovery ? "Voltar ao login" : "Esqueci minha senha"}</button></div>}
     {loading && <div className="flex justify-center py-8"><Loader2 className="animate-spin" /></div>}
     {loaded && !loading && <div className="space-y-3"><div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={()=>setPasswordOpen(true)}>Alterar senha</Button></div>{orders.length===0 ? <p className="py-8 text-center text-sm text-muted-foreground">Você ainda não possui pedidos.</p> : orders.map(order=><article key={order.id} className="rounded-xl border border-border p-3"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-bold">Pedido {formatOrderNumber(order.order_number)}</p><p className="text-xs text-muted-foreground">{new Date(order.created_at).toLocaleString("pt-BR")}</p></div><span className="rounded-full bg-muted px-3 py-1 text-xs font-bold">{statusLabel[order.status] ?? order.status}</span></div><p className="mt-2 font-display text-lg font-extrabold text-primary">{formatBRL(Number(order.total))}</p><Button size="sm" variant="outline" className="mt-2" onClick={()=>reorder(order.items)}><RotateCcw className="size-4" /> Pedir novamente</Button>{order.status === "completed" && Array.isArray(order.items) && (order.items as OrderItem[]).map(item => <div key={item.id} className="mt-3 border-t border-border pt-3"><div className="flex items-center gap-2">{products.find(product => product.id === item.id) && <img src={products.find(product => product.id === item.id)!.image} alt="" className="size-10 rounded-md bg-white object-contain p-1" />}<p className="text-sm font-semibold">{item.name}</p></div><ProductReviewForm productId={item.id} productName={item.name} orderId={order.id} /></div>)}</article>)}</div>}
   </DialogContent></Dialog><PasswordChangeDialog open={passwordOpen} onOpenChange={setPasswordOpen} /></>;
