@@ -117,9 +117,10 @@ export async function fetchCatalogProducts() {
   );
 }
 
-export function useCatalogProducts() {
-  const [items, setItems] = useState<Product[]>(fallbackProducts);
-  const [loading, setLoading] = useState(false);
+export function useCatalogProducts(options: { publicCatalog?: boolean } = {}) {
+  const publicCatalog = options.publicCatalog ?? false;
+  const [items, setItems] = useState<Product[]>(publicCatalog ? [] : fallbackProducts);
+  const [loading, setLoading] = useState(publicCatalog);
   const [error, setError] = useState(false);
 
   const reload = useCallback(async () => {
@@ -129,11 +130,12 @@ export function useCatalogProducts() {
       setItems(all.filter((product) => product.status !== "hidden"));
       setError(false);
     } catch {
+      if (publicCatalog) setItems([]);
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [publicCatalog]);
 
   useEffect(() => {
     void reload();
