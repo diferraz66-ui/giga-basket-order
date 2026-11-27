@@ -188,7 +188,7 @@ export const uploadPaymentProof = createServerFn({ method: "POST" })
         if (uploadError) return { accepted: false as const, reason: "Não foi possível analisar nem salvar o comprovante para revisão." };
         const { error: saveError } = await supabaseAdmin.from("orders").update({
           payment_proof_path: reviewPath,
-          payment_proof_name: "A IA não retornou conteúdo legível. Revise o comprovante manualmente.",
+          payment_proof_name: "A IA não retornou uma leitura conclusiva. Verifique o arquivo e os dados do Pix.",
           payment_proof_type: file.type,
           payment_proof_amount: null,
           payment_proof_validated_at: null,
