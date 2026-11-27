@@ -77,6 +77,20 @@ export function ReportsTeamPanel() {
     } finally { setBusy(false); }
   }
 
+  async function toggleSellerAccess(member: Tables<"team_members">) {
+    setBusy(true);
+    try {
+      const { error } = await supabase.from("team_members").update({ active: !member.active }).eq("user_id", member.user_id);
+      if (error) throw error;
+      toast.success(member.active ? "Acesso do colaborador bloqueado" : "Acesso do colaborador ativado");
+      await load();
+    } catch {
+      toast.error("Não foi possível atualizar o acesso do colaborador");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function removeSeller(member: Tables<"team_members">) {
     if (!window.confirm(`Excluir o acesso de ${member.full_name}?`)) return;
     setBusy(true);
@@ -120,8 +134,8 @@ export function ReportsTeamPanel() {
             <ul className="mt-2 divide-y divide-border">{team.map((member) => {
               const memberRole = roles.find((item) => item.user_id === member.user_id)?.role;
               return <li key={member.user_id} className="flex items-center justify-between gap-3 py-3 text-sm">
-                <div><p className="font-bold">{member.full_name}</p><p className="text-xs text-muted-foreground">Login: {member.username} · {memberRole === "admin" ? "Admin/Financeiro" : "Vendedor"} · {member.active ? "Ativo" : "Inativo"}</p></div>
-                {memberRole === "vendedor" && <Button size="icon" variant="ghost" className="shrink-0 text-destructive" aria-label={`Excluir ${member.full_name}`} onClick={() => void removeSeller(member)} disabled={busy}><Trash2 /></Button>}
+                <div><p className="font-bold">{member.full_name}</p><p className="text-xs text-muted-foreground">Login: {member.username} · {memberRole === "admin" ? "Admin/Financeiro" : "Vendedor"} · {member.active ? "Ativo" : "Bloqueado"}</p></div>
+                {memberRole === "vendedor" && <div className="flex items-center gap-2"><Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void toggleSellerAccess(member)}>{member.active ? "Bloquear acesso" : "Ativar acesso"}</Button><Button size="icon" variant="ghost" className="shrink-0 text-destructive" aria-label={`Excluir ${member.full_name}`} onClick={() => void removeSeller(member)} disabled={busy}><Trash2 /></Button></div>}
               </li>;
             })}</ul>
           </div>
