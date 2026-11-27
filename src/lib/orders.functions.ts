@@ -222,16 +222,6 @@ export const uploadPaymentProof = createServerFn({ method: "POST" })
     }
 
     const transactionId = analysis.transaction_id?.trim() ?? "";
-    if (transactionId) {
-      const { data: existing, error: duplicateError } = await context.supabase
-        .from("orders")
-        .select("id")
-        .eq("payment_proof_name", `PIX_VALIDATED:${transactionId}`)
-        .neq("id", order.id)
-        .limit(1);
-      if (duplicateError) return { accepted: false as const, reason: "Não foi possível verificar a duplicidade do ID Pix. Tente novamente." };
-      if (existing?.length) return { accepted: false as const, reason: "❌ Comprovante duplicado: este ID de transação Pix já foi utilizado em outro pedido!" };
-    }
 
     const saveForManualReview = async (reason: string) => {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -259,6 +249,17 @@ export const uploadPaymentProof = createServerFn({ method: "POST" })
       }
       return { accepted: false as const, reason, savedForReview: true as const };
     };
+
+    if (transactionId) {
+      const { data: existing, error: duplicateError } = await context.supabase
+        .from("orders")
+        .select("id")
+        .eq("payment_proof_name", `PIX_VALIDATED:${transactionId}`)
+        .neq("id", order.id)
+        .limit(1);
+      if (duplicateError) return await saveForManualReview("Não foi possível verificar a duplicidade do ID Pix. Confira o comprovante manualmente.");
+      if (existing?.length) return await saveForManualReview("Comprovante duplicado: este ID de transação Pix já foi utilizado em outro pedido.");
+    }
 
     const expectedDate = getBahiaDate(new Date(order.created_at));
     const validation = validatePaymentProof(analysis, Number(order.total), expectedDate);
