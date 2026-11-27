@@ -32,7 +32,7 @@ export function ShareMenu({ title, text, url, label = "Compartilhar" }: { title:
   return (
     <div className="relative">
       <button type="button" onClick={() => void share()} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-current/25 px-3 text-xs font-semibold hover:bg-current/10 sm:h-10 sm:text-sm">
-        <Share2 className="size-4" /> {label}
+        <Share2 className="size-4" /> <span className={label === "Compartilhar" ? "hidden sm:inline" : ""}>{label}</span>
       </button>
       {open && (
         <div role="menu" className="absolute right-0 z-[80] mt-2 flex min-w-48 flex-col gap-1 rounded-xl border bg-popover p-2 text-popover-foreground shadow-xl">
