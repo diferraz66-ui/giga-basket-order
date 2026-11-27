@@ -5,7 +5,7 @@ import { staffAuthPassword } from "@/lib/staff";
 
 const createSellerSchema = z.object({
   fullName: z.string().trim().min(3).max(100),
-  username: z.string().trim().toLowerCase().regex(/^[a-z0-9._-]{3,30}$/),
+  username: z.string().trim().toLowerCase().regex(/^[a-z0-9]{3,30}$/),
   password: z.string().min(6).max(72),
 });
 
