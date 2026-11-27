@@ -20,7 +20,7 @@ type OrderItem = { id: string; name: string; price: number; quantity: number };
 
 function birthDateToISO(value: string): string | null {
   if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return null;
-  const [day, month, year] = value.split("/").map(Number);
+  const [day = 0, month = 0, year = 0] = value.split("/").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
   if (
     date.getUTCFullYear() !== year ||

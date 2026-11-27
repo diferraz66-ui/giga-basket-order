@@ -14,7 +14,8 @@ const defaultPermissions: TeamMemberPermissions = { pode_ver_todos_pedidos: true
 type Seller = Pick<Tables<"team_members">, "user_id" | "full_name" | "username" | "active" | "pode_cadastrar_produtos">;
 type PendingProduct = Tables<"products"> & { seller_name?: string };
 
-export function ProductAuthorizationsPanel({ permissions = defaultPermissions, role = "admin" }: { permissions?: TeamMemberPermissions; role?: "admin" | "vendedor" }) {\n
+export function ProductAuthorizationsPanel({ permissions = defaultPermissions, role = "admin" }: { permissions?: TeamMemberPermissions; role?: "admin" | "vendedor" }) {
+
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [pending, setPending] = useState<PendingProduct[]>([]);
   const [images, setImages] = useState<Record<string, string[]>>({});
@@ -133,7 +134,8 @@ export function ProductAuthorizationsPanel({ permissions = defaultPermissions, r
   </div>;
 }
 
-export function SellerProductPanel({ userId, permissions = defaultPermissions }: { userId: string; permissions?: TeamMemberPermissions }) {\n  const canSubmitProducts = permissions.pode_cadastrar_produtos;
+export function SellerProductPanel({ userId, permissions = defaultPermissions }: { userId: string; permissions?: TeamMemberPermissions }) {
+  const canSubmitProducts = permissions.pode_cadastrar_produtos;
   const [allowed, setAllowed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);

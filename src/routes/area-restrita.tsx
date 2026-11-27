@@ -25,13 +25,14 @@ import { staffAuthPassword, staffLoginEmail, staffLoginSchema, type StaffRole } 
 import { canShowSellerForm } from "@/lib/product-submission";
 
 export type TeamMemberPermissions = {
+  active: boolean;
   pode_ver_todos_pedidos: boolean; pode_editar_pedidos: boolean; pode_cancelar_pedidos: boolean;
   pode_ignorar_pedido_minimo: boolean; pode_anexar_pix: boolean; pode_enviar_orientacoes_pix: boolean;
   pode_alterar_status_produtos: boolean; pode_ver_totais_financeiros: boolean; pode_cadastrar_produtos: boolean;
 };
 const defaultTeamMemberPermissions: TeamMemberPermissions = {
   pode_ver_todos_pedidos: true, pode_editar_pedidos: true, pode_cancelar_pedidos: true,
-  pode_ignorar_pedido_minimo: true, pode_anexar_pix: true, pode_enviar_orientacoes_pix: true,
+  active: true, pode_ignorar_pedido_minimo: true, pode_anexar_pix: true, pode_enviar_orientacoes_pix: true,
   pode_alterar_status_produtos: true, pode_ver_totais_financeiros: true, pode_cadastrar_produtos: true,
 };
 export const Route = createFileRoute("/area-restrita")({
@@ -52,7 +53,8 @@ function InternalArea() {
   const { session, loading } = useAuth();
   const [member, setMember] = useState<Tables<"team_members"> | null>(null);
   const [role, setRole] = useState<StaffRole | null>(null);
-  const [checking, setChecking] = useState(false);\n  const [blocked, setBlocked] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [blocked, setBlocked] = useState(false);
 
   const userId = session?.user?.id ?? null;
 
@@ -93,10 +95,15 @@ function InternalArea() {
     return <div className="flex min-h-screen items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
   }
   if (!session || !member || !role) return <StaffLogin hasCustomerSession={Boolean(session && !checking)} />;
-  return <StaffDashboard member={member} role={role} />;
+  return <StaffDashboard member={member} role={role} permissions={member} />;
 }
 
-function AccessBlocked() {\n  const { signOut } = useAuth();\n  return <main className="flex min-h-screen items-center justify-center bg-background p-6"><section className="w-full max-w-md space-y-4 rounded-2xl border border-border bg-card p-6 text-center"><h1 className="text-xl font-bold">Acesso bloqueado</h1><p className="text-muted-foreground">Seu acesso foi bloqueado pelo administrador.</p><Button onClick={() => void signOut()}><LogOut className="mr-2 size-4" /> Sair</Button></section></main>;\n}\n\nfunction StaffLogin({ hasCustomerSession }: { hasCustomerSession: boolean }) {
+function AccessBlocked() {
+  const { signOut } = useAuth();
+  return <main className="flex min-h-screen items-center justify-center bg-background p-6"><section className="w-full max-w-md space-y-4 rounded-2xl border border-border bg-card p-6 text-center"><h1 className="text-xl font-bold">Acesso bloqueado</h1><p className="text-muted-foreground">Seu acesso foi bloqueado pelo administrador.</p><Button onClick={() => void signOut()}><LogOut className="mr-2 size-4" /> Sair</Button></section></main>;
+}
+
+function StaffLogin({ hasCustomerSession }: { hasCustomerSession: boolean }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);

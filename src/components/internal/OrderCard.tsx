@@ -415,7 +415,7 @@ export function OrderCard({
                     <Minus />
                   </Button>}
                   <span className="w-7 text-center font-bold">{item.quantity}</span>
-                  {canEdit && <Button
+                  {canEdit && <><Button
                     type="button"
                     size="icon"
                     variant="outline"
@@ -445,7 +445,7 @@ export function OrderCard({
                     }
                   >
                     <Trash2 />
-                  </Button>}
+                  </Button></>}
                 </div>
               </div>
             ))}
