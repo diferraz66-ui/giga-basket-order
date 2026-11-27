@@ -83,10 +83,9 @@ export function assignActiveProductNumbers<T extends { id: string; created_at?: 
     const dateOrder = (a.created_at ?? "").localeCompare(b.created_at ?? "");
     return dateOrder || a.id.localeCompare(b.id);
   });
-  let sequence = 0;
-  return ordered.map((row) => ({
+  return ordered.map((row, index) => ({
     ...row,
-    sequence: row.status === "hidden" ? null : ++sequence,
+    sequence: index + 1,
   }));
 }
 
