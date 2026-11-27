@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, Image as ImageIcon, Loader2, Trash2, UserRound } from "lucide-react";
+import { Check, Image as ImageIcon, Loader2, Trash2, UserRound, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -78,6 +78,23 @@ export function ProductAuthorizationsPanel({ permissions = defaultPermissions, r
     else { toast.success(`${product.name} aprovado e publicado`); await load(); }
   }
 
+  async function approveAll() {
+    const count = pending.length;
+    if (!count || !window.confirm(`Deseja aprovar e publicar todos os ${count} produtos pendentes na vitrine?`)) return;
+    setBusyId("all-pending");
+    const { error } = await supabase
+      .from("products")
+      .update({ status_aprovacao: "aprovado" })
+      .eq("status_aprovacao", "pendente");
+    setBusyId(null);
+    if (error) {
+      toast.error("Não foi possível aprovar todos os produtos pendentes.");
+      return;
+    }
+    toast.success(`${count} produto(s) aprovado(s) e publicado(s) com sucesso!`);
+    await load();
+  }
+
   async function reject(product: PendingProduct) {
     if (!window.confirm(`Recusar e excluir o produto "${product.name}"?`)) return;
     setBusyId(product.id);
@@ -107,7 +124,7 @@ export function ProductAuthorizationsPanel({ permissions = defaultPermissions, r
       </div>
     </section>
     <section>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-extrabold uppercase">Produtos Aguardando Aprovação</h2><p className="text-sm text-muted-foreground">Confira os dados antes de liberar na vitrine.</p></div><span className="rounded-full bg-primary px-3 py-1 text-sm font-extrabold text-primary-foreground">{pending.length} pendente(s)</span></div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-extrabold uppercase">Produtos Aguardando Aprovação</h2><p className="text-sm text-muted-foreground">Confira os dados antes de liberar na vitrine.</p></div><div className="flex items-center gap-2"><span className="rounded-full bg-primary px-3 py-1 text-sm font-extrabold text-primary-foreground">{pending.length} pendente(s)</span>{pending.length > 0 && <Button size="sm" variant="cta" disabled={busyId !== null} onClick={() => void approveAll()}><CheckCheck className="size-4" /> Aprovar Todos</Button>}</div></div>
       <div className="grid gap-3 md:grid-cols-2">
         {pending.map((product) => <article key={product.id} className="rounded-2xl border border-border bg-card p-3">
           <div className="flex flex-wrap gap-2">
