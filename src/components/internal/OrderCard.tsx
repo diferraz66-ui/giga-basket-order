@@ -565,7 +565,7 @@ export function OrderCard({
             {!proofValid && !dirty && order.payment_proof_path && !order.payment_proof_name?.startsWith("PIX_VALIDATED:") && (
               <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-xs font-semibold text-destructive">
                 Comprovante pendente de validação.
-                {proofPendingReason ? ` Motivo: ${proofPendingReason}` : ""} {role === "admin" ? "Confira o arquivo e use a liberação manual somente após confirmar o crédito na conta." : "Aguardando revisão do Admin."}
+                {order.payment_proof_name ? ` Motivo: ${order.payment_proof_name}` : ""} {role === "admin" ? "Confira o arquivo e use a liberação manual somente após confirmar o crédito na conta." : "Aguardando revisão do Admin."}
                 <button type="button" className="mt-2 block font-bold underline underline-offset-2" onClick={() => onProof(order)}>Visualizar Comprovante Anexado</button>
               </p>
             )}
