@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Minus, Plus, Ruler, ShoppingCart } from "lucide-react";
+import { ShareMenu } from "./ShareMenu";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -72,7 +73,7 @@ export function ProductDetailsDialog({
               <DialogDescription className="pt-1 text-left text-sm leading-snug">
                 {product.description}
               </DialogDescription>
-            </DialogHeader>
+            </DialogHeader>\n            <ShareMenu title={product.name} text={`${product.name} | R$ 7,50 na GIGA SHOPPING`} url={typeof window !== "undefined" ? `${window.location.origin}/?produto=${encodeURIComponent(product.id)}` : ""} label="Compartilhar produto" />
             <div className="mt-2 flex gap-2 rounded-xl bg-muted p-3 text-sm">
               <Ruler className="mt-0.5 size-5 shrink-0 text-primary" />
               <div>
