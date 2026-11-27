@@ -48,7 +48,8 @@ export function CatalogHeader({
           />
         </label>
 
-        <div className="flex shrink-0 items-center gap-1">\n          <ShareMenu title="GIGA SHOPPING — Tudo por R$ 7,50" text="Confira nosso catálogo digital com preço único de R$ 7,50!" url={typeof window !== "undefined" ? window.location.origin : ""} label="Compartilhar" />
+        <div className="flex shrink-0 items-center gap-1">
+          <ShareMenu title="GIGA SHOPPING — Tudo por R$ 7,50" text="Confira nosso catálogo digital com preço único de R$ 7,50!" url={typeof window !== "undefined" ? window.location.origin : ""} label="Compartilhar" />
           <button type="button" onClick={() => setOrdersOpen(true)} className="hidden h-10 items-center gap-1 rounded-full border border-ink-foreground/30 px-3 text-xs font-bold text-ink-foreground sm:flex"><ClipboardList className="size-4" /> Meus Pedidos</button>
           <button type="button" onClick={() => setOrdersOpen(true)} className="flex h-9 items-center gap-1 rounded-full border border-ink-foreground/30 px-2.5 text-[10px] font-bold text-ink-foreground sm:h-10 sm:px-3 sm:text-xs"><User className="size-4" /> <span className="hidden xs:inline sm:inline">{profile?.full_name ? `Olá, ${profile.full_name.split(" ")[0]}` : "Entrar / Cadastro"}</span></button>
           <button type="button" onClick={() => setOrdersOpen(true)} aria-label="Meus Pedidos" className="flex size-10 items-center justify-center rounded-full text-ink-foreground hover:bg-ink-foreground/10 sm:hidden"><ClipboardList className="size-5" /></button>
