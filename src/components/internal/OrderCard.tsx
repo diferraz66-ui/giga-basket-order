@@ -54,6 +54,8 @@ import { orderStatusLabels, type OrderStatus, type StaffRole } from "@/lib/staff
 
 type CatalogProduct = Pick<Tables<"products">, "id" | "name" | "price" | "status" | "max_per_customer">;
 type BusyAction = "status" | "items" | "proof" | "finalize" | "cancel" | null;
+type TeamMemberPermissions = { active:boolean; pode_ver_todos_pedidos:boolean; pode_editar_pedidos:boolean; pode_cancelar_pedidos:boolean; pode_ignorar_pedido_minimo:boolean; pode_anexar_pix:boolean; pode_enviar_orientacoes_pix:boolean; pode_cadastrar_produtos:boolean; pode_alterar_status_produtos:boolean; pode_ver_totais_financeiros:boolean; };
+const permissionDefaults: TeamMemberPermissions = { active:true, pode_ver_todos_pedidos:true, pode_editar_pedidos:true, pode_cancelar_pedidos:true, pode_ignorar_pedido_minimo:true, pode_anexar_pix:true, pode_enviar_orientacoes_pix:true, pode_cadastrar_produtos:true, pode_alterar_status_produtos:true, pode_ver_totais_financeiros:true };
 
 export function OrderCard({
   order,
@@ -63,6 +65,7 @@ export function OrderCard({
   onProof,
   role,
   highlighted = false,
+  permissions,
 }: {
   order: Order;
   products: CatalogProduct[];
@@ -71,7 +74,15 @@ export function OrderCard({
   onProof: (order: Order) => void;
   role: StaffRole;
   highlighted?: boolean;
+  permissions?: TeamMemberPermissions;
 }) {
+  const effectivePermissions = { ...permissionDefaults, ...permissions };
+  const restrictedSeller = role === "vendedor";
+  const canEdit = !restrictedSeller || effectivePermissions.pode_editar_pedidos;
+  const canIgnoreMinimum = !restrictedSeller || effectivePermissions.pode_ignorar_pedido_minimo;
+  const canCancel = !restrictedSeller || effectivePermissions.pode_cancelar_pedidos;
+  const canAttachPix = !restrictedSeller || effectivePermissions.pode_anexar_pix;
+  const canSendPixAndReceipt = !restrictedSeller || effectivePermissions.pode_enviar_orientacoes_pix;
   const active = ["received", "in_progress", "awaiting_pix"].includes(order.status);
   const [items, setItems] = useState<OrderItem[]>(order.items);
   const [query, setQuery] = useState("");
@@ -195,7 +206,7 @@ export function OrderCard({
   }
 
   async function updateStatus(status: OrderStatus) {
-    if (status === "in_progress" && !minimumOrderReached) {
+    if (status === "in_progress" && !minimumOrderReached && !canIgnoreMinimum) {
       toast.error("O pedido precisa ter no mínimo 10 itens e R$ 75,00 para iniciar o atendimento.");
       return;
     }
@@ -239,6 +250,8 @@ export function OrderCard({
   }
 
   async function saveItems() {
+    if (!canEdit) return;
+    if (!minimumOrderReached && !canIgnoreMinimum) { toast.error("Respeite o limite mínimo de compras para salvar este pedido."); return; }
     if (!dirty || items.length === 0) return;
     setBusy("items");
     const { error } = await supabase.rpc("update_order_items", {
@@ -299,7 +312,8 @@ export function OrderCard({
   }
 
   async function finalize() {
-    if (!minimumOrderReached || !proofValid) return;
+    if (!minimumOrderReached && !canIgnoreMinimum) { toast.error("Respeite o limite mínimo de compras para finalizar este pedido."); return; }
+    if (!proofValid) return;
     setBusy("finalize");
     const { error } = await supabase.rpc("finalize_order", { p_order_id: order.id });
     setBusy(null);
@@ -389,7 +403,7 @@ export function OrderCard({
                   )}
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button
+                  {canEdit && <Button
                     type="button"
                     size="icon"
                     variant="outline"
@@ -399,9 +413,9 @@ export function OrderCard({
                     onClick={() => changeQuantity(item.id, -1)}
                   >
                     <Minus />
-                  </Button>
+                  </Button>}
                   <span className="w-7 text-center font-bold">{item.quantity}</span>
-                  <Button
+                  {canEdit && <Button
                     type="button"
                     size="icon"
                     variant="outline"
@@ -431,13 +445,13 @@ export function OrderCard({
                     }
                   >
                     <Trash2 />
-                  </Button>
+                  </Button>}
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="relative mt-3">
+          {canEdit && <div className="relative mt-3">
             <Label htmlFor={`search-${order.id}`} className="sr-only">
               Buscar produto para incluir
             </Label>
@@ -476,18 +490,18 @@ export function OrderCard({
                 )}
               </div>
             )}
-          </div>
-          <Button
+          </div>}
+          {canEdit && <Button
             type="button"
             variant="outline"
             size="sm"
             className="mt-3 w-full"
-            disabled={!dirty || !items.length || Boolean(busy)}
+            disabled={!dirty || !items.length || Boolean(busy) || (!minimumOrderReached && !canIgnoreMinimum)}
             onClick={() => void saveItems()}
           >
             {busy === "items" ? <Loader2 className="animate-spin" /> : <FileCheck2 />} SALVAR
             ALTERAÇÕES
-          </Button>
+          </Button>}
 
           {!minimumOrderReached && (
             <p role="alert" className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-3 text-sm font-semibold text-destructive">
@@ -511,7 +525,7 @@ export function OrderCard({
                 <p className="text-sm font-bold">Comprovante Pix</p>
                 <p className="text-xs text-muted-foreground">JPG, PNG ou PDF · até 8 MB</p>
               </div>
-              <Button
+              {canAttachPix && <Button
                 type="button"
                 variant="outline"
                 size="sm"
@@ -520,14 +534,14 @@ export function OrderCard({
               >
                 {busy === "proof" ? <Loader2 className="animate-spin" /> : <Upload />}{" "}
                 {busy === "proof" ? "Validando..." : "ANEXAR COMPROVANTE PIX"}
-              </Button>
-              <input
+              </Button>}
+              {canAttachPix && <input
                 ref={fileRef}
                 type="file"
                 accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
                 className="sr-only"
                 onChange={(event) => void attachProof(event)}
-              />
+              />}
             </div>
             {dirty && (
               <p className="mt-3 text-xs font-medium text-muted-foreground">
@@ -589,7 +603,7 @@ export function OrderCard({
                 <Play /> Iniciar atendimento
               </Button>
             )}
-            {order.status === "in_progress" && (
+            {canSendPixAndReceipt && order.status === "in_progress" && (
               <Button
                 size="sm"
                 variant="whatsapp"
@@ -603,12 +617,12 @@ export function OrderCard({
               size="sm"
               variant="cta"
               onClick={() => void finalize()}
-              disabled={!minimumOrderReached || !proofValid || Boolean(busy)}
+              disabled={(!minimumOrderReached && !canIgnoreMinimum) || !proofValid || Boolean(busy)}
             >
               {busy === "finalize" ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}{" "}
               FINALIZAR PEDIDO
             </Button>
-            <Button
+            {canCancel && <Button
               size="sm"
               variant="ghost"
               className="text-destructive"
@@ -616,7 +630,7 @@ export function OrderCard({
               disabled={Boolean(busy)}
             >
               <XCircle /> Cancelar pedido
-            </Button>
+            </Button>}
           </div>
         </>
       ) : (
@@ -662,7 +676,7 @@ export function OrderCard({
                 <Paperclip /> Ver comprovante Pix
               </Button>
             )}
-            {order.status === "completed" && (
+            {canSendPixAndReceipt && order.status === "completed" && (
               <Button size="sm" variant="outline" disabled={!hasValidProofForCurrentTotal(order)} onClick={() => onReceipt(order)}>
                 <FileText /> Cupom não fiscal
               </Button>
