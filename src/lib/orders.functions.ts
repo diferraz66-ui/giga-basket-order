@@ -69,12 +69,14 @@ function hasValidSignature(bytes: Uint8Array, type: AcceptedType) {
   return new TextDecoder().decode(bytes.slice(0, 5)) === "%PDF-";
 }
 
-function publicFileUrl(signedUrl: string) {
-  const publicUrl = process.env["VITE_SUPABASE_URL"]?.replace(/\/+$/, "");
-  const serverUrl = process.env["SUPABASE_URL"]?.replace(/\/+$/, "");
-  return publicUrl && serverUrl && signedUrl.startsWith(`${serverUrl}/`)
-    ? `${publicUrl}${signedUrl.slice(serverUrl.length)}`
-    : signedUrl;
+function cleanPaymentProofPath(rawPath: string) {
+  const path = rawPath.trim();
+  if (/^https?:\/\//i.test(path)) {
+    const match = path.match(/\/storage\/v1\/object\/(?:sign|authenticated|public)\/payment-proofs\/(.+?)(?:\?|$)/i);
+    if (match?.[1]) return decodeURIComponent(match[1]);
+    throw new Error("URL do comprovante não corresponde ao bucket payment-proofs");
+  }
+  return path.replace(/^payment-proofs\//, "").replace(/^\/+/, "");
 }
 
 export const uploadPaymentProof = createServerFn({ method: "POST" })
@@ -193,7 +195,7 @@ export const uploadPaymentProof = createServerFn({ method: "POST" })
           payment_proof_amount: null,
           payment_proof_validated_at: null,
           payment_proof_validated_total: null,
-        }).eq("id", data.orderId).eq("total", order.total).in("status", [...ACTIVE_STATUSES]);
+        }).eq("id", data.orderId).eq("total", order.total).in("status", [...ACTIVE_STATUSES]).select("id").single();
         if (saveError) {
           await supabaseAdmin.storage.from("payment-proofs").remove([reviewPath]);
           return { accepted: false as const, reason: "Não foi possível registrar o comprovante para revisão do Admin." };
@@ -356,12 +358,13 @@ export const getPaymentProofUrl = createServerFn({ method: "POST" })
       .single();
     if (error || !order?.payment_proof_path) throw new Error("Comprovante não encontrado");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const cleanPath = cleanPaymentProofPath(order.payment_proof_path);
     const { data: signed, error: signError } = await supabaseAdmin.storage
       .from("payment-proofs")
-      .createSignedUrl(order.payment_proof_path, 3600);
+      .createSignedUrl(cleanPath, 3600);
     if (signError || !signed?.signedUrl) throw new Error("Não foi possível abrir o comprovante");
     return {
-      url: publicFileUrl(signed.signedUrl),
+      url: signed.signedUrl,
       name: order.payment_proof_name?.startsWith("PIX_VALIDATED:") ? "Comprovante Pix validado" : (order.payment_proof_name ?? "Comprovante Pix"),
       type: order.payment_proof_type ?? "application/pdf",
     };
