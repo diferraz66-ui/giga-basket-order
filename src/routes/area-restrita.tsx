@@ -24,6 +24,16 @@ import { useAuth } from "@/lib/auth";
 import { staffAuthPassword, staffLoginEmail, staffLoginSchema, type StaffRole } from "@/lib/staff";
 import { canShowSellerForm } from "@/lib/product-submission";
 
+export type TeamMemberPermissions = {
+  pode_ver_todos_pedidos: boolean; pode_editar_pedidos: boolean; pode_cancelar_pedidos: boolean;
+  pode_ignorar_pedido_minimo: boolean; pode_anexar_pix: boolean; pode_enviar_orientacoes_pix: boolean;
+  pode_alterar_status_produtos: boolean; pode_ver_totais_financeiros: boolean; pode_cadastrar_produtos: boolean;
+};
+const defaultTeamMemberPermissions: TeamMemberPermissions = {
+  pode_ver_todos_pedidos: true, pode_editar_pedidos: true, pode_cancelar_pedidos: true,
+  pode_ignorar_pedido_minimo: true, pode_anexar_pix: true, pode_enviar_orientacoes_pix: true,
+  pode_alterar_status_produtos: true, pode_ver_totais_financeiros: true, pode_cadastrar_produtos: true,
+};
 export const Route = createFileRoute("/area-restrita")({
   head: () => ({
     meta: [
@@ -42,7 +52,7 @@ function InternalArea() {
   const { session, loading } = useAuth();
   const [member, setMember] = useState<Tables<"team_members"> | null>(null);
   const [role, setRole] = useState<StaffRole | null>(null);
-  const [checking, setChecking] = useState(false);
+  const [checking, setChecking] = useState(false);\n  const [blocked, setBlocked] = useState(false);
 
   const userId = session?.user?.id ?? null;
 
@@ -86,7 +96,7 @@ function InternalArea() {
   return <StaffDashboard member={member} role={role} />;
 }
 
-function StaffLogin({ hasCustomerSession }: { hasCustomerSession: boolean }) {
+function AccessBlocked() {\n  const { signOut } = useAuth();\n  return <main className="flex min-h-screen items-center justify-center bg-background p-6"><section className="w-full max-w-md space-y-4 rounded-2xl border border-border bg-card p-6 text-center"><h1 className="text-xl font-bold">Acesso bloqueado</h1><p className="text-muted-foreground">Seu acesso foi bloqueado pelo administrador.</p><Button onClick={() => void signOut()}><LogOut className="mr-2 size-4" /> Sair</Button></section></main>;\n}\n\nfunction StaffLogin({ hasCustomerSession }: { hasCustomerSession: boolean }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -133,7 +143,7 @@ function StaffLogin({ hasCustomerSession }: { hasCustomerSession: boolean }) {
   );
 }
 
-function StaffDashboard({ member, role }: { member: Tables<"team_members">; role: StaffRole }) {
+function StaffDashboard({ member, role, permissions }: { member: Tables<"team_members">; role: StaffRole; permissions: TeamMemberPermissions }) {
   const { signOut } = useAuth();
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
@@ -235,7 +245,7 @@ function StaffDashboard({ member, role }: { member: Tables<"team_members">; role
             {role === "admin" && <TabsTrigger value="authorizations" className="shrink-0 px-4 py-2.5">Autorizações</TabsTrigger>}
             {role === "vendedor" && sellerAllowed && <TabsTrigger value="seller-products" className="shrink-0 px-4 py-2.5">Incluir Produto</TabsTrigger>}
           </TabsList>
-          <TabsContent value="orders"><OrdersPanel role={role} targetOrder={typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("pedido") : null} /></TabsContent>
+          <TabsContent value="orders"><OrdersPanel role={role} permissions={permissions} targetOrder={typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("pedido") : null} /></TabsContent>
           {role === "admin" && <TabsContent value="products"><ProductsPanel /></TabsContent>}
           {role === "admin" && <TabsContent value="quick-control"><QuickControlPanel /></TabsContent>}
           {role === "admin" && <TabsContent value="customers"><CustomersPanel /></TabsContent>}
@@ -243,7 +253,7 @@ function StaffDashboard({ member, role }: { member: Tables<"team_members">; role
           {role === "admin" && <TabsContent value="banners"><BannersPanel /></TabsContent>}
           {role === "admin" && <TabsContent value="reviews"><ReviewsPanel /></TabsContent>}
           {role === "admin" && <TabsContent value="authorizations"><ProductAuthorizationsPanel /></TabsContent>}
-          {role === "vendedor" && sellerAllowed && <TabsContent value="seller-products"><SellerProductPanel userId={member.user_id} /></TabsContent>}
+          {role === "vendedor" && sellerAllowed && <TabsContent value="seller-products"><SellerProductPanel userId={member.user_id} permissions={permissions} /></TabsContent>}
         </Tabs>
       </main>
       <PasswordChangeDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
