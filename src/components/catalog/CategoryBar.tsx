@@ -9,7 +9,7 @@ export function CategoryBar({
   onChange: (id: CategoryId | null) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const visibleCategories = expanded ? categories : categories.slice(0, 4);
+  const visibleCategories = expanded ? categories : categories.slice(0, 6);
 
   return (
     <nav aria-label="Categorias" className="relative z-40 border-b border-[#D4AF37]/25 bg-[#111827]">
@@ -28,7 +28,7 @@ export function CategoryBar({
             key={c.id}
             type="button"
             onClick={() => onChange(active === c.id ? null : c.id)}
-            className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-3 text-sm font-semibold transition-colors ${
+            className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-3 text-sm font-semibold transition-colors ${!expanded && i >= 4 ? "hidden md:flex" : ""} ${
               active === c.id ? "bg-primary text-primary-foreground" : "bg-white/10 text-white"
             }`}
           >
@@ -41,7 +41,7 @@ export function CategoryBar({
             type="button"
             onClick={() => setExpanded((value) => !value)}
             aria-expanded={expanded}
-            className="shrink-0 rounded-full border border-[#D4AF37]/60 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10"
+            className={`shrink-0 rounded-full border border-[#D4AF37]/60 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10 ${!expanded ? (categories.length > 6 ? "md:flex" : "md:hidden") : ""}`}
           >
             {expanded ? "Ver menos" : "+ Ver mais categorias"}
           </button>
