@@ -33,7 +33,7 @@ import {
   type ProductTag,
 } from "@/data/catalog";
 import { formatBRL } from "@/lib/order";
-import { assignActiveProductNumbers, fetchAllProductRows, resolvePrimaryProductImage } from "@/lib/products";
+import { assignActiveProductNumbers, fetchAllProductRows, resolvePrimaryProductImage, resolveProductImage } from "@/lib/products";
 import { optimizeProductImage } from "@/lib/product-image";
 import { sellerSubmissionFields } from "@/lib/product-submission";
 import {
@@ -569,6 +569,19 @@ function ProductForm({
   const cameraRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
   const galleryRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
   const existingImages = [product?.image_url ?? null, ...(product?.imagens ?? [])].filter((value): value is string => Boolean(value)).slice(0, 3);
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    if (!product) {
+      setExistingImageUrls([]);
+      return () => { active = false; };
+    }
+    void resolveProductImage(product).then(urls => {
+      if (active) setExistingImageUrls(urls);
+    });
+    return () => { active = false; };
+  }, [product]);
 
   useEffect(() => {
     return () => previews.forEach(preview => { if (preview) URL.revokeObjectURL(preview); });
@@ -631,8 +644,8 @@ function ProductForm({
     }
     if (!name.trim() || !description.trim() || (!sellerMode && !dimensions.trim()) ||
       !Number.isFinite(numericPrice) || numericPrice < 0 ||
-      (sellerMode && (!sellerUserId || (!existingImages.length && !selectedFiles.some(Boolean))))) {
-      toast.error(sellerMode ? "Preencha nome, descrição, categoria e selecione ao menos uma foto." : "Preencha nome, descrição, dimensões e um preço válido");
+      ((sellerMode || !product) && (sellerMode && !sellerUserId || !(selectedFiles[0] || (!removedExisting[0] && existingImages[0]))))) {
+      toast.error((sellerMode || !product) ? "Preencha os dados obrigatórios e adicione a Foto 1 (principal)." : "Preencha nome, descrição, dimensões e um preço válido");
       return;
     }
     if (selectedFiles.some(file => file && file.size > 5 * 1024 * 1024)) {
@@ -716,8 +729,8 @@ function ProductForm({
                 <p className="text-xs font-bold">{slot === 0 ? "Foto principal" : `Foto adicional ${slot + 1}`}</p>
                 <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg border border-dashed bg-card">
                   {preview ? <img src={preview} alt={`Prévia da foto ${index + 1}`} className="size-full object-contain" />
-                    : path && /^https?:\/\//.test(path) ? <img src={path} alt={`Foto atual ${index + 1}`} className="size-full object-contain" />
-                    : <span className="px-2 text-center text-xs text-muted-foreground">{path ? "Foto armazenada" : "Sem foto"}</span>}
+                    : existingImageUrls[index] ? <img src={existingImageUrls[index]} alt={`Foto atual ${index + 1}`} className="size-full object-contain" />
+                    : <span className="px-2 text-center text-xs text-muted-foreground">{path ? "Carregando foto..." : "Sem foto"}</span>}
                 </div>
                 <input ref={cameraRefs[index]} type="file" accept="image/*" capture="environment" className="sr-only" onChange={event => void selectImage(index, event)} aria-label={`Tirar foto ${index + 1}`} />
                 <input ref={galleryRefs[index]} type="file" accept="image/*" className="sr-only" onChange={event => void selectImage(index, event)} aria-label={`Escolher foto ${index + 1} da galeria`} />
@@ -844,4 +857,9 @@ function ProductForm({
       </DialogContent>
     </Dialog>
   );
+}
+
+
+export function ProductAdminEditor({ product, onClose, onSaved }: { product: Tables<"products">; onClose: () => void; onSaved: () => Promise<void> }) {
+  return <ProductForm key={product.id} product={product} onClose={onClose} onSaved={onSaved} />;
 }
