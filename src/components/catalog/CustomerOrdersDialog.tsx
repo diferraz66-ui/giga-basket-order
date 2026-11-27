@@ -19,7 +19,7 @@ type OrderRow = { id: string; order_number: number; created_at: string; status: 
 type OrderItem = { id: string; name: string; price: number; quantity: number };
 
 function birthDateToISO(value: string): string | null {
-  if (!/^\\d{2}\\/\\d{2}\\/\\d{4}$/.test(value)) return null;
+  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return null;
   const [day, month, year] = value.split("/").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
   if (
@@ -29,14 +29,14 @@ function birthDateToISO(value: string): string | null {
     year < 1900 ||
     date.getTime() > Date.now()
   ) return null;
-  return `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+  return \${year.toString().padStart(4, "0")}-\${month.toString().padStart(2, "0")}-\${day.toString().padStart(2, "0")};
 }
 
 function maskBirthDate(value: string) {
-  const digits = value.replace(/\\D/g, "").slice(0, 8);
+  const digits = value.replace(/\D/g, "").slice(0, 8);
   if (digits.length <= 2) return digits;
-  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+  if (digits.length <= 4) return \${digits.slice(0, 2)}/\${digits.slice(2)};
+  return \${digits.slice(0, 2)}/\${digits.slice(2, 4)}/\${digits.slice(4)};
 }
 
 export function CustomerOrdersDialog({ open, onOpenChange, products }: { open: boolean; onOpenChange: (open: boolean) => void; products: Product[] }) {
