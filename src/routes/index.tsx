@@ -57,7 +57,7 @@ function Index() {
 
 function Catalog() {
   const { profile, session } = useAuth();
-  const { products } = useCatalogProducts();
+  const { products, loading: productsLoading, error: productsError } = useCatalogProducts({ publicCatalog: true });
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<CategoryId | null>(null);
   const [bestSellersOpen, setBestSellersOpen] = useState(false);
@@ -265,7 +265,18 @@ function Catalog() {
               <CatalogViewToggle value={view} onChange={setView} />
             </div>
 
-            {categorySections.map((item, index) => {
+            {productsLoading ? (
+              <section aria-label="Carregando produtos" aria-busy="true" className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {Array.from({ length: 8 }, (_, index) => (
+                  <div key={index} className="h-64 animate-pulse rounded-xl border border-white/20 bg-white/15" />
+                ))}
+              </section>
+            ) : productsError ? (
+              <p role="status" className="mt-8 rounded-xl bg-white/95 p-6 text-center text-sm text-gray-700">
+                Não foi possível carregar os produtos agora. Atualize a página para tentar novamente.
+              </p>
+            ) : (
+              categorySections.map((item, index) => {
               const categoryProducts = products
                 .filter((product) => product.category === item.id && product.status === "available")
                 .slice(0, 8);
@@ -286,7 +297,8 @@ function Catalog() {
                   </div>
                 </section>
               );
-            })}
+              })
+            )}
           </>
         )}
       </main>
