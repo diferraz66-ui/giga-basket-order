@@ -166,9 +166,7 @@ export function CheckoutAuthDialog({
           return;
         }
         toast.success("Senha redefinida com sucesso! Você já entrou na sua conta.");
-        setMode("signin");
-        setPassword("");
-        setPasswordConfirm("");
+        onOpenChange(false);
       } catch (caught) {
         setError(getErrorMessage(caught));
       } finally {
@@ -432,11 +430,6 @@ export function CheckoutAuthDialog({
                 </button>
               )}
 
-              {isRecovery && (
-                <p className="text-xs text-muted-foreground">
-                  Conta antiga sem data de nascimento cadastrada? Solicite a atualização diretamente na loja física.
-                </p>
-              )}
             </>
           )}
 
@@ -536,7 +529,7 @@ export function CheckoutAuthDialog({
             {identity
               ? "Confirmar e finalizar pedido"
               : isRecovery
-                ? "Redefinir senha e entrar"
+                ? "Confirmar nova senha"
                 : isSignup
                   ? "Criar cadastro e finalizar"
                   : "Entrar e finalizar"}
