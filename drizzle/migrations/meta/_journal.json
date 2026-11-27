@@ -127,6 +127,13 @@
       "when": 1795737060711,
       "tag": "0017_order_minimum_quantity_and_products_full_identity",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795799143842,
+      "tag": "0018_customer_birth_date_and_reset_attempts",
+      "breakpoints": true
     }
   ]
 }

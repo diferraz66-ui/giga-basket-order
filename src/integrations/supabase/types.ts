@@ -131,6 +131,24 @@ export type Database = {
         }
         Relationships: []
       }
+      password_reset_attempts: {
+        Row: {
+          attempted_at: string
+          id: string
+          whatsapp_digits: string
+        }
+        Insert: {
+          attempted_at?: string
+          id?: string
+          whatsapp_digits: string
+        }
+        Update: {
+          attempted_at?: string
+          id?: string
+          whatsapp_digits?: string
+        }
+        Relationships: []
+      }
       product_reviews: {
         Row: {
           city: string
@@ -250,6 +268,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          accepts_offers: boolean | null
+          birth_date: string | null
           created_at: string
           full_name: string
           id: string
@@ -259,6 +279,8 @@ export type Database = {
           whatsapp: string
         }
         Insert: {
+          accepts_offers?: boolean | null
+          birth_date?: string | null
           created_at?: string
           full_name: string
           id: string
@@ -268,6 +290,8 @@ export type Database = {
           whatsapp: string
         }
         Update: {
+          accepts_offers?: boolean | null
+          birth_date?: string | null
           created_at?: string
           full_name?: string
           id?: string

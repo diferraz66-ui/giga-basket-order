@@ -42,3 +42,4 @@ use the editor.
 - Product image gestures use react-zoom-pan-pinch in a dedicated component remounted for each dialog opening to reset the transform and keep controls synchronized.
 - Store settings use a singleton row in `public.configuracoes_loja`, with public reads and active-admin-only writes; product gallery paths use a database-constrained text array, and product Realtime retains existing RLS.
 - New-order minimum validation sums validated item quantities against the singleton store setting (schema default when absent), not a monetary threshold; this keeps database enforcement aligned with configurable unit counts.
+- Customer signup and WhatsApp password reset run as server functions in `src/lib/customer-auth.functions.ts` (not Edge Functions, per stack rules); they reuse `whatsappToLoginEmail` so existing customer logins keep working.
