@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { z } from "zod";
 import { Loader2, Store, Truck } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { normalizeWhatsapp, whatsappToLoginEmail } from "@/lib/phone";
+import { registerCustomerFn, resetCustomerPasswordFn } from "@/lib/customer-auth.functions";
 import type { DeliveryDetails } from "@/lib/order";
 import { Logo } from "./Logo";
 
@@ -29,34 +30,52 @@ export type CheckoutResult = {
   delivery: DeliveryDetails;
 };
 
-const whatsappField = z
-  .string()
-  .trim()
-  .min(1, "Informe seu WhatsApp")
-  .refine(
-    (value) => normalizeWhatsapp(value) !== null,
-    "Informe o WhatsApp com DDD, ex: (11) 98888-7777",
-  );
+type AuthMode = "signup" | "signin" | "recovery";
 
-const signUpSchema = z.object({
-  email: z.string().trim().email("Informe um e-mail válido"),
-  fullName: z.string().trim().min(3, "Informe seu nome completo").max(100, "Nome muito longo"),
-  whatsapp: whatsappField,
-  password: z.string().min(6, "A senha precisa ter pelo menos 6 caracteres").max(72),
-});
-
-const signInSchema = z.object({
-  whatsapp: z.string().trim().min(1, "Informe seu e-mail ou WhatsApp"),
-  password: z.string().min(1, "Informe sua senha"),
-});
+const STORE_WHATSAPP = import.meta.env.VITE_STORE_WHATSAPP as string | undefined;
 
 function maskWhatsapp(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
-  if (digits.length <= 2) return digits.length ? `(${digits}` : "";
-  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-  if (digits.length <= 10)
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  if (!digits) return "";
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
+function maskBirthDate(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+function birthDateToISO(value: string): string | null {
+  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return null;
+  const [day, month, year] = value.split("/").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day ||
+    year < 1900 ||
+    date.getTime() > Date.now()
+  ) return null;
+  return `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  return "Não foi possível concluir. Confira os dados e tente novamente.";
+}
+
+function openStoreWhatsapp() {
+  const digits = (STORE_WHATSAPP ?? "").replace(/\D/g, "");
+  if (!digits) {
+    toast.error("O WhatsApp de atendimento da loja ainda não está configurado.");
+    return;
+  }
+  const message = encodeURIComponent("Olá! Tenho uma conta antiga na GIGA Shopping e preciso atualizar meu cadastro para recuperar o acesso.");
+  window.open(`https://wa.me/${digits}?text=${message}`, "_blank", "noopener,noreferrer");
 }
 
 export function CheckoutAuthDialog({
@@ -70,12 +89,13 @@ export function CheckoutAuthDialog({
   identity: CheckoutIdentity | null;
   onComplete: (result: CheckoutResult) => void;
 }) {
-  const [mode, setMode] = useState<"signup" | "signin">("signup");
+  const [mode, setMode] = useState<AuthMode>("signup");
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [password, setPassword] = useState("");
-  const [optIn, setOptIn] = useState(false);
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [acceptsOffers, setAcceptsOffers] = useState(false);
   const [deliveryMethod, setDeliveryMethod] = useState<"pickup" | "van" | "">("");
   const [pickupName, setPickupName] = useState("");
   const [pickupDocument, setPickupDocument] = useState("");
@@ -83,6 +103,13 @@ export function CheckoutAuthDialog({
   const [vanContact, setVanContact] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  function changeMode(nextMode: AuthMode) {
+    setMode(nextMode);
+    setError(null);
+    setPassword("");
+    setPasswordConfirm("");
+  }
 
   function parseDelivery(): DeliveryDetails | null {
     if (!deliveryMethod) {
@@ -111,9 +138,55 @@ export function CheckoutAuthDialog({
     };
   }
 
-  async function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (busy) return;
     setError(null);
+
+    if (mode === "recovery") {
+      const phone = normalizeWhatsapp(whatsapp);
+      const isoDate = birthDateToISO(birthDate);
+      if (!phone) return setError("Informe um WhatsApp válido com DDD.");
+      if (fullName.trim().length < 3) return setError("Informe seu nome completo.");
+      if (!isoDate) return setError("Informe uma data de nascimento válida no formato DD/MM/AAAA.");
+      if (password.length < 6) return setError("A nova senha precisa ter pelo menos 6 caracteres.");
+      if (password !== passwordConfirm) return setError("As senhas não coincidem.");
+
+      setBusy(true);
+      try {
+        const result = await resetCustomerPasswordFn({
+          data: {
+            whatsapp: phone,
+            full_name: fullName.trim(),
+            birth_date: isoDate,
+            new_password: password,
+          },
+        });
+        if (!result.success) {
+          setError(result.error ?? "Não foi possível redefinir sua senha.");
+          return;
+        }
+
+        const login = await supabase.auth.signInWithPassword({
+          email: result.internal_email,
+          password,
+        });
+        if (login.error) {
+          setError("Sua senha foi redefinida, mas não foi possível entrar automaticamente. Volte à aba de acesso e entre com a nova senha.");
+          return;
+        }
+        toast.success("Senha redefinida com sucesso! Você já entrou na sua conta.");
+        setMode("signin");
+        setPassword("");
+        setPasswordConfirm("");
+      } catch (caught) {
+        setError(getErrorMessage(caught));
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
     const delivery = parseDelivery();
     if (!delivery) return;
 
@@ -122,71 +195,95 @@ export function CheckoutAuthDialog({
       return;
     }
 
+    const phone = normalizeWhatsapp(whatsapp);
+    if (!phone) return setError("Informe um WhatsApp válido com DDD.");
+
     if (mode === "signup") {
-      const parsed = signUpSchema.safeParse({ fullName, email, whatsapp, password });
-      if (!parsed.success)
-        return setError(parsed.error.issues[0]?.message ?? "Confira os dados informados.");
-      const phone = normalizeWhatsapp(parsed.data.whatsapp)!;
+      const isoDate = birthDateToISO(birthDate);
+      if (fullName.trim().length < 3) return setError("Informe seu nome completo.");
+      if (!isoDate) return setError("Informe uma data de nascimento válida no formato DD/MM/AAAA.");
+      if (password.length < 6) return setError("A senha precisa ter pelo menos 6 caracteres.");
+
       setBusy(true);
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: parsed.data.email,
-        password: parsed.data.password,
-        options: {
-          data: { full_name: parsed.data.fullName, whatsapp: phone, marketing_opt_in: optIn },
-        },
-      });
-      setBusy(false);
-      if (signUpError) {
-        if (/already|registered|exists/i.test(signUpError.message)) {
-          setMode("signin");
-          return setError("Este WhatsApp já tem cadastro. Entre com sua senha.");
+      try {
+        const registration = await registerCustomerFn({
+          data: {
+            full_name: fullName.trim(),
+            whatsapp: phone,
+            birth_date: isoDate,
+            password,
+            accepts_offers: acceptsOffers,
+          },
+        });
+        if (!registration.success) {
+          setError(registration.error ?? "Não foi possível criar seu cadastro.");
+          return;
         }
-        if (/pwned|leaked|weak/i.test(signUpError.message)) {
-          return setError("Essa senha é muito comum. Escolha outra senha.");
+
+        const login = await supabase.auth.signInWithPassword({
+          email: registration.internal_email,
+          password,
+        });
+        if (login.error || !login.data.user) {
+          setError("Cadastro criado, mas não foi possível entrar automaticamente. Tente acessar com seu WhatsApp e senha.");
+          return;
         }
-        return setError("Não foi possível criar seu cadastro. Tente novamente.");
+
+        onComplete({
+          identity: {
+            userId: login.data.user.id,
+            fullName: fullName.trim(),
+            whatsapp: phone,
+          },
+          delivery,
+        });
+      } catch (caught) {
+        setError(getErrorMessage(caught));
+      } finally {
+        setBusy(false);
       }
-      if (!data.session || !data.user) {
-        setMode("signin");
-        return setError("Cadastro criado! Confirme seu e-mail e entre com seu e-mail e senha para finalizar.");
-      }
-      onComplete({
-        identity: { userId: data.user.id, fullName: parsed.data.fullName, whatsapp: phone },
-        delivery,
-      });
       return;
     }
 
-    const parsed = signInSchema.safeParse({ whatsapp, password });
-    if (!parsed.success)
-      return setError(parsed.error.issues[0]?.message ?? "Confira os dados informados.");
-    const phone = normalizeWhatsapp(parsed.data.whatsapp)!;
+    if (!password) return setError("Informe sua senha.");
     setBusy(true);
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email: parsed.data.whatsapp.includes("@") ? parsed.data.whatsapp : whatsappToLoginEmail(phone!),
-      password: parsed.data.password,
-    });
-    if (signInError) {
+    try {
+      const login = await supabase.auth.signInWithPassword({
+        email: whatsappToLoginEmail(phone),
+        password,
+      });
+      if (login.error) {
+        setError("WhatsApp ou senha incorretos.");
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("full_name, whatsapp")
+        .eq("id", login.data.user.id)
+        .maybeSingle();
+      if (profileError || !profile) {
+        setError("Não foi possível carregar seu cadastro. Tente novamente.");
+        return;
+      }
+
+      onComplete({
+        identity: {
+          userId: login.data.user.id,
+          fullName: profile.full_name,
+          whatsapp: profile.whatsapp,
+        },
+        delivery,
+      });
+    } catch (caught) {
+      setError(getErrorMessage(caught));
+    } finally {
       setBusy(false);
-      return setError("WhatsApp ou senha incorretos.");
     }
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("full_name, whatsapp")
-      .eq("id", data.user.id)
-      .maybeSingle();
-    setBusy(false);
-    if (profileError || !profile)
-      return setError("Não foi possível carregar seu cadastro. Tente novamente.");
-    onComplete({
-      identity: {
-        userId: data.user.id,
-        fullName: profile.full_name,
-        whatsapp: profile.whatsapp,
-      },
-      delivery,
-    });
   }
+
+  const isRecovery = mode === "recovery";
+  const isSignup = mode === "signup";
 
   return (
     <Dialog
@@ -199,105 +296,132 @@ export function CheckoutAuthDialog({
         <DialogHeader>
           <Logo className="mb-2 w-40" />
           <DialogTitle className="font-display text-xl uppercase">
-            {identity ? "Como você quer receber?" : "Cadastro para finalizar"}
+            {identity
+              ? "Como você quer receber?"
+              : isRecovery
+                ? "Recuperar acesso"
+                : "Cadastro para finalizar"}
           </DialogTitle>
           <DialogDescription>
             {identity
               ? `${identity.fullName}, escolha a forma de recebimento do seu pedido.`
-              : "Identifique-se e escolha como receber para gerar o pedido e abrir o WhatsApp da loja."}
+              : isRecovery
+                ? "Confirme seus dados para cadastrar uma nova senha."
+                : "Identifique-se e escolha como receber para gerar o pedido e abrir o WhatsApp da loja."}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {!identity && (
             <>
-              <div className="grid grid-cols-2 rounded-full bg-muted p-1" role="tablist">
-                {(["signup", "signin"] as const).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    role="tab"
-                    aria-selected={mode === option}
-                    onClick={() => {
-                      setMode(option);
-                      setError(null);
-                    }}
-                    className={`rounded-full px-2 py-2.5 text-sm font-bold transition-colors ${
-                      mode === option
-                        ? "bg-primary text-primary-foreground shadow-soft"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {option === "signup" ? "Criar cadastro" : "Já tenho cadastro"}
-                  </button>
-                ))}
-              </div>
+              {!isRecovery && (
+                <div className="grid grid-cols-2 rounded-full bg-muted p-1" role="tablist" aria-label="Acesso do cliente">
+                  {(["signup", "signin"] as const).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      role="tab"
+                      aria-selected={mode === option}
+                      onClick={() => changeMode(option)}
+                      className={`rounded-full px-2 py-2.5 text-sm font-bold transition-colors ${
+                        mode === option
+                          ? "bg-primary text-primary-foreground shadow-soft"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {option === "signup" ? "Criar cadastro" : "Já tenho cadastro"}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-              {mode === "signup" && (
-                <>
+              {(isSignup || isRecovery) && (
                 <div className="space-y-1.5">
                   <Label htmlFor="checkout-full-name">Nome completo</Label>
                   <Input
                     id="checkout-full-name"
+                    name="customer_full_name"
                     autoComplete="name"
                     value={fullName}
                     onChange={(event) => setFullName(event.target.value)}
                     placeholder="Seu nome e sobrenome"
+                    maxLength={120}
                     className="h-12 text-base"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="checkout-email">E-mail</Label>
-                  <Input id="checkout-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="voce@email.com" className="h-12 text-base" />
-                </div>
-                </>
               )}
+
               <div className="space-y-1.5">
-                <Label htmlFor="checkout-whatsapp">{mode === "signup" ? "WhatsApp" : "E-mail ou WhatsApp"}</Label>
+                <Label htmlFor="checkout-whatsapp">WhatsApp</Label>
                 <Input
                   id="checkout-whatsapp"
-                  type={mode === "signup" ? "tel" : "text"}
-                  inputMode={mode === "signup" ? "numeric" : "email"}
-                  autoComplete={mode === "signup" ? "tel-national" : "username"}
+                  type="tel"
+                  inputMode="tel"
+                  name="customer_whatsapp"
+                  autoComplete="tel"
                   value={whatsapp}
-                  onChange={(event) => setWhatsapp(mode === "signup" ? maskWhatsapp(event.target.value) : event.target.value)}
-                  placeholder={mode === "signup" ? "(11) 98888-7777" : "E-mail ou WhatsApp"}
-                  className="h-12 text-base"
-                />
-              </div>
-              {mode === "signin" && <button type="button" className="text-sm font-medium text-primary underline" onClick={async () => {
-                if (!whatsapp.includes("@")) return setError("Informe seu e-mail cadastrado no campo acima para receber o link.");
-                setBusy(true);
-                const { error: resetError } = await supabase.auth.resetPasswordForEmail(whatsapp.trim(), { redirectTo: window.location.origin });
-                setBusy(false);
-                setError(resetError ? "Não foi possível enviar o link. Confira o e-mail." : "Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha.");
-              }}>Esqueci minha senha</button>}
-              {mode === "signin" && <button type="button" className="text-sm font-medium text-primary underline" onClick={async () => {
-                if (!whatsapp.includes("@")) return setError("Informe seu e-mail cadastrado no campo acima para receber o link.");
-                setBusy(true);
-                const { error: resetError } = await supabase.auth.resetPasswordForEmail(whatsapp.trim(), { redirectTo: window.location.origin });
-                setBusy(false);
-                setError(resetError ? "Não foi possível enviar o link. Confira o e-mail." : "Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha.");
-              }}>Esqueci minha senha</button>}
-              <div className="space-y-1.5">
-                <Label htmlFor="checkout-password">Senha</Label>
-                <Input
-                  id="checkout-password"
-                  type="password"
-                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder={mode === "signup" ? "Mínimo de 6 caracteres" : "Sua senha"}
+                  onChange={(event) => setWhatsapp(maskWhatsapp(event.target.value))}
+                  placeholder="(00) 00000-0000"
+                  maxLength={15}
                   className="h-12 text-base"
                 />
               </div>
 
-              {mode === "signup" && (
+              {(isSignup || isRecovery) && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="checkout-birth-date">Data de nascimento</Label>
+                  <Input
+                    id="checkout-birth-date"
+                    name="customer_birth_date"
+                    inputMode="numeric"
+                    autoComplete="bday"
+                    value={birthDate}
+                    onChange={(event) => setBirthDate(maskBirthDate(event.target.value))}
+                    placeholder="DD/MM/AAAA"
+                    maxLength={10}
+                    className="h-12 text-base"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label htmlFor="checkout-password">{isRecovery ? "Nova senha" : "Senha"}</Label>
+                <Input
+                  id="checkout-password"
+                  type="password"
+                  name={isRecovery ? "new_password" : "customer_password"}
+                  autoComplete={isRecovery || isSignup ? "new-password" : "current-password"}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder={isRecovery || isSignup ? "Mínimo de 6 caracteres" : "Sua senha"}
+                  minLength={isRecovery || isSignup ? 6 : undefined}
+                  className="h-12 text-base"
+                />
+              </div>
+
+              {isRecovery && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="checkout-password-confirm">Confirmar nova senha</Label>
+                  <Input
+                    id="checkout-password-confirm"
+                    type="password"
+                    name="new_password_confirmation"
+                    autoComplete="new-password"
+                    value={passwordConfirm}
+                    onChange={(event) => setPasswordConfirm(event.target.value)}
+                    placeholder="Digite novamente a nova senha"
+                    minLength={6}
+                    className="h-12 text-base"
+                  />
+                </div>
+              )}
+
+              {isSignup && (
                 <label className="flex items-start gap-3 rounded-xl border border-border p-3 text-sm leading-snug">
                   <Checkbox
                     id="checkout-opt-in"
-                    checked={optIn}
-                    onCheckedChange={(value) => setOptIn(value === true)}
+                    checked={acceptsOffers}
+                    onCheckedChange={(value) => setAcceptsOffers(value === true)}
                     className="mt-0.5"
                   />
                   <span>
@@ -306,6 +430,26 @@ export function CheckoutAuthDialog({
                     <span className="mt-1 block text-xs text-muted-foreground">Opcional.</span>
                   </span>
                 </label>
+              )}
+
+              {!isRecovery && mode === "signin" && (
+                <button
+                  type="button"
+                  className="text-sm font-medium text-primary underline"
+                  onClick={() => changeMode("recovery")}
+                >
+                  Esqueci minha senha
+                </button>
+              )}
+
+              {isRecovery && (
+                <button
+                  type="button"
+                  className="text-left text-xs text-muted-foreground underline underline-offset-2"
+                  onClick={openStoreWhatsapp}
+                >
+                  Conta antiga sem data de nascimento? Falar com a loja no WhatsApp
+                </button>
               )}
             </>
           )}
@@ -396,10 +540,7 @@ export function CheckoutAuthDialog({
           )}
 
           {error && (
-            <p
-              role="alert"
-              className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground"
-            >
+            <p role="alert" className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground">
               {error}
             </p>
           )}
@@ -408,9 +549,11 @@ export function CheckoutAuthDialog({
             {busy && <Loader2 className="animate-spin" />}
             {identity
               ? "Confirmar e finalizar pedido"
-              : mode === "signup"
-                ? "Criar cadastro e finalizar"
-                : "Entrar e finalizar"}
+              : isRecovery
+                ? "Redefinir senha e entrar"
+                : isSignup
+                  ? "Criar cadastro e finalizar"
+                  : "Entrar e finalizar"}
           </Button>
         </form>
 
