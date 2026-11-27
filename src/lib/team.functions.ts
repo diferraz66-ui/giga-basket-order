@@ -45,6 +45,16 @@ export const createSeller = createServerFn({ method: "POST" })
       user_id: created.user.id,
       username: data.username,
       full_name: data.fullName,
+      active: true,
+      pode_ver_todos_pedidos: true,
+      pode_editar_pedidos: true,
+      pode_cancelar_pedidos: true,
+      pode_ignorar_pedido_minimo: true,
+      pode_anexar_pix: true,
+      pode_enviar_orientacoes_pix: true,
+      pode_cadastrar_produtos: true,
+      pode_alterar_status_produtos: true,
+      pode_ver_totais_financeiros: true,
     });
     const { error: roleError } = await supabaseAdmin.from("user_roles").insert({
       user_id: created.user.id,
@@ -76,5 +86,22 @@ export const deleteSeller = createServerFn({ method: "POST" })
     if (!sellerRole) throw new Error("Somente contas de vendedor podem ser excluídas");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error("Não foi possível excluir o vendedor");
+    return { ok: true as const };
+  });
+
+
+const adminUpdateTeamMemberPasswordSchema = z.object({ userId: z.string().uuid(), password: z.string().min(6).max(72) });
+
+export const adminUpdateTeamMemberPasswordFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => adminUpdateTeamMemberPasswordSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin, error: roleError } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (roleError || !isAdmin) throw new Error("Somente Admin pode alterar senhas da equipe");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: member, error: memberError } = await supabaseAdmin.from("team_members").select("user_id").eq("user_id", data.userId).maybeSingle();
+    if (memberError || !member) throw new Error("Colaborador não encontrado");
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, { password: staffAuthPassword(data.password) });
+    if (error) throw new Error("Não foi possível atualizar a senha do colaborador");
     return { ok: true as const };
   });
