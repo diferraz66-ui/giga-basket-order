@@ -78,6 +78,7 @@ export function OrderCard({
   const [purchasedQuantities, setPurchasedQuantities] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState<BusyAction>(null);
   const [proofError, setProofError] = useState<string | null>(null);
+  const proofPendingReason = order.payment_proof_name && !order.payment_proof_name.startsWith("PIX_VALIDATED:") ? order.payment_proof_name : null;
   const [manualReleaseOpen, setManualReleaseOpen] = useState(false);
   const [manualReleaseReason, setManualReleaseReason] = useState("");
   const [validationDetails, setValidationDetails] = useState<{ transaction_id: string | null; transaction_date: string | null; paid_amount: number | null; recipient_cnpj: string | null; recipient_name: string | null; recipient_bank: string | null } | null>(null);
@@ -558,14 +559,14 @@ export function OrderCard({
                     <p>Banco: {validationDetails.recipient_bank ?? "—"}</p>
                   </div>
                 ) : null}
-                <button type="button" className="mt-2 text-xs font-medium underline underline-offset-2" onClick={() => onProof(order)}>
-                  Visualizar comprovante
-                </button>
+                <button type="button" className="mt-2 text-xs font-medium underline underline-offset-2" onClick={() => onProof(order)}>Visualizar Comprovante Anexado</button>
               </div>
             )}
             {!proofValid && !dirty && order.payment_proof_path && !order.payment_proof_name?.startsWith("PIX_VALIDATED:") && (
               <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-xs font-semibold text-destructive">
-                Comprovante pendente de validação. {role === "admin" ? "Confira o arquivo e use a liberação manual somente após confirmar o crédito na conta." : "Aguardando revisão do Admin."}
+                Comprovante pendente de validação.
+                {proofPendingReason ? ` Motivo: ${proofPendingReason}` : ""} {role === "admin" ? "Confira o arquivo e use a liberação manual somente após confirmar o crédito na conta." : "Aguardando revisão do Admin."}
+                <button type="button" className="mt-2 block font-bold underline underline-offset-2" onClick={() => onProof(order)}>Visualizar Comprovante Anexado</button>
               </p>
             )}
             {!proofValid && !dirty && order.payment_proof_path && order.payment_proof_name?.startsWith("PIX_VALIDATED:") && !proofError && (
