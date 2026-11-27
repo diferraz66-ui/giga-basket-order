@@ -19,7 +19,6 @@ export function ReportsTeamPanel() {
   const [busy, setBusy] = useState(false);
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const createSellerFn = useServerFn(createSeller);
   const deleteSellerFn = useServerFn(deleteSeller);
@@ -69,9 +68,9 @@ export function ReportsTeamPanel() {
     event.preventDefault();
     setBusy(true);
     try {
-      await createSellerFn({ data: { fullName, username, email, password } });
+      await createSellerFn({ data: { fullName, username, password } });
       toast.success("Vendedor cadastrado");
-      setFullName(""); setUsername(""); setEmail(""); setPassword("");
+      setFullName(""); setUsername(""); setPassword("");
       await load();
     } catch {
       toast.error("Não foi possível cadastrar. Confira os dados e se o login já existe.");
@@ -114,6 +113,7 @@ export function ReportsTeamPanel() {
 
       <section className="rounded-2xl border border-border bg-card p-4">
         <h3 className="flex items-center gap-2 text-lg uppercase"><Users className="size-5 text-primary" /> Equipe</h3>
+        <p className="mt-2 text-sm font-semibold">Colaboradores ativos: {team.filter((member) => member.active).length} / 10</p>
         <div className="mt-4 grid gap-6 lg:grid-cols-2">
           <div>
             <h4 className="text-sm font-bold">Vendedores e responsáveis</h4>
@@ -127,10 +127,9 @@ export function ReportsTeamPanel() {
           </div>
           <form onSubmit={submitSeller} className="space-y-3 rounded-xl bg-muted p-4">
             <h4 className="flex items-center gap-2 text-sm font-bold"><Plus className="size-4" /> Cadastrar novo vendedor</h4>
-            <div><Label htmlFor="seller-name">Nome do vendedor</Label><Input id="seller-name" value={fullName} onChange={(e) => setFullName(e.target.value)} required minLength={3} /></div>
-            <div><Label htmlFor="seller-email">E-mail</Label><Input id="seller-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" /></div>
-            <div><Label htmlFor="seller-login">Login</Label><Input id="seller-login" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} required minLength={3} autoComplete="off" /></div>
-            <div><Label htmlFor="seller-password">Senha (mínimo 3 caracteres)</Label><Input id="seller-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={3} autoComplete="new-password" /></div>
+            <div><Label htmlFor="seller-name">Nome do colaborador</Label><Input id="seller-name" value={fullName} onChange={(e) => setFullName(e.target.value)} required minLength={3} /></div>
+            <div><Label htmlFor="seller-login">Login (letras e números, sem espaços)</Label><Input id="seller-login" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ""))} required minLength={3} maxLength={30} pattern="[a-z0-9]+" autoComplete="off" /></div>
+            <div><Label htmlFor="seller-password">Senha (mínimo 6 caracteres)</Label><Input id="seller-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} maxLength={72} autoComplete="new-password" /></div>
             <Button type="submit" variant="cta" className="w-full" disabled={busy}>{busy && <Loader2 className="animate-spin" />} Cadastrar vendedor</Button>
           </form>
         </div>
