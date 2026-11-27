@@ -8,7 +8,7 @@ import {
   Trophy,
   Truck,
 } from "lucide-react";
-import { categoryLabel, categories, searchProducts, type CategoryId } from "@/data/catalog";
+import { categoryLabel, categories, searchProducts, type CategoryId, type Product } from "@/data/catalog";
 import { useAuth } from "@/lib/auth";
 import { assignActiveProductNumbers, useCatalogProducts } from "@/lib/products";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +16,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { CatalogHeader } from "@/components/catalog/CatalogHeader";
 import { CategoryBar } from "@/components/catalog/CategoryBar";
 import { ProductRow } from "@/components/catalog/ProductRow";
-import { ProductCard } from "@/components/catalog/ProductCard";
+import { ProductCard } from "@/components/catalog/ProductCard";\nimport { ProductDetailsDialog } from "@/components/catalog/ProductDetailsDialog";
 import { CartSheet } from "@/components/catalog/CartSheet";
 import { StoreWelcomeDialog } from "@/components/catalog/StoreWelcomeDialog";
 import { CatalogViewToggle, type CatalogView } from "@/components/catalog/CatalogViewToggle";
@@ -64,7 +64,7 @@ function Catalog() {
   const [view, setView] = useState<CatalogView>("grid");
   const [reviews, setReviews] = useState<Tables<"product_reviews">[]>([]);
   const [salesByProduct, setSalesByProduct] = useState<Record<string, number>>({});
-  const [minimumItems, setMinimumItems] = useState(10);
+  const [minimumItems, setMinimumItems] = useState(10);\n  const [sharedProduct, setSharedProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -118,7 +118,7 @@ function Catalog() {
     return () => { current = false; };
   }, []);
 
-  const reviewStats = useMemo(() => {
+\n  useEffect(() => {\n    if (!products.length) return;\n    const productId = new URLSearchParams(window.location.search).get("produto");\n    if (!productId) return;\n    const match = products.find(product => product.id === productId);\n    if (match) setSharedProduct(match);\n  }, [products]);\n\n  function closeSharedProduct(open: boolean) {\n    setSharedProduct(open ? sharedProduct : null);\n    if (!open) {\n      const url = new URL(window.location.href);\n      url.searchParams.delete("produto");\n      window.history.replaceState({}, "", url);\n    }\n  }\n\n  const reviewStats = useMemo(() => {
     const grouped: Record<string, { total: number; count: number }> = {};
     for (const review of reviews) {
       const current = grouped[review.product_id] ?? { total: 0, count: 0 };
@@ -364,7 +364,7 @@ function Catalog() {
         </div>
       )}
       <CartSheet products={products} />
-      <StoreWelcomeDialog />
+      {sharedProduct && <ProductDetailsDialog product={sharedProduct} open={!!sharedProduct} onOpenChange={closeSharedProduct} reviewSummary={reviewStats[sharedProduct.id]} />}\n      <StoreWelcomeDialog />
       <StoreInfoDialogs />
     </div>
   );
