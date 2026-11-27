@@ -11,7 +11,7 @@ import { useCart } from "@/lib/cart";
 import { formatBRL, formatOrderNumber } from "@/lib/order";
 import { normalizeWhatsapp, whatsappToLoginEmail } from "@/lib/phone";
 import { PasswordChangeDialog } from "@/components/auth/PasswordChangeDialog";
-import { AccountEmailDialog } from "@/components/auth/AccountEmailDialog";
+import { resetCustomerPasswordFn } from "@/lib/customer-auth.functions";
 import type { Product } from "@/data/catalog";
 import { ProductReviewForm } from "./ProductReviewForm";
 
@@ -27,7 +27,7 @@ export function CustomerOrdersDialog({ open, onOpenChange, products }: { open: b
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
-  const [emailOpen, setEmailOpen] = useState(false);
+  const [recovery, setRecovery] = useState(false);\n  const [fullName, setFullName] = useState("");\n  const [birthDate, setBirthDate] = useState("");\n  const [newPassword, setNewPassword] = useState("");\n  const [confirmPassword, setConfirmPassword] = useState("");
   async function load(userId: string) {
     setLoading(true);
     const { data, error } = await supabase.from("orders").select("id, order_number, created_at, status, total, items").eq("user_id", userId).order("created_at", { ascending: false });
@@ -38,16 +38,28 @@ export function CustomerOrdersDialog({ open, onOpenChange, products }: { open: b
   useEffect(() => { if (open && session?.user.id) void load(session.user.id); }, [open, session?.user.id]);
   useEffect(() => { if (!open && !session) { setLoaded(false); setOrders([]); } }, [open, session]);
   async function login() {
-    const value = identifier.trim();
-    if (!value || !password) { toast.error("Informe seu e-mail ou WhatsApp e a senha."); return; }
+    const normalized = normalizeWhatsapp(identifier);
+    if (!normalized || !password) { toast.error("Informe seu WhatsApp e senha."); return; }
     setLoading(true);
-    const normalized = value.includes("@") ? null : normalizeWhatsapp(value);
-    if (!value.includes("@") && !normalized) { setLoading(false); { toast.error("Informe um WhatsApp válido com DDD."); return; } }
-    const email = value.includes("@") ? value : whatsappToLoginEmail(normalized!);
-    const result = await supabase.auth.signInWithPassword({ email, password });
+    const result = await supabase.auth.signInWithPassword({ email: whatsappToLoginEmail(normalized), password });
     setLoading(false);
-    if (result.error) { toast.error("E-mail/WhatsApp ou senha incorretos."); return; }
+    if (result.error) { toast.error("WhatsApp ou senha incorretos."); return; }
     await load(result.data.user.id);
+  }
+  async function recoverPassword() {
+    const phone = normalizeWhatsapp(identifier);
+    const parts = birthDate.split("/");
+    if (!phone || fullName.trim().length < 3 || parts.length !== 3 || parts[0].length !== 2 || parts[1].length !== 2 || parts[2].length !== 4) { toast.error("Informe WhatsApp, nome completo e data DD/MM/AAAA."); return; }
+    if (newPassword.length < 6 || newPassword !== confirmPassword) { toast.error("Confira as senhas. Ambas devem coincidir e ter ao menos 6 caracteres."); return; }
+    setLoading(true);
+    try {
+      const result = await resetCustomerPasswordFn({ data: { whatsapp: phone, full_name: fullName.trim(), birth_date: `${parts[2]}-${parts[1]}-${parts[0]}`, new_password: newPassword } });
+      if (!result.success) { toast.error(result.error ?? "Não foi possível redefinir a senha."); return; }
+      const loginResult = await supabase.auth.signInWithPassword({ email: result.internal_email, password: newPassword });
+      if (loginResult.error) { toast.error("Senha redefinida. Entre com a nova senha."); return; }
+      toast.success("Senha redefinida e acesso realizado."); setRecovery(false); await load(loginResult.data.user.id);
+    } catch { toast.error("Não foi possível redefinir a senha."); }
+    finally { setLoading(false); }
   }
   function reorder(raw: unknown) {
     const items = Array.isArray(raw) ? raw as OrderItem[] : [];
@@ -62,8 +74,8 @@ export function CustomerOrdersDialog({ open, onOpenChange, products }: { open: b
   }
   const statusLabel: Record<string,string> = { received: "Recebido", in_progress: "Em atendimento", awaiting_pix: "Aguardando Pix", completed: "Concluído", cancelled: "Cancelado" };
   return <><Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto"><DialogHeader><DialogTitle className="flex items-center gap-2"><Package className="size-5" /> Meus Pedidos</DialogTitle></DialogHeader>
-    {!session && !loaded && <div className="space-y-3"><p className="text-sm text-muted-foreground">Entre com seu e-mail ou WhatsApp e a senha cadastrada.</p><div><Label htmlFor="orders-identifier">E-mail ou WhatsApp</Label><Input id="orders-identifier" value={identifier} onChange={e=>setIdentifier(e.target.value)} placeholder="Seu e-mail ou WhatsApp" /></div><div><Label htmlFor="orders-password">Senha</Label><Input id="orders-password" type="password" value={password} onChange={e=>setPassword(e.target.value)} /></div><Button className="w-full" onClick={()=>void login()} disabled={loading}>{loading && <Loader2 className="animate-spin" />} Consultar pedidos</Button><button type="button" className="text-sm font-medium text-primary underline" onClick={async()=>{if(!identifier.includes("@")){ toast.error("Para recuperar a senha, informe seu e-mail."); return; }setLoading(true);const {error}=await supabase.auth.resetPasswordForEmail(identifier.trim(),{redirectTo:window.location.origin});setLoading(false);toast.success(error?"Não foi possível enviar o link. Confira o e-mail.":"Se o e-mail estiver cadastrado, você receberá um link.");}}>Esqueci minha senha</button></div>}
+    {!session && !loaded && <div className="space-y-3"><p className="text-sm text-muted-foreground">{recovery ? "Confirme seus dados para redefinir a senha." : "Entre com seu WhatsApp e a senha cadastrada."}</p><div><Label htmlFor="orders-identifier">WhatsApp</Label><Input id="orders-identifier" type="tel" inputMode="tel" name="customer_whatsapp" autoComplete="tel" value={identifier} onChange={e=>setIdentifier(e.target.value.replace(/\\D/g,"").slice(0,11).replace(/^(\\d{2})(\\d)/,"($1) $2").replace(/^(\\(\\d{2}\\) \\d{5})(\\d)/,"$1-$2"))} placeholder="(00) 00000-0000" /></div>{recovery && <><div><Label htmlFor="orders-recovery-name">Nome completo</Label><Input id="orders-recovery-name" value={fullName} onChange={e=>setFullName(e.target.value)} /></div><div><Label htmlFor="orders-recovery-birth">Data de nascimento</Label><Input id="orders-recovery-birth" inputMode="numeric" placeholder="DD/MM/AAAA" value={birthDate} onChange={e=>setBirthDate(e.target.value.replace(/\\D/g,"").slice(0,8).replace(/^(\\d{2})(\\d)/,"$1/$2").replace(/^(\\d{2}\\/\\d{2})(\\d)/,"$1/$2"))} /></div><div><Label htmlFor="orders-new-password">Nova senha</Label><Input id="orders-new-password" type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} /></div><div><Label htmlFor="orders-confirm-password">Confirmar senha</Label><Input id="orders-confirm-password" type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} /></div></>} {!recovery && <div><Label htmlFor="orders-password">Senha</Label><Input id="orders-password" type="password" value={password} onChange={e=>setPassword(e.target.value)} /></div>}<Button className="w-full" onClick={()=>void (recovery ? recoverPassword() : login())} disabled={loading}>{loading && <Loader2 className="animate-spin" />} {recovery ? "Redefinir senha e entrar" : "Consultar pedidos"}</Button><button type="button" className="text-sm font-medium text-primary underline" onClick={()=>setRecovery(v=>!v)}>{recovery ? "Voltar ao login" : "Esqueci minha senha"}</button>{recovery && <p className="text-xs text-muted-foreground">Conta antiga sem data de nascimento cadastrada? Solicite a atualização diretamente na loja física.</p>}</div>}
     {loading && <div className="flex justify-center py-8"><Loader2 className="animate-spin" /></div>}
-    {loaded && !loading && <div className="space-y-3"><div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={()=>setEmailOpen(true)}>Atualizar e-mail</Button><Button size="sm" variant="outline" onClick={()=>setPasswordOpen(true)}>Alterar senha</Button></div>{orders.length===0 ? <p className="py-8 text-center text-sm text-muted-foreground">Você ainda não possui pedidos.</p> : orders.map(order=><article key={order.id} className="rounded-xl border border-border p-3"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-bold">Pedido {formatOrderNumber(order.order_number)}</p><p className="text-xs text-muted-foreground">{new Date(order.created_at).toLocaleString("pt-BR")}</p></div><span className="rounded-full bg-muted px-3 py-1 text-xs font-bold">{statusLabel[order.status] ?? order.status}</span></div><p className="mt-2 font-display text-lg font-extrabold text-primary">{formatBRL(Number(order.total))}</p><Button size="sm" variant="outline" className="mt-2" onClick={()=>reorder(order.items)}><RotateCcw className="size-4" /> Pedir novamente</Button>{order.status === "completed" && Array.isArray(order.items) && (order.items as OrderItem[]).map(item => <div key={item.id} className="mt-3 border-t border-border pt-3"><div className="flex items-center gap-2">{products.find(product => product.id === item.id) && <img src={products.find(product => product.id === item.id)!.image} alt="" className="size-10 rounded-md bg-white object-contain p-1" />}<p className="text-sm font-semibold">{item.name}</p></div><ProductReviewForm productId={item.id} productName={item.name} orderId={order.id} /></div>)}</article>)}</div>}
-  </DialogContent></Dialog><PasswordChangeDialog open={passwordOpen} onOpenChange={setPasswordOpen} /><AccountEmailDialog open={emailOpen} onOpenChange={setEmailOpen} /></>;
+    {loaded && !loading && <div className="space-y-3"><div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={()=>setPasswordOpen(true)}>Alterar senha</Button></div>{orders.length===0 ? <p className="py-8 text-center text-sm text-muted-foreground">Você ainda não possui pedidos.</p> : orders.map(order=><article key={order.id} className="rounded-xl border border-border p-3"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-bold">Pedido {formatOrderNumber(order.order_number)}</p><p className="text-xs text-muted-foreground">{new Date(order.created_at).toLocaleString("pt-BR")}</p></div><span className="rounded-full bg-muted px-3 py-1 text-xs font-bold">{statusLabel[order.status] ?? order.status}</span></div><p className="mt-2 font-display text-lg font-extrabold text-primary">{formatBRL(Number(order.total))}</p><Button size="sm" variant="outline" className="mt-2" onClick={()=>reorder(order.items)}><RotateCcw className="size-4" /> Pedir novamente</Button>{order.status === "completed" && Array.isArray(order.items) && (order.items as OrderItem[]).map(item => <div key={item.id} className="mt-3 border-t border-border pt-3"><div className="flex items-center gap-2">{products.find(product => product.id === item.id) && <img src={products.find(product => product.id === item.id)!.image} alt="" className="size-10 rounded-md bg-white object-contain p-1" />}<p className="text-sm font-semibold">{item.name}</p></div><ProductReviewForm productId={item.id} productName={item.name} orderId={order.id} /></div>)}</article>)}</div>}
+  </DialogContent></Dialog><PasswordChangeDialog open={passwordOpen} onOpenChange={setPasswordOpen} /></>;
 }
