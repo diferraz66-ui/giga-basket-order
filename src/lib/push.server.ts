@@ -21,11 +21,17 @@ export async function sendPushCampaign(message: PushMessageInput, vapid: VapidCo
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   return deliverPushNotifications({
     list: async afterId => {
+      // Always query through the service-role client, without recipient/user filters.
       let query = supabaseAdmin.from("push_subscriptions")
-        .select("id, endpoint, p256dh, auth").order("id").limit(100);
+        .select("id, endpoint, p256dh, auth")
+        .order("id", { ascending: true })
+        .limit(100);
       if (afterId) query = query.gt("id", afterId);
       const { data, error } = await query;
-      if (error) throw new Error("Não foi possível consultar os dispositivos inscritos");
+      if (error) {
+        console.error("[Web Push] Failed to query push_subscriptions:", error.message, error.code, error.details);
+        throw new Error(`Falha ao consultar push_subscriptions: ${error.message}`);
+      }
       return data ?? [];
     },
     send: async device => {
@@ -50,7 +56,10 @@ export async function sendPushCampaign(message: PushMessageInput, vapid: VapidCo
     },
     remove: async id => {
       const { error } = await supabaseAdmin.from("push_subscriptions").delete().eq("id", id);
-      if (error) throw new Error("Não foi possível remover a inscrição expirada");
+      if (error) {
+        console.error("[Web Push] Failed to remove expired subscription:", error.message, error.code, error.details);
+        throw new Error(`Falha ao remover assinatura expirada: ${error.message}`);
+      }
     },
   });
 }
