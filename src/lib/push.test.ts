@@ -27,23 +27,23 @@ describe("Web Push delivery", () => {
   it.each([404, 410])("removes expired endpoints on HTTP %s", async status => {
     const remove = vi.fn(async () => {});
     const result = await deliverPushNotifications({ list: async after => after ? [] : [device("a")], send: async () => status, remove });
-    expect(result).toEqual({ sent: 0, failed: 1, removed: 1 });
+    expect(result).toMatchObject({ sent: 0, failed: 1, removed: 1 });
     expect(remove).toHaveBeenCalledWith("a");
   });
   it("counts accepted deliveries and retains other failures", async () => {
     const statuses = new Map([["a", 201], ["b", 429], ["c", 500]]);
     const remove = vi.fn(async () => {});
     const result = await deliverPushNotifications({ list: async after => after ? [] : [device("a"), device("b"), device("c")], send: async row => statuses.get(row.id) ?? 500, remove });
-    expect(result).toEqual({ sent: 1, failed: 2, removed: 0 });
+    expect(result).toMatchObject({ sent: 1, failed: 2, removed: 0 });
     expect(remove).not.toHaveBeenCalled();
   });
   it("continues beyond the first page even while removing rows", async () => {
     const list = vi.fn(async (after: string | null) => after === null ? [device("a")] : after === "a" ? [device("b")] : []);
-    expect(await deliverPushNotifications({ list, send: async row => row.id === "a" ? 410 : 201, remove: async () => {} })).toEqual({ sent: 1, failed: 1, removed: 1 });
+    expect(await deliverPushNotifications({ list, send: async row => row.id === "a" ? 410 : 201, remove: async () => {} })).toMatchObject({ sent: 1, failed: 1, removed: 1 });
     expect(list.mock.calls).toEqual([[null], ["a"], ["b"]]);
   });
-  it("does not claim a failed deletion succeeded", async () => {
-    expect(await deliverPushNotifications({ list: async after => after ? [] : [device("a")], send: async () => 410, remove: async () => { throw new Error("unavailable"); } })).toEqual({ sent: 0, failed: 1, removed: 0 });
+  it("preserves provider error reason and status for diagnostics", async () => {\n    const result = await deliverPushNotifications({ list: async after => after ? [] : [device("a")], send: async () => ({ status: 403, reason: "VAPID audience mismatch" }), remove: async () => {} });\n    expect(result.failures).toEqual([{ status: 403, reason: "VAPID audience mismatch", count: 1 }]);\n  });\n  it("does not claim a failed deletion succeeded", async () => {
+    expect(await deliverPushNotifications({ list: async after => after ? [] : [device("a")], send: async () => 410, remove: async () => { throw new Error("unavailable"); } })).toMatchObject({ sent: 0, failed: 1, removed: 0 });
   });
   it("continues after a network error without removing the device", async () => {
     const remove = vi.fn(async () => {});
