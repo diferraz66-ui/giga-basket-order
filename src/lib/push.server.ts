@@ -1,23 +1,23 @@
-import { buildPushPayload, vapidHeaders, type VapidKeys } from "@block65/webcrypto-web-push";
+import webpush from "web-push";
 import { deliverPushNotifications, type PushMessageInput } from "@/lib/push";
 
-export async function sendPushCampaign(message: PushMessageInput, vapid: VapidKeys) {
-  // Check key configuration even when no devices are subscribed. Never log key material.
-  try {
-    if (!vapid.publicKey || !vapid.privateKey) throw new Error("Invalid configuration");
-    const signed = await vapidHeaders({ endpoint: "https://fcm.googleapis.com/fcm/send/configuration-check", expirationTime: null, keys: { p256dh: "", auth: "" } }, vapid);
-    const authorization = signed.headers.authorization;
-    if (!authorization) throw new Error("Invalid configuration");
-    const token = /^vapid t=([^,]+),/.exec(authorization)?.[1];
-    const [header, claims, signature] = token?.split(".") ?? [];
-    if (!header || !claims || !signature) throw new Error("Invalid configuration");
-    const decode = (value: string) => Uint8Array.from(atob(value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=")), char => char.charCodeAt(0));
-    const verificationKey = await crypto.subtle.importKey("raw", decode(vapid.publicKey), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
-    const matches = await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, verificationKey, decode(signature), new TextEncoder().encode(`${header}.${claims}`));
-    if (!matches) throw new Error("Invalid configuration");
-  } catch {
-    throw new Error("Configure um par VAPID válido nos Secrets do Cloud");
+type VapidConfig = {
+  publicKey: string;
+  privateKey: string;
+  subject: string;
+};
+
+export async function sendPushCampaign(message: PushMessageInput, vapid: VapidConfig) {
+  if (!vapid.publicKey || !vapid.privateKey || !vapid.subject) {
+    throw new Error("Configure as chaves VAPID nos Secrets do Cloud.");
   }
+
+  webpush.setVapidDetails(
+    "mailto:contato@gigashopping.app",
+    vapid.publicKey,
+    vapid.privateKey,
+  );
+
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   return deliverPushNotifications({
     list: async afterId => {
@@ -29,21 +29,24 @@ export async function sendPushCampaign(message: PushMessageInput, vapid: VapidKe
       return data ?? [];
     },
     send: async device => {
-      const payload = await buildPushPayload({
-        data: { title: message.title, body: message.body, url: message.url },
-        options: { ttl: 3600 },
-      }, {
-        endpoint: device.endpoint,
-        expirationTime: null,
-        keys: { p256dh: device.p256dh, auth: device.auth },
-      }, vapid);
-      const response = await fetch(device.endpoint, {
-        ...payload,
-        redirect: "error",
-        signal: AbortSignal.timeout(10000),
-      });
-      await response.body?.cancel();
-      return response.status;
+      try {
+        await webpush.sendNotification(
+          { endpoint: device.endpoint, keys: { p256dh: device.p256dh, auth: device.auth } },
+          JSON.stringify({ title: message.title, body: message.body, url: message.url }),
+          { TTL: 3600, urgency: "normal" },
+        );
+        return 201;
+      } catch (error) {
+        const pushError = error as { statusCode?: number; body?: string; message?: string };
+        const status = Number(pushError.statusCode ?? 0);
+        if (status > 0) {
+          return {
+            status,
+            reason: String(pushError.body ?? pushError.message ?? "Push service rejected the request").slice(0, 500),
+          };
+        }
+        throw new Error(String(pushError.message ?? "Falha de rede ao enviar Web Push").slice(0, 500));
+      }
     },
     remove: async id => {
       const { error } = await supabaseAdmin.from("push_subscriptions").delete().eq("id", id);
