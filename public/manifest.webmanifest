@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "GIGA SHOPPING",
+  "short_name": "GIGA",
+  "description": "Catálogo digital da GIGA SHOPPING",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#dc2626",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
