@@ -115,7 +115,8 @@ export function ProductsPanel() {
     const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const normalizedName = product.name.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const matchesQuery = !normalizedQuery || normalizedName.includes(normalizedQuery) || String(sequence ?? "").includes(normalizedQuery) || String(sequence ?? "").padStart(2, "0").includes(normalizedQuery);
-    return matchesQuery && (categoryFilter === "all" || product.category === categoryFilter);
+    const matchesVisibility = categoryFilter === "hidden" ? product.status === "hidden" : categoryFilter === "all" || product.category === categoryFilter;
+    return matchesQuery && matchesVisibility;
   }).sort((a, b) => sortMode === "asc" ? a.product.name.localeCompare(b.product.name, "pt-BR") : sortMode === "desc" ? b.product.name.localeCompare(a.product.name, "pt-BR") : (a.sequence ?? Number.MAX_SAFE_INTEGER) - (b.sequence ?? Number.MAX_SAFE_INTEGER));
   async function changeVisibility(product: Tables<"products">, hidden: boolean) {
     const { error } = await supabase.from("products").update({ status: hidden ? "hidden" : "available" }).eq("id", product.id);
@@ -455,7 +456,7 @@ export function ProductsPanel() {
         <>
         <div className="mb-4 grid gap-2 sm:grid-cols-[minmax(220px,1fr)_220px_220px]">
           <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="🔍 Buscar por nº ou nome do produto..." className="pl-9" aria-label="Buscar por número ou nome do produto" /></div>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}><SelectTrigger><SelectValue placeholder="Todas as Categorias" /></SelectTrigger><SelectContent><SelectItem value="all">Todas as Categorias</SelectItem>{categories.map((item) => <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>)}</SelectContent></Select>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}><SelectTrigger><SelectValue placeholder="Todas as Categorias" /></SelectTrigger><SelectContent><SelectItem value="all">Todas as Categorias</SelectItem><SelectItem value="hidden">Somente Ocultos</SelectItem>{categories.map((item) => <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>)}</SelectContent></Select>
           <Select value={sortMode} onValueChange={(value) => setSortMode(value as "number" | "asc" | "desc")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="number">Numeração (01 → 99)</SelectItem><SelectItem value="asc">Ordem Alfabética (A → Z)</SelectItem><SelectItem value="desc">Inversa (Z → A)</SelectItem></SelectContent></Select>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
