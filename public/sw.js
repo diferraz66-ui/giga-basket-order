@@ -1,24 +1,48 @@
 self.addEventListener("push", (event) => {
   let payload = {};
+
   try {
-    payload = event.data ? event.data.json() : {};
+    if (event.data) {
+      try {
+        payload = event.data.json();
+      } catch {
+        const text = event.data.text();
+        try {
+          payload = JSON.parse(text);
+        } catch {
+          payload = { body: text };
+        }
+      }
+    }
   } catch {
-    payload = { body: event.data?.text() ?? "" };
+    payload = {};
   }
+
+  if (!payload || typeof payload !== "object") payload = {};
 
   const title = typeof payload.title === "string" && payload.title.trim()
     ? payload.title.trim()
     : "GIGA SHOPPING";
-  const options = {
-    body: typeof payload.body === "string" ? payload.body : "Tem novidade na GIGA!",
-    icon: typeof payload.icon === "string" ? payload.icon : "/favicon.png",
-    badge: typeof payload.badge === "string" ? payload.badge : "/favicon.png",
-    data: { url: typeof payload.url === "string" ? payload.url : "/" },
-    tag: typeof payload.tag === "string" ? payload.tag : "giga-shopping",
-    renotify: false,
-  };
+  const body = typeof payload.body === "string" && payload.body.trim()
+    ? payload.body
+    : "Tem novidade na GIGA!";
+  const rawUrl = typeof payload.url === "string" ? payload.url : "/";
+  let url = "/";
+  try {
+    const target = new URL(rawUrl, self.location.origin);
+    if (target.origin === self.location.origin) {
+      url = target.pathname + target.search + target.hash;
+    }
+  } catch {
+    url = "/";
+  }
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(self.registration.showNotification(title, {
+    body,
+    icon: "/favicon.ico",
+    badge: "/favicon.ico",
+    data: { url },
+  }));
 });
 
 self.addEventListener("notificationclick", (event) => {
