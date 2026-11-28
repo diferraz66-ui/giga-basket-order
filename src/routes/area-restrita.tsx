@@ -250,8 +250,8 @@ function StaffDashboard({ member, role, permissions }: { member: Tables<"team_me
             {role === "admin" && <TabsTrigger value="reports" className="shrink-0 px-4 py-2.5">Relatórios e Equipe</TabsTrigger>}
             {role === "admin" && <TabsTrigger value="banners" className="shrink-0 px-4 py-2.5">Banners Topo</TabsTrigger>}
             {role === "admin" && <TabsTrigger value="reviews" className="shrink-0 px-4 py-2.5">Avaliações</TabsTrigger>}
-            {role === "admin" && <TabsTrigger value="authorizations" className="shrink-0 px-4 py-2.5">Autorizações</TabsTrigger>
-            {role === "admin" && <TabsTrigger value="push-notifications" className="shrink-0 px-4 py-2.5">Notificações Push</TabsTrigger>}}
+            {role === "admin" && <TabsTrigger value="authorizations" className="shrink-0 px-4 py-2.5">Autorizações</TabsTrigger>}
+            {role === "admin" && <TabsTrigger value="push-notifications" className="shrink-0 px-4 py-2.5">Notificações Push</TabsTrigger>}
             {role === "vendedor" && sellerAllowed && <TabsTrigger value="seller-products" className="shrink-0 px-4 py-2.5">Incluir Produto</TabsTrigger>}
           </TabsList>
           <TabsContent value="orders"><OrdersPanel role={role} permissions={permissions} targetOrder={typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("pedido") : null} /></TabsContent>
