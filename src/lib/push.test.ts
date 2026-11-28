@@ -42,12 +42,16 @@ describe("Web Push delivery", () => {
     expect(await deliverPushNotifications({ list, send: async row => row.id === "a" ? 410 : 201, remove: async () => {} })).toMatchObject({ sent: 1, failed: 1, removed: 1 });
     expect(list.mock.calls).toEqual([[null], ["a"], ["b"]]);
   });
-  it("preserves provider error reason and status for diagnostics", async () => {\n    const result = await deliverPushNotifications({ list: async after => after ? [] : [device("a")], send: async () => ({ status: 403, reason: "VAPID audience mismatch" }), remove: async () => {} });\n    expect(result.failures).toEqual([{ status: 403, reason: "VAPID audience mismatch", count: 1 }]);\n  });\n  it("does not claim a failed deletion succeeded", async () => {
+  it("preserves provider error reason and status for diagnostics", async () => {
+    const result = await deliverPushNotifications({ list: async after => after ? [] : [device("a")], send: async () => ({ status: 403, reason: "VAPID audience mismatch" }), remove: async () => {} });
+    expect(result.failures).toEqual([{ status: 403, reason: "VAPID audience mismatch", count: 1 }]);
+  });
+  it("does not claim a failed deletion succeeded", async () => {
     expect(await deliverPushNotifications({ list: async after => after ? [] : [device("a")], send: async () => 410, remove: async () => { throw new Error("unavailable"); } })).toMatchObject({ sent: 0, failed: 1, removed: 0 });
   });
   it("continues after a network error without removing the device", async () => {
     const remove = vi.fn(async () => {});
-    expect(await deliverPushNotifications({ list: async after => after ? [] : [device("a"), device("b")], send: async row => { if (row.id === "a") throw new Error("timeout"); return 201; }, remove })).toEqual({ sent: 1, failed: 1, removed: 0 });
+    expect(await deliverPushNotifications({ list: async after => after ? [] : [device("a"), device("b")], send: async row => { if (row.id === "a") throw new Error("timeout"); return 201; }, remove })).toMatchObject({ sent: 1, failed: 1, removed: 0 });
     expect(remove).not.toHaveBeenCalled();
   });
 });
