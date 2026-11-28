@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { TopBannerCarousel } from "@/components/catalog/TopBannerCarousel";
 import { MinimumOrderCapsule } from "@/components/catalog/MinimumOrderCapsule";
+import { PushNotificationPrompt } from "@/components/catalog/PushNotificationPrompt";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -387,6 +388,7 @@ function Catalog() {
       {sharedProduct && <ProductDetailsDialog product={sharedProduct} open={!!sharedProduct} onOpenChange={closeSharedProduct} reviewSummary={reviewStats[sharedProduct.id]} />}
       <StoreWelcomeDialog />
       <StoreInfoDialogs />
+      <PushNotificationPrompt />
     </div>
   );
 }
