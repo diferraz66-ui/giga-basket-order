@@ -16,6 +16,7 @@ import { CustomersPanel } from "@/components/internal/CustomersPanel";
 import { ReportsTeamPanel } from "@/components/internal/ReportsTeamPanel";
 import { BannersPanel } from "@/components/internal/BannersPanel";
 import { ReviewsPanel } from "@/components/internal/ReviewsPanel";
+import { PushNotificationsPanel } from "@/components/internal/PushNotificationsPanel";
 import { ProductAuthorizationsPanel } from "@/components/internal/ProductAuthorizationsPanel";
 import { SellerProductPanel } from "@/components/internal/ProductAuthorizationsPanel";
 import { supabase } from "@/integrations/supabase/client";
@@ -171,7 +172,7 @@ function StaffDashboard({ member, role, permissions }: { member: Tables<"team_me
   }, [member.user_id, role]);
   useEffect(() => {
     const saved = window.sessionStorage.getItem(`giga-internal-active-tab:${member.user_id}`) ?? window.sessionStorage.getItem("giga-internal-active-tab");
-    const allowed = role === "admin" ? ["orders", "products", "quick-control", "customers", "reports", "banners", "reviews", "authorizations"] : ["orders", ...(sellerAllowed ? ["seller-products"] : [])];
+    const allowed = role === "admin" ? ["orders", "products", "quick-control", "customers", "reports", "banners", "reviews", "authorizations", "push-notifications"] : ["orders", ...(sellerAllowed ? ["seller-products"] : [])];
     setActiveTab(!new URLSearchParams(window.location.search).has("pedido") && saved && allowed.includes(saved) ? saved : "orders");
   }, [member.user_id, role, sellerAllowed]);
   useEffect(() => {
@@ -249,7 +250,8 @@ function StaffDashboard({ member, role, permissions }: { member: Tables<"team_me
             {role === "admin" && <TabsTrigger value="reports" className="shrink-0 px-4 py-2.5">Relatórios e Equipe</TabsTrigger>}
             {role === "admin" && <TabsTrigger value="banners" className="shrink-0 px-4 py-2.5">Banners Topo</TabsTrigger>}
             {role === "admin" && <TabsTrigger value="reviews" className="shrink-0 px-4 py-2.5">Avaliações</TabsTrigger>}
-            {role === "admin" && <TabsTrigger value="authorizations" className="shrink-0 px-4 py-2.5">Autorizações</TabsTrigger>}
+            {role === "admin" && <TabsTrigger value="authorizations" className="shrink-0 px-4 py-2.5">Autorizações</TabsTrigger>
+            {role === "admin" && <TabsTrigger value="push-notifications" className="shrink-0 px-4 py-2.5">Notificações Push</TabsTrigger>}}
             {role === "vendedor" && sellerAllowed && <TabsTrigger value="seller-products" className="shrink-0 px-4 py-2.5">Incluir Produto</TabsTrigger>}
           </TabsList>
           <TabsContent value="orders"><OrdersPanel role={role} permissions={permissions} targetOrder={typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("pedido") : null} /></TabsContent>
@@ -260,6 +262,7 @@ function StaffDashboard({ member, role, permissions }: { member: Tables<"team_me
           {role === "admin" && <TabsContent value="banners"><BannersPanel /></TabsContent>}
           {role === "admin" && <TabsContent value="reviews"><ReviewsPanel /></TabsContent>}
           {role === "admin" && <TabsContent value="authorizations"><ProductAuthorizationsPanel /></TabsContent>}
+          {role === "admin" && <TabsContent value="push-notifications"><PushNotificationsPanel /></TabsContent>}
           {role === "vendedor" && sellerAllowed && <TabsContent value="seller-products"><SellerProductPanel userId={member.user_id} permissions={permissions} /></TabsContent>}
         </Tabs>
       </main>
