@@ -4,7 +4,17 @@ import { deliverPushNotifications, type PushMessageInput } from "@/lib/push";
 export async function sendPushCampaign(message: PushMessageInput, vapid: VapidKeys) {
   // Check key configuration even when no devices are subscribed. Never log key material.
   try {
-    await vapidHeaders({ endpoint: "https://fcm.googleapis.com/fcm/send/configuration-check", expirationTime: null, keys: { p256dh: "", auth: "" } }, vapid);
+    if (!vapid.publicKey || !vapid.privateKey) throw new Error("Invalid configuration");
+    const signed = await vapidHeaders({ endpoint: "https://fcm.googleapis.com/fcm/send/configuration-check", expirationTime: null, keys: { p256dh: "", auth: "" } }, vapid);
+    const authorization = signed.headers.authorization;
+    if (!authorization) throw new Error("Invalid configuration");
+    const token = /^vapid t=([^,]+),/.exec(authorization)?.[1];
+    const [header, claims, signature] = token?.split(".") ?? [];
+    if (!header || !claims || !signature) throw new Error("Invalid configuration");
+    const decode = (value: string) => Uint8Array.from(atob(value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=")), char => char.charCodeAt(0));
+    const verificationKey = await crypto.subtle.importKey("raw", decode(vapid.publicKey), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+    const matches = await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, verificationKey, decode(signature), new TextEncoder().encode(`${header}.${claims}`));
+    if (!matches) throw new Error("Invalid configuration");
   } catch {
     throw new Error("Configure um par VAPID válido nos Secrets do Cloud");
   }

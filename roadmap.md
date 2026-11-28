@@ -53,7 +53,8 @@
 - [x] Validar novos pedidos pela quantidade mínima configurável, sem trava monetária fixa, preservando a interface
 - [x] Configurar REPLICA IDENTITY FULL em produtos e verificar as duas alterações no banco real
 - [x] Corrigir os erros de compilação de fotos, índices e sessão sem mudar o visual e verificar a prévia
-- [ ] Garantir RPC pública de inscrição Web Push com atualização por endpoint
-- [ ] Conectar envio Web Push protegido por Admin, com limpeza de inscrições expiradas
-- [ ] Configurar par VAPID e chave pública do navegador — depende de geração segura compatível de chaves
-- [ ] Verificar envio e acesso protegido sem alterar o layout
+- [x] Garantir RPC pública de inscrição Web Push com atualização por endpoint
+- [x] Conectar envio Web Push protegido por Admin, com limpeza de inscrições expiradas
+- [x] Salvar par VAPID pelo formulário seguro e disponibilizar a chave pública ao navegador em tempo de execução
+- [x] Verificar assinatura e bloqueio de não-Admin com conta temporária; 64 testes e prévia sem erros
+- [ ] Confirmar recebimento em dispositivo real — nenhum dispositivo inscrito disponível; publicação e inscrição de um navegador necessárias
