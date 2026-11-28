@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { Bell, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { getPushPublicKey } from "@/lib/push.functions";
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
+const VAPID_PUBLIC_KEY = import.meta.env["VITE_VAPID_PUBLIC_KEY"] as string | undefined;
 const DISMISSED_KEY = "giga-push-prompt-dismissed";
 
 function isIosSafari() {
@@ -24,9 +26,20 @@ function decodeVapidKey(value: string) {
 }
 
 export function PushNotificationPrompt() {
+  const loadPublicKey = useServerFn(getPushPublicKey);
+  const [publicKey, setPublicKey] = useState<string | null>(VAPID_PUBLIC_KEY ?? null);
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [hint, setHint] = useState(false);
+
+  useEffect(() => {
+    if (VAPID_PUBLIC_KEY) return;
+    let active = true;
+    void loadPublicKey().then(config => {
+      if (active) setPublicKey(config.publicKey);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [loadPublicKey]);
 
   useEffect(() => {
     if (!("Notification" in window) || Notification.permission !== "default") return;
@@ -43,7 +56,7 @@ export function PushNotificationPrompt() {
       setHint(true);
       return;
     }
-    if (!VAPID_PUBLIC_KEY) {
+    if (!publicKey) {
       setHint(true);
       return;
     }
@@ -59,12 +72,12 @@ export function PushNotificationPrompt() {
       await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: decodeVapidKey(VAPID_PUBLIC_KEY),
+        applicationServerKey: decodeVapidKey(publicKey),
       });
       const json = subscription.toJSON();
       const endpoint = subscription.endpoint;
-      const p256dh = json.keys?.p256dh;
-      const auth = json.keys?.auth;
+      const p256dh = json.keys?.["p256dh"];
+      const auth = json.keys?.["auth"];
       if (!endpoint || !p256dh || !auth) throw new Error("A assinatura do navegador está incompleta.");
 
       const { error } = await supabase.rpc("save_push_subscription", {

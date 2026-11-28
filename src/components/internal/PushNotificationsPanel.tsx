@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { sendPushNotification } from "@/lib/push.functions";
 
 export function PushNotificationsPanel() {
+  const sendNotification = useServerFn(sendPushNotification);
   const [count, setCount] = useState<number | null>(null);
   const [title, setTitle] = useState("Novidades na GIGA SHOPPING!");
   const [message, setMessage] = useState("");
@@ -41,17 +44,16 @@ export function PushNotificationsPanel() {
     }
     setBusy(true);
     try {
-      const { data, error } = await supabase.functions.invoke("send-push-notification", {
-        body: { title: cleanTitle, message: cleanMessage, url: cleanUrl },
+      const data = await sendNotification({
+        data: { title: cleanTitle, body: cleanMessage, url: cleanUrl },
       });
-      if (error) throw error;
       const sent = Number(data?.sent ?? 0);
       const removed = Number(data?.removed ?? 0);
       toast.success(`Notificação enviada para ${sent} dispositivo(s). ${removed} assinatura(s) expirada(s) removida(s).`);
       setMessage("");
       await loadCount();
     } catch {
-      toast.error("Não foi possível enviar. Confirme a Edge Function e os Secrets no Supabase.");
+      toast.error("Não foi possível enviar. Verifique as chaves de notificações no Cloud e tente novamente.");
     } finally {
       setBusy(false);
     }

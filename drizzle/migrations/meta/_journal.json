@@ -141,6 +141,13 @@
       "when": 1795809939342,
       "tag": "0019_team_permissions_management",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1795881443579,
+      "tag": "0020_ensure_push_subscription_rpc",
+      "breakpoints": true
     }
   ]
 }
