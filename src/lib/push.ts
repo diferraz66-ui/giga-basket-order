@@ -23,7 +23,15 @@ export const pushMessageSchema = z.object({
 
 export type PushMessageInput = z.infer<typeof pushMessageSchema>;
 export type PushDevice = { id: string; endpoint: string; p256dh: string; auth: string };
-export type PushResult = { sent: number; failed: number; removed: number };
+export type PushFailure = { status: number | null; reason: string; count: number };
+export type PushResult = { sent: number; failed: number; removed: number; failures: PushFailure[] };
+
+function recordPushFailure(failures: PushFailure[], status: number | null, reason: string) {
+  const normalizedReason = (reason || "Erro sem detalhe retornado pelo serviço Push").slice(0, 500);
+  const existing = failures.find(item => item.status === status && item.reason === normalizedReason);
+  if (existing) existing.count += 1;
+  else failures.push({ status, reason: normalizedReason, count: 1 });
+}
 
 export async function assertPushAdmin(checkRole: () => Promise<boolean>) {
   if (!(await checkRole())) throw new Error("Somente Admin pode enviar notificações");
@@ -32,10 +40,10 @@ export async function assertPushAdmin(checkRole: () => Promise<boolean>) {
 // Keyset pagination remains stable when expired rows are deleted during a campaign.
 export async function deliverPushNotifications(dependencies: {
   list: (afterId: string | null) => Promise<PushDevice[]>;
-  send: (device: PushDevice) => Promise<number>;
+  send: (device: PushDevice) => Promise<number | { status: number; reason: string }>;
   remove: (id: string) => Promise<void>;
 }): Promise<PushResult> {
-  const result: PushResult = { sent: 0, failed: 0, removed: 0 };
+  const result: PushResult = { sent: 0, failed: 0, removed: 0, failures: [] };
   let afterId: string | null = null;
   while (true) {
     const devices = await dependencies.list(afterId);
@@ -46,18 +54,22 @@ export async function deliverPushNotifications(dependencies: {
           result.failed += 1;
           return;
         }
-        let status: number;
+        let response: number | { status: number; reason: string };
         try {
-          status = await dependencies.send(device);
-        } catch {
+          response = await dependencies.send(device);
+        } catch (error) {
           result.failed += 1;
+          recordPushFailure(result.failures, null, error instanceof Error ? error.message : "Falha de rede");
           return;
         }
+        const status = typeof response === "number" ? response : response.status;
+        const reason = typeof response === "number" ? `HTTP ${status}` : response.reason;
         if (status >= 200 && status < 300) {
           result.sent += 1;
           return;
         }
         result.failed += 1;
+        recordPushFailure(result.failures, status, reason);
         if (status === 404 || status === 410) {
           try {
             await dependencies.remove(device.id);
