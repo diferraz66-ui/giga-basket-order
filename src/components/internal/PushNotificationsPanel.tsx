@@ -48,12 +48,25 @@ export function PushNotificationsPanel() {
         data: { title: cleanTitle, body: cleanMessage, url: cleanUrl },
       });
       const sent = Number(data?.sent ?? 0);
+      const failed = Number(data?.failed ?? 0);
       const removed = Number(data?.removed ?? 0);
-      toast.success(`Notificação enviada para ${sent} dispositivo(s). ${removed} assinatura(s) expirada(s) removida(s).`);
-      setMessage("");
+      const failures = Array.isArray(data?.failures)
+        ? data.failures as Array<{ status: number | null; reason: string; count: number }>
+        : [];
+      if (failed > 0) {
+        const details = failures.slice(0, 3).map(item =>
+          `${item.status ? `HTTP ${item.status}: ` : ""}${item.reason} (${item.count})`,
+        ).join(" · ");
+        toast.error(
+          `Enviadas: ${sent}. Falhas: ${failed}. Expiradas removidas: ${removed}.${details ? ` Motivos: ${details}` : " O servidor não retornou detalhes do erro."}`,
+        );
+      } else {
+        toast.success(`Notificação enviada para ${sent} dispositivo(s). ${removed} assinatura(s) expirada(s) removida(s).`);
+      }
+      if (sent > 0) setMessage("");
       await loadCount();
-    } catch {
-      toast.error("Não foi possível enviar. Verifique as chaves de notificações no Cloud e tente novamente.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível enviar a notificação. Consulte os logs do servidor.");
     } finally {
       setBusy(false);
     }
